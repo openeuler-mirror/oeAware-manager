@@ -13,26 +13,95 @@
 #define COMMON_MESSAGE_PROTOCOL_H
 
 #include <string>
+#include <boost/serialization/vector.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <iostream>
 #include <sstream>
-#include "message.h"
-/*
- * Message protocol is as follows:
- *       4               4           
- * | total length | header length | header data | body data |
- *
- */
-const int MAX_BUFF_SIZE = 4096;
+#include <sys/socket.h>
+
+const int MAX_RECV_BUFF_SIZE = 16384;
 const int MAX_EVENT_SIZE = 1024;
-const int LEN = 4;
-const int HEAD_LEN = 4;
-const int HEAD_LEN_START_POS = 4;
-const int HEAD_START_POS = 8;
+const int PROTOCOL_LENGTH_SIZE = sizeof(size_t);
+const int HEADER_LENGTH_SIZE = sizeof(size_t);
 
-void encode(char *buf, int &len, server::Msg *msg);
+enum class Opt {
+    LOAD,
+    ENABLED,
+    DISABLED,
+    REMOVE,
+    QUERY,
+    QUERY_ALL,
+    QUERY_TOP,
+    QUERY_ALL_TOP,
+    LIST,
+    DOWNLOAD,
+    RESPONSE,
+    SHUTDOWN,
+};
 
-int decode(char *buf, server::Msg *msg);
+class Msg {
+    private:
+        friend class boost::serialization::access;
+        template <typename Archive>
+        void serialize(Archive &ar, const unsigned int version) {
+            ar & _opt;
+            ar & _payload;
+        }
+    public:
+        int payload_size() {
+            return this->_payload.size();
+        }
+        std::string payload(int id) {
+            return this->_payload[id];
+        }
+        Opt opt() {
+            return this->_opt;
+        }
+        void add_payload(std::string &context) {
+            this->_payload.emplace_back(context);
+        }
+        void add_payload(std::string &&context) {
+            this->_payload.emplace_back(context);
+        }
+        void set_opt(Opt opt) {
+            this->_opt = opt;
+        }
+    private:
+        Opt _opt;
+        std::vector<std::string> _payload;
+};
+
+class MessageProtocol {
+public:
+    MessageProtocol(): tot_length(0), header_length(0), header(""), body("") { }
+    size_t tot_length;
+    size_t header_length;
+    std::string header;
+    std::string body; // Msg serialized data
+};
+
+class SocketStream {
+public:
+    SocketStream() : read_buff(MAX_BUFF_SIZE, 0) { }
+    SocketStream(int sock) : sock(sock), read_buff(MAX_BUFF_SIZE, 0) { }
+    ssize_t read(char *ptr, size_t size);
+    ssize_t write(const char *ptr, size_t size);
+    void set_sock(int sock) {
+        this->sock = sock;
+    }
+private:
+    int sock;
+    std::vector<char> read_buff;
+    size_t read_buff_off = 0;
+    size_t read_buff_content_size = 0;
+    static const size_t MAX_BUFF_SIZE = 4096;
+};
+
+bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol);
+bool send_response(SocketStream &stream, Msg &msg);
+
+int decode(Msg &msg, const std::string &content);
+std::string encode(Msg &msg);
 
 #endif // !COMMON_MESSAGE_PROTOCOL_H

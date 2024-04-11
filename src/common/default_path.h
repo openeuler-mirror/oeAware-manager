@@ -1,0 +1,22 @@
+/******************************************************************************
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * oeAware is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ ******************************************************************************/
+#ifndef COMMON_DEFAULT_PATH_H
+#define COMMON_DEFAULT_PATH_H
+
+
+const std::string DEFAULT_COLLECTOR_PATH = "/usr/lib64/oeAware-plugin/collector";
+const std::string DEFAULT_SCENARIO_PATH = "/usr/lib64/oeAware-plugin/scenario";
+const std::string DEFAULT_TUNE_PATH = "/usr/lib64/oeAware-plugin/tune";
+const std::string DEFAULT_RUN_PATH = "/var/run/oeAware";
+const std::string DEFAULT_LOG_PATH = "/var/log/oeAware";
+
+#endif // !COMMON_DEFAULT_PATH_H

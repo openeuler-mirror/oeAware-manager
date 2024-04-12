@@ -24,6 +24,9 @@ bool download(std::string url, std::string path) {
     curl = curl_easy_init();
     if (curl) {
         FILE *fp = fopen(path.c_str(), "wb");
+        if (fp == nullptr) {
+            return false;
+        }
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);

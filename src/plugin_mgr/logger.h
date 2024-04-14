@@ -12,8 +12,8 @@
 #ifndef PLUGIN_MGR_LOGGER_H
 #define PLUGIN_MGR_LOGGER_H
 
-#include <log4cplus/log4cplus.h>
 #include "config.h"
+#include <log4cplus/log4cplus.h>
 
 #define INFO(fmt) LOG4CPLUS_INFO(logger.get(), fmt)
 #define DEBUG(fmt) LOG4CPLUS_DEBUG(logger.get(), fmt)

@@ -1,4 +1,3 @@
-
 /******************************************************************************
  * Copyright (c) 2024 Huawei Technologies Co., Ltd.
  * oeAware is licensed under Mulan PSL v2.
@@ -39,8 +38,6 @@ struct Node {
     Node(std::string val): val(val), next(nullptr), pre(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
 };
 
-
-
 class DepHandler {
 public:
     DepHandler() {
@@ -53,12 +50,11 @@ public:
     }
     void add_node(std::string name, std::vector<std::string> dep_nodes = {});
     void del_node(std::string name);
-
+    std::vector<std::string> get_pre_dependencies(std::string name);
     // query instance dependency
     void query_node(std::string name, std::vector<std::vector<std::string>> &query);
     // query all instance dependencies
     void query_all_top(std::vector<std::vector<std::string>> &query);
-
     bool is_empty() {
         return nodes.empty();
     }
@@ -75,10 +71,8 @@ private:
     void del_node_and_arc_nodes(Node *node);
     Node* add_new_node(std::string name);
 
-
     std::unordered_map<std::string, std::unordered_map<ArcNode*, bool>> arc_nodes;
     std::unordered_map<std::string, Node*> nodes;
-
     Node * head;
     Node *tail;
 };

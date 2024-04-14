@@ -21,22 +21,18 @@ static int log_levels[] = {0, 10000, 20000, 30000, 40000, 50000, 60000};
 
 class PluginInfo {
 public:
-    PluginInfo(std::string name, std::string type, std::string description, std::string url) : name(name), type(type), description(description), url(url) { }
-    std::string get_name() {
+    PluginInfo(std::string name, std::string description, std::string url) : name(name), description(description), url(url) { }
+    std::string get_name() const {
         return this->name;
     }
-    std::string get_type() {
-        return this->type;
-    }
-    std::string get_description() {
+    std::string get_description() const {
         return this->description;
     }
-    std::string get_url() {
+    std::string get_url() const {
         return this->url;
     }
 private:
     std::string name;
-    std::string type;
     std::string description;
     std::string url;
 };
@@ -47,16 +43,16 @@ public:
     void set_enabled(bool enabled) {
         this->enabled = enabled;
     }
-    bool get_enabled() {
+    bool get_enabled() const {
         return this->enabled;
     }
     void add_instance(std::string text) {
         this->instance.emplace_back(text);
     }
-    size_t get_instance_size() {
+    size_t get_instance_size() const {
         return this->instance.size();
     }
-    std::string get_name() {
+    std::string get_name() const {
         return this->name;
     }
 private:
@@ -71,28 +67,28 @@ public:
         this->log_level = log_levels[2];
     }
     bool load(const std::string path);
-    int get_log_level() {
+    int get_log_level() const {
         return this->log_level;
     }
-    int get_schedule_cycle() {
+    int get_schedule_cycle() const {
         return this->schedule_cycle;
     }
-    std::string get_log_type() {
+    std::string get_log_type() const {
         return this->log_type;
     }
-    std::string get_log_path() {
+    std::string get_log_path() const {
         return this->log_path;
     }
-    PluginInfo get_plugin_list(int i) {
+    PluginInfo get_plugin_list(int i) const {
         return this->plugin_list[i];
     }
-    size_t get_plugin_list_size() {
+    size_t get_plugin_list_size() const {
         return this->plugin_list.size();
     }
-    EnableItem get_enable_list(int i) {
+    EnableItem get_enable_list(int i) const {
         return this->enable_list[i];
     }
-    size_t get_enable_list_size() {
+    size_t get_enable_list_size() const {
         return this->enable_list.size();
     }
 private:

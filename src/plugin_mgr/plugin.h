@@ -21,6 +21,10 @@ const std::string PLUGIN_DISABLED = "close";
 const std::string PLUGIN_STATE_ON = "available";
 const std::string PLUGIN_STATE_OFF = "unavailable";
 
+const std::string COLLECTOR_TEXT = "collector";
+const std::string SCENARIO_TEXT = "scenario";
+const std::string TUNE_TEXT = "tune";
+
 enum class PluginType {
     COLLECTOR,
     SCENARIO,
@@ -36,34 +40,34 @@ public:
     void set_name(std::string name)  {
         this->name = name;
     }
-    std::string get_name() {
+    std::string get_name() const {
         return this->name;
     }
     void set_type(PluginType type) {
         this->type = type;
     }
-    PluginType get_type() {
+    PluginType get_type() const {
         return type;
     }
     void set_plugin_name(std::string name)  {
         this->plugin_name = name;
     }
-    std::string get_plugin_name() {
+    std::string get_plugin_name() const {
         return this->plugin_name;
     }
     void set_state(bool state) {
         this->state = state;
     }
-    bool get_state() {
+    bool get_state() const {
         return this->state;
     }
     void set_enabled(bool enabled) {
         this->enabled = enabled;
     }
-    bool get_enabled() {
+    bool get_enabled() const {
         return this->enabled;
     }
-    std::string get_info() {
+    std::string get_info() const {
         std::string state_text = this->state ? PLUGIN_STATE_ON : PLUGIN_STATE_OFF;
         std::string run_text = this->enabled ? PLUGIN_ENABLED : PLUGIN_DISABLED;
         return name + "(" + state_text + ", " + run_text + ")"; 
@@ -85,7 +89,7 @@ public:
     void set_interface(CollectorInterface *interface) {
         this->interface = interface;
     }
-    CollectorInterface* get_interface() {
+    CollectorInterface* get_interface() const {
         return this->interface;
     }
 private:
@@ -101,7 +105,7 @@ public:
     void set_interface(ScenarioInterface *interface) {
         this->interface = interface;
     }
-    ScenarioInterface* get_interface() {
+    ScenarioInterface* get_interface() const {
         return this->interface;
     }
 private:
@@ -117,7 +121,7 @@ public:
     void set_interface(TuneInterface *interface) {
         this->interface = interface;
     }
-    TuneInterface* get_interface() {
+    TuneInterface* get_interface() const {
         return this->interface;
     }
 private:
@@ -134,22 +138,22 @@ public:
         dlclose(this->handler);
     }
     int load(const std::string dl_path);
-    std::string get_name() {
+    std::string get_name() const {
         return this->name;
     }
-    PluginType get_type() {
+    PluginType get_type() const {
         return this->type;
     }
     void add_instance(Instance *ins) {
         instances.emplace_back(ins);
     }
-    Instance* get_instance(int i) {
+    Instance* get_instance(int i) const {
         return instances[i];
     }
-    size_t get_instance_len() {
+    size_t get_instance_len() const {
         return instances.size();
     }
-    void * get_handler() {
+    void * get_handler() const {
         return handler;
     }
 private:

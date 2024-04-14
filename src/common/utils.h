@@ -14,7 +14,6 @@
 
 #include <string>
 
-bool download(std::string url, std::string path);
-
+bool download(const std::string &url, const std::string &path);
 
 #endif // !COMMON_UTILS_H

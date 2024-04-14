@@ -61,13 +61,14 @@ static void send_msg(Msg &msg, SafeQueue<Message> *handler_msg) {
     }
     handler_msg->push(message);
 }
-static void recv_msg(Msg &msg, SafeQueue<Message> *res_msg) {
+static void recv_msg(Msg &msg, MessageHeader &header, SafeQueue<Message> *res_msg) {
     Message res;
     res_msg->wait_and_pop(res);
     msg.set_opt(res.get_opt());
     for (int i = 0; i < res.get_payload_len(); ++i) {
         msg.add_payload(res.get_payload(i));
     }
+    header.set_state_code(res.get_state_code());
 }
 
 void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg){
@@ -84,22 +85,23 @@ void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message>
                 ev.events = EPOLLIN;
                 ev.data.fd = conn;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, conn, &ev);
-                DEBUG("[MessageManager] client connected!\n");
+                DEBUG("[MessageManager] client connected!");
             } else {
                 SocketStream stream(cur_fd);
                 MessageProtocol msg_protocol;
                 Msg client_msg;
                 Msg internal_msg;
+                MessageHeader header;
                 if (!handle_request(stream, msg_protocol)) {
                     epoll_ctl(epfd, EPOLL_CTL_DEL, cur_fd, NULL);
                     close(cur_fd);
-                    DEBUG("[MessageManager] one client disconnected!\n");
+                    DEBUG("[MessageManager] one client disconnected!");
                     continue;
                 }
                 decode(client_msg, msg_protocol.body);
                 send_msg(client_msg, handler_msg);
-                recv_msg(internal_msg, res_msg);
-                if (!send_response(stream, internal_msg)) {
+                recv_msg(internal_msg, header, res_msg);
+                if (!send_response(stream, internal_msg, header)) {
                     WARN("[MessageManager] send msg to client failed!");
                 }
             }

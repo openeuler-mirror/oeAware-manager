@@ -1,11 +1,13 @@
 cmake_minimum_required (VERSION 3.22)
 project(oeAware-client)
 
+SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now")
+
+aux_source_directory(. SOURCE)
 include_directories(../common)
 link_directories(/usr/lib64)
 
 add_executable (oeawarectl
-                cmd_handler.cpp
-                main.cpp
+                ${SOURCE}
                 ) 
 target_link_libraries(oeawarectl common)

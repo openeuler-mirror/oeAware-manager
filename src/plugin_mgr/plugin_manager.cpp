@@ -10,12 +10,13 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "plugin_manager.h"
+#include "default_path.h"
 #include "utils.h"
 #include <iostream>
 #include <dirent.h>
 #include <sys/stat.h>
 
-const static int F_RWX = 511;
+const static int ST_MODE_MASK = 0777;
 
 bool PluginManager::check(char **deps, int len) {
     for (int i = 0; i < len; ++i) {
@@ -25,9 +26,9 @@ bool PluginManager::check(char **deps, int len) {
 }
 
 void PluginManager::init(Config *config) {
-    plugin_types["collector"] = PluginType::COLLECTOR;
-    plugin_types["scenario"] = PluginType::SCENARIO;
-    plugin_types["tune"] = PluginType::TUNE;
+    plugin_types[COLLECTOR_TEXT] = PluginType::COLLECTOR;
+    plugin_types[SCENARIO_TEXT] = PluginType::SCENARIO;
+    plugin_types[TUNE_TEXT] = PluginType::TUNE;
     this->config = config;
 }
 
@@ -118,6 +119,7 @@ void PluginManager::save_instance(Plugin *plugin, T *interface_list, int len) {
         instance->set_type(plugin->get_type());
         instance->set_enabled(false);
         if (plugin->get_type() == PluginType::COLLECTOR) {
+            DEBUG("[PluginManager] add node");
             dep_handler->add_node(name); 
         } else {
             dep_handler->add_node(name, get_dep<T>(interface));
@@ -190,6 +192,35 @@ bool PluginManager::load_plugin(const std::string name, PluginType type) {
     return true;
 }
 
+std::string generate_dot(std::unordered_map<std::string, Instance*> instances, const std::vector<std::vector<std::string>> &query) {
+    std::string res;
+    res += "digraph G {\n";
+    std::unordered_map<std::string, std::vector<std::string>> sub_graph;
+    for (auto &vec : query) {
+        Instance *instance = instances[vec[0]];
+        sub_graph[instance->get_plugin_name()].emplace_back(vec[0]);
+        if (vec.size() == 1) {
+            continue;
+        }
+        instance = instances[vec[1]];
+        sub_graph[instance->get_plugin_name()].emplace_back(vec[1]);
+        res += vec[0] + "->"  + vec[1] + ";";
+    }
+    int id = 0;
+    for (auto &p : sub_graph) {
+        res += "subgraph cluster_" + std::to_string(id) + " {\n";
+        res += "node [style=filled];\n";
+        res += "label = \"" + p.first + "\";\n";
+        for (auto &i_name : p.second) {
+            res += i_name + ";\n";
+        }
+        res += "}\n";
+        id++;
+    }
+    res += "}";
+    return res;
+}
+
 bool PluginManager::query_top(std::string name, Message &res) {
     DEBUG("[PluginManager] query top : " << name);
     std::vector<std::vector<std::string>> query;
@@ -198,34 +229,21 @@ bool PluginManager::query_top(std::string name, Message &res) {
         res.add_payload("Instance not available!");
         return false;
     }
-    for (auto &vec : query) {
-        if (vec.size() == 1) {
-            res.add_payload(vec[0]);
-            continue;
-        }
-        std::string node0 = vec[0];
-        std::string node1 = vec[1];
-        res.add_payload(node0 + "->" + node1);
-    }
+    std::string dot_text = generate_dot(instances, query);
+    res.add_payload(dot_text);
     return true;
 }
 
 bool PluginManager::query_all_tops(Message &res) {
     std::vector<std::vector<std::string>> query;
     dep_handler->query_all_top(query);  
+    DEBUG("[PluginManager] query size:" << query.size());
     if (query.empty()) {
         res.add_payload("No instance available!");
         return false;
     }
-    for (auto &vec : query) {
-        if (vec.size() == 1) {
-            res.add_payload(vec[0]);
-            continue;
-        }
-        std::string node0 = vec[0];
-        std::string node1 = vec[1];
-        res.add_payload(node0 + "->" + node1);
-    }  
+    std::string dot_text = generate_dot(instances, query);
+    res.add_payload(dot_text);
     return true;
 }
 
@@ -246,6 +264,9 @@ bool PluginManager::instance_enabled(std::string name) {
     std::vector<std::string> pre_dependencies = dep_handler->get_pre_dependencies(name);
     for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
         instance = instances[pre_dependencies[i]];
+        if (instance->get_enabled()) {
+            continue;
+        }
         instance->set_enabled(true);
         instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
         INFO("[PluginManager] " << name << " instance enabled!");
@@ -273,11 +294,46 @@ bool PluginManager::instance_disabled(std::string name) {
     return true;
 }
 
+static bool end_with(const std::string &s, const std::string &ending) {
+    if (s.length() >= ending.length()) {
+        return (s.compare(s.length() - ending.length(), ending.length(), ending) == 0);
+    } else {
+        return false;
+    }
+}
+
+static std::string get_plugin_in_dir(const std::string &path) {
+    std::string res;
+    struct stat s = {};
+    lstat(path.c_str(), &s);
+    if (!S_ISDIR(s.st_mode)) {
+        return res;
+    }
+    struct dirent *filename = nullptr;
+    DIR *dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        return res;
+    }
+    while ((filename = readdir(dir)) != nullptr) {
+        if (end_with(std::string(filename->d_name), ".so")) {
+            res += std::string(filename->d_name) + "\n";
+        }
+    }
+    return res;
+}
+
 void PluginManager::add_list(Message &res) {
+    std::string list_text;
+    list_text += "Download Packages:\n";
     for (int i = 0; i < config->get_plugin_list_size(); ++i) {
         PluginInfo info = config->get_plugin_list(i);
-        res.add_payload(info.get_name() + "     " + info.get_type());
+        list_text += info.get_name() + "\n";
     }   
+    list_text += "Installed Plugins:\n";
+    list_text += get_plugin_in_dir(DEFAULT_COLLECTOR_PATH);
+    list_text += get_plugin_in_dir(DEFAULT_SCENARIO_PATH);
+    list_text += get_plugin_in_dir(DEFAULT_TUNE_PATH);
+    res.add_payload(list_text);
 }
 
 void PluginManager::pre_enable() {
@@ -304,7 +360,7 @@ void PluginManager::pre_load_plugin(PluginType type) {
     struct dirent *entry;
     while ((entry = readdir(dir)) != nullptr) {
         std::string name = entry->d_name;
-        if (name != "." && name != "..") {
+        if (end_with(name, ".so")) {
             Message msg;
             load_plugin(name, type);
         }
@@ -367,9 +423,11 @@ void PluginManager::instance_dep_check(std::string name, Message &res) {
 bool check_permission(std::string path, int mode) {
     struct stat st;
     lstat(path.c_str(), &st);
-    DEBUG("[PluginManager]" << path << " st_mode: " << st.st_mode << ",st_gid: " << st.st_gid << ", st_uid: " << st.st_uid);
+    int cur_mode = (st.st_mode & ST_MODE_MASK);
+    DEBUG("[PluginManager]" << path << " st_mode: " << cur_mode << ",st_gid: " << st.st_gid << ", st_uid: " << st.st_uid);
     if (st.st_gid || st.st_uid) return false;
-    if ((st.st_mode & F_RWX) != mode) return false;
+    
+    if (cur_mode != mode) return false;
     return true;
 }
 
@@ -397,6 +455,7 @@ int PluginManager::run() {
                 std::string plugin_name = msg.get_payload(0);
                 PluginType type = plugin_types[msg.get_payload(1)];
                 std::string plugin_path = get_path(type) + "/" + plugin_name;
+                if (!end_with(plugin_name, ".so")) break;
                 if (!file_exist(plugin_path)) {
                     WARN("[PluginManager] plugin " << plugin_name << " does not exist!");
                     res.add_payload("plugin does not exist!");
@@ -484,22 +543,17 @@ int PluginManager::run() {
                     PluginInfo info = config->get_plugin_list(i);
                     if (info.get_name() == name) {
                         url = info.get_url();
-                        type = info.get_type();
                         break;
                     }
                 }             
                 if (url.empty()) {
                     WARN("[PluginManager] unable to find a match: " << name);
+                    res.set_state_code(HEADER_STATE_FAILED);
                     res.add_payload("unable to find a match: " + name);
                     break;
                 }
-                std::string path = get_path(plugin_types[type]) + "/" + name;
-                if (download(url, path)) {
-                    res.add_payload(name + " download complete!");
-                } else {
-                    res.add_payload(name + " download failed!");
-                }
-                INFO("[PluginManager] download " << name << " from " << url << " to " << path);
+                res.add_payload(url);
+                INFO("[PluginManager] download " << name << " from " << url << ".");
             }
             default:
                 break;

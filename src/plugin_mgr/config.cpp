@@ -40,10 +40,9 @@ bool Config::load(const std::string path) {
             if (plugin_list.IsSequence()) {
                 for (int i = 0; i < plugin_list.size(); ++i) {
                     std::string name = plugin_list[i]["name"].as<std::string>();
-                    std::string type = plugin_list[i]["type"].as<std::string>();
                     std::string description = plugin_list[i]["description"].as<std::string>();
                     std::string url = plugin_list[i]["url"].as<std::string>();
-                    this->plugin_list.emplace_back(PluginInfo(name, type, description, url));
+                    this->plugin_list.emplace_back(PluginInfo(name, description, url));
                 }
             } else {
                 std::cerr << "Error: 'plugin_list' is not a sequence" << '\n';

@@ -17,7 +17,7 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     return written;
 }
 
-bool download(std::string url, std::string path) {
+bool download(const std::string &url, const std::string &path) {
     CURL *curl = nullptr;
     CURLcode res;
     curl_global_init(CURL_GLOBAL_DEFAULT);

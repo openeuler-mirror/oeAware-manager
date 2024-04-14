@@ -25,6 +25,9 @@ const int MAX_EVENT_SIZE = 1024;
 const int PROTOCOL_LENGTH_SIZE = sizeof(size_t);
 const int HEADER_LENGTH_SIZE = sizeof(size_t);
 
+const int HEADER_STATE_OK = 0;
+const int HEADER_STATE_FAILED = 1;
+
 enum class Opt {
     LOAD,
     ENABLED,
@@ -49,10 +52,10 @@ class Msg {
             ar & _payload;
         }
     public:
-        int payload_size() {
+        int payload_size() const {
             return this->_payload.size();
         }
-        std::string payload(int id) {
+        std::string payload(int id) const {
             return this->_payload[id];
         }
         Opt opt() {
@@ -70,6 +73,24 @@ class Msg {
     private:
         Opt _opt;
         std::vector<std::string> _payload;
+};
+
+class MessageHeader {
+private:
+    friend class boost::serialization::access;
+    template <typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & state_code;
+    }
+public:
+    void set_state_code(int code) {
+        this->state_code = code;
+    }
+    int get_state_code() {
+        return this->state_code;
+    }
+private:
+    int state_code;
 };
 
 class MessageProtocol {
@@ -99,9 +120,28 @@ private:
 };
 
 bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol);
-bool send_response(SocketStream &stream, Msg &msg);
+bool send_response(SocketStream &stream, const Msg &msg, const MessageHeader &header);
 
-int decode(Msg &msg, const std::string &content);
-std::string encode(Msg &msg);
+template<typename T>
+std::string encode(const T &msg) {
+    std::stringstream ss;
+    boost::archive::binary_oarchive os(ss);
+    os << msg;
+    return ss.str();
+}
+
+template<typename T> 
+int decode(T &msg, const std::string &content) {
+    int len = 0;
+    try {
+        std::stringstream ss(content);
+        boost::archive::binary_iarchive ia(ss);
+        ia >> msg;
+    } catch (const boost::archive::archive_exception& e) {
+        std::cerr << "Serialization failed: " << e.what() << "\n";
+        return -1;
+    }
+    return 0;
+}
 
 #endif // !COMMON_MESSAGE_PROTOCOL_H

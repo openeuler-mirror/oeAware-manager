@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "message_protocol.h"
 #include <iostream>
+
 template <typename T>
 inline ssize_t handle_EINTR(T fn) {
     ssize_t res = 0;
@@ -23,6 +24,7 @@ inline ssize_t handle_EINTR(T fn) {
     }
     return res;
 }
+
 inline ssize_t read_socket(int sock, void *ptr, size_t size, int flags) {
     return handle_EINTR([&]() {
         return recv(sock, ptr, size, flags);
@@ -84,6 +86,7 @@ static std::string to_hex(size_t x) {
     result = zero + result;
     return result;
 }
+
 static size_t from_hex(std::string s) {
     std::stringstream ss;
     size_t ret;

@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "dep_handler.h"
+#include <queue>
 #include <stdio.h>
     
 void DepHandler::add_arc_node(Node* node, const std::vector<std::string> &dep_nodes) {
@@ -135,9 +136,23 @@ void DepHandler::query_node(std::string name, std::vector<std::vector<std::strin
     if (!nodes.count(name)) return;
     Node *p = nodes[name];
     query.emplace_back(std::vector<std::string>{name});
-    for (ArcNode *cur = p->head->next; cur != nullptr; cur = cur->next) {
+    for (auto cur = p->head->next; cur != nullptr; cur = cur->next) {
         query.emplace_back(std::vector<std::string>{name, cur->val});
         query_node(cur->val, query);
     }
 }
 
+std::vector<std::string> DepHandler::get_pre_dependencies(std::string name) {
+    std::vector<std::string> res;
+    std::queue<Node*> q;
+    q.push(nodes[name]);
+    while (!q.empty()) {
+        auto &node = q.front();
+        q.pop();
+        res.emplace_back(node->val);
+        for (auto arc_node = node->head->next; arc_node != nullptr; arc_node = arc_node->next) {
+            q.push(nodes[arc_node->val]);
+        }
+    }
+    return res;
+}

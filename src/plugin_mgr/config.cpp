@@ -10,16 +10,17 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "config.h"
-#include <unistd.h>
+#include "default_path.h"
 #include <iostream>
+#include <unistd.h>
 
 void create_dir(std::string path) {
     if (access(path.c_str(), F_OK) == -1) {
         mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IROTH);
     }
 }
-bool Config::load(const std::string path) {
 
+bool Config::load(const std::string path) {
     YAML::Node node;
     struct stat buffer;
     if (stat(path.c_str(), &buffer) != 0) {
@@ -34,23 +35,44 @@ bool Config::load(const std::string path) {
         if (!node["log_level"].IsNull()) {
             this->log_level =  log_levels[node["log_level"].as<int>()];
         }
-        if (!node["plugins"].IsNull()) {
-            YAML::Node plugins = node["plugins"];
-            if (plugins.IsSequence()) {
-                for (int i = 0; i < plugins.size(); ++i) {
-                    std::string name = plugins[i]["name"].as<std::string>();
-                    std::string type = plugins[i]["type"].as<std::string>();
-                    std::string description = plugins[i]["description"].as<std::string>();
-                    std::string url = plugins[i]["url"].as<std::string>();
-                    this->preload_plugins.emplace_back(PluginInfo(name, type, description, url));
+        if (!node["plugin_list"].IsNull()) {
+            YAML::Node plugin_list = node["plugin_list"];
+            if (plugin_list.IsSequence()) {
+                for (int i = 0; i < plugin_list.size(); ++i) {
+                    std::string name = plugin_list[i]["name"].as<std::string>();
+                    std::string type = plugin_list[i]["type"].as<std::string>();
+                    std::string description = plugin_list[i]["description"].as<std::string>();
+                    std::string url = plugin_list[i]["url"].as<std::string>();
+                    this->plugin_list.emplace_back(PluginInfo(name, type, description, url));
                 }
             } else {
-                std::cerr << "Error: 'plugins' is not a sequence" << '\n';
+                std::cerr << "Error: 'plugin_list' is not a sequence" << '\n';
+            }
+        }
+        if (!node["enable_list"].IsNull()) {
+            YAML::Node enable_list = node["enable_list"];
+            if (enable_list.IsSequence()) {
+                for (int i = 0; i < enable_list.size(); ++i) {
+                    YAML::Node instances = enable_list[i]["instances"];
+                    std::string name = enable_list[i]["name"].as<std::string>();
+                    EnableItem enable_item(name);
+                    if (instances.IsNull()) {
+                        enable_item.set_enabled(true);
+                    } else if (instances.IsSequence()) {
+                        for (int j = 0; j < instances.size(); ++j) {
+                            std::string i_name = instances[j]["name"].as<std::string>();
+                            enable_item.add_instance(i_name);
+                        }
+                    } else {
+                        continue;
+                    }
+                    this->enable_list.emplace_back(enable_item);
+                }
             }
         }
     }
     catch (const YAML::Exception& e) {
-        
+        std::cerr << e.what() << '\n';
         return false;
     }
     create_dir(this->log_path);

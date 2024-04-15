@@ -12,14 +12,14 @@
 #ifndef PLUGIN_MGR_MESSAGE_MANAGER_H
 #define PLUGIN_MGR_MESSAGE_MANAGER_H
 
-#include <vector>
-#include <sys/un.h>
-#include <arpa/inet.h>
-#include <sys/epoll.h>
 #include "safe_queue.h"
 #include "message_protocol.h"
 #include "logger.h"
 #include "config.h"
+#include <vector>
+#include <sys/un.h>
+#include <arpa/inet.h>
+#include <sys/epoll.h>
 
 enum class MessageType {
     INTERNAL,
@@ -81,7 +81,6 @@ public:
     void init(Config *config){
        this->tcp_socket = new TcpSocket();
     }
-
     void run();
 
     SafeQueue<Message> *handler_msg;

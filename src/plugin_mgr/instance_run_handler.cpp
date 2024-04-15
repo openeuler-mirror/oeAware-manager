@@ -10,8 +10,8 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "instance_run_handler.h"
-#include <unistd.h>
 #include <thread>
+#include <unistd.h>
 
 void* get_ring_buf(Instance *instance) {
     if (instance == nullptr) {
@@ -67,7 +67,6 @@ void InstanceRunHandler::insert_instance(Instance *instance) {
     }
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");
 }
-
 void InstanceRunHandler::delete_instance(Instance *instance) {
     switch (instance->get_type()) {
         case PluginType::COLLECTOR:
@@ -83,7 +82,9 @@ void InstanceRunHandler::delete_instance(Instance *instance) {
             ((TuneInstance*)instance)->get_interface()->disable();
             break;
     }
+    INFO("[PluginManager] " << instance->get_name() << " instance delete from running queue.");
 }
+
 
 void InstanceRunHandler::handle_instance() {
     InstanceRunMessage msg;
@@ -99,7 +100,6 @@ void InstanceRunHandler::handle_instance() {
         }
     }
 }
-
 template<typename T>
 static std::vector<std::string> get_deps(Instance *instance) {
     std::string deps = ((T*)instance)->get_interface()->get_dep();
@@ -125,6 +125,7 @@ void InstanceRunHandler::adjust_collector_queue(const std::vector<std::string> &
                 ok = true;
             }
         }
+        if (ok) continue;
         if (flag) {
             if (find(m_dep) && !collector.count(m_dep)) {
                 this->insert_instance((*this->all_instance)[m_dep]);
@@ -179,6 +180,7 @@ void start(InstanceRunHandler *instance_run_handler) {
         for (auto &p : instance_run_handler->get_tune()) {
             schedule_tune(p.second, time, instance_run_handler);
         }
+
         usleep(instance_run_handler->get_cycle() * 1000);
         time += instance_run_handler->get_cycle();
     }

@@ -12,17 +12,12 @@
 #ifndef PLUGIN_MGR_CONFIG_H
 #define PLUGIN_MGR_CONFIG_H
 
+#include "plugin.h"
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include <sys/stat.h>
-#include "plugin.h"
 
 static int log_levels[] = {0, 10000, 20000, 30000, 40000, 50000, 60000};
-const std::string DEFAULT_COLLECTOR_PATH = "/usr/lib64/oeAware-plugin/collector";
-const std::string DEFAULT_SCENARIO_PATH = "/usr/lib64/oeAware-plugin/scenario";
-const std::string DEFAULT_TUNE_PATH = "/usr/lib64/oeAware-plugin/tune";
-const std::string DEFAULT_RUN_PATH = "/var/run/oeAware";
-const std::string DEFAULT_LOG_PATH = "/var/log/oeAware";
 
 class PluginInfo {
 public:
@@ -46,14 +41,36 @@ private:
     std::string url;
 };
 
+class EnableItem {
+public:
+    EnableItem(std::string name) : name(name) { }
+    void set_enabled(bool enabled) {
+        this->enabled = enabled;
+    }
+    bool get_enabled() {
+        return this->enabled;
+    }
+    void add_instance(std::string text) {
+        this->instance.emplace_back(text);
+    }
+    size_t get_instance_size() {
+        return this->instance.size();
+    }
+    std::string get_name() {
+        return this->name;
+    }
+private:
+    bool enabled;
+    std::string name;
+    std::vector<std::string> instance;
+};
+
 class Config {
 public:
     Config() {
         this->log_level = log_levels[2];
     }
-
     bool load(const std::string path);
-
     int get_log_level() {
         return this->log_level;
     }
@@ -66,18 +83,28 @@ public:
     std::string get_log_path() {
         return this->log_path;
     }
-    PluginInfo get_preload_plugins(int i) {
-        return this->preload_plugins[i];
+    PluginInfo get_plugin_list(int i) {
+        return this->plugin_list[i];
     }
-    int get_preload_plugins_size() {
-        return this->preload_plugins.size();
+    size_t get_plugin_list_size() {
+        return this->plugin_list.size();
+    }
+    EnableItem get_enable_list(int i) {
+        return this->enable_list[i];
+    }
+    size_t get_enable_list_size() {
+        return this->enable_list.size();
     }
 private:
     int log_level;
     int schedule_cycle;
     std::string log_path;
     std::string log_type;
-    std::vector<PluginInfo> preload_plugins;
+    std::vector<PluginInfo> plugin_list;
+    std::vector<EnableItem> enable_list;
 };
+
 std::string get_path(PluginType type);
+void create_dir(std::string path);
+
 #endif

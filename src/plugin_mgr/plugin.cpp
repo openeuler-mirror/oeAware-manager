@@ -9,15 +9,29 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_DEFAULT_PATH_H
-#define COMMON_DEFAULT_PATH_H
+#include "plugin.h"
 
-#include<string>
+int Plugin::load(const std::string dl_path) {
+    void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
+    if (handler == nullptr) {
+        printf("dlopen error!\n");
+        return -1;
+    }
+    this->handler = handler;
+    return 0;
+}
 
-const std::string DEFAULT_COLLECTOR_PATH = "/usr/lib64/oeAware-plugin/collector";
-const std::string DEFAULT_SCENARIO_PATH = "/usr/lib64/oeAware-plugin/scenario";
-const std::string DEFAULT_TUNE_PATH = "/usr/lib64/oeAware-plugin/tune";
-const std::string DEFAULT_RUN_PATH = "/var/run/oeAware";
-const std::string DEFAULT_LOG_PATH = "/var/log/oeAware";
-
-#endif // !COMMON_DEFAULT_PATH_H
+std::string plugin_type_to_string(PluginType type) {
+    switch (type) {
+        case PluginType::COLLECTOR: {
+            return "collector";
+        }
+        case PluginType::SCENARIO: {
+            return "scenario";
+        }
+        case PluginType::TUNE: {
+            return "tune";
+        }
+    }
+    return "error";
+}

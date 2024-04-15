@@ -12,13 +12,13 @@
 #ifndef PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 #define PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 
+#include "safe_queue.h"
+#include "plugin.h"
+#include "logger.h"
 #include <set>
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "safe_queue.h"
-#include "plugin.h"
-#include "logger.h"
 
 const int DEFAULT_CYCLE_SIZE = 10;
 const int MAX_DEPENDENCIES_SIZE = 20;
@@ -45,6 +45,7 @@ private:
     RunType type;
     Instance *instance;
 };
+
 // A handler to schedule plugin instance 
 class InstanceRunHandler {
 public:

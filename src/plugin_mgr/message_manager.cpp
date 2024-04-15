@@ -10,8 +10,8 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "message_manager.h"
-#include <thread>
 #include "default_path.h"
+#include <thread>
 
 int TcpSocket::domain_listen(const char *name) {
     int len;
@@ -21,7 +21,6 @@ int TcpSocket::domain_listen(const char *name) {
     un.sun_family = AF_UNIX;
     strcpy(un.sun_path, name);
     len = offsetof(struct sockaddr_un, sun_path)  + strlen(name);
-
     if (bind(sock, (struct sockaddr*)&un, len) < 0) {
         ERROR("[MessageManager] bind error!");
         return -1;

@@ -12,10 +12,10 @@
 #ifndef COMMON_MESSAGE_PROTOCOL_H
 #define COMMON_MESSAGE_PROTOCOL_H
 
-#include <string>
 #include <boost/serialization/vector.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <string>
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>

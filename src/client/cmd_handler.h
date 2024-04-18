@@ -12,7 +12,9 @@
 #ifndef CLIENT_CMD_HANDLER_H
 #define CLIENT_CMD_HANDLER_H
 
-#include "message.h"
+#include "message_protocol.h"
+#include <string>
+#include <stdio.h>
 
 static std::string type;
 static std::string arg;
@@ -20,138 +22,62 @@ static std::string arg;
 class CmdHandler {
 public:
     CmdHandler(){}
-    virtual bool handler(server::Msg *msg) = 0;
-    virtual bool res_handler(server::Msg *msg) = 0;
+    virtual void handler(Msg &msg) = 0;
+    virtual void res_handler(Msg &msg) = 0;
 };
 
 class LoadHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        if (type.empty()) {
-            printf("plugin type needed!\n");
-            return false;
-        }
-        msg->add_payload(arg);
-        msg->add_payload(type);
-        msg->set_opt(server::Opt::LOAD);
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        for (int i = 0; i < res->payload_size(); ++i) {
-            printf("%s\n", res->payload(i).c_str());
-        }
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 class QueryHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        if (arg.empty()) {
-            msg->set_opt(server::Opt::QUERY_ALL);
-        } else {
-            msg->add_payload(arg);
-            msg->set_opt(server::Opt::QUERY);
-        }
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        int len = res->payload_size();
-        if (len == 0) {
-            printf("no plugins loaded!\n");
-            return true;
-        }
-        for (int i = 0; i < len; ++i) {
-            printf("%s\n", res->payload(i).c_str());
-        }
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 class RemoveHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        msg->add_payload(arg);
-        msg->set_opt(server::Opt::REMOVE);
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        printf("%s\n", res->payload(0).c_str());
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 
 class QueryTopHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        if (arg.empty()) { 
-            msg->set_opt(server::Opt::QUERY_ALL_TOP);
-        } else {
-            msg->add_payload(arg);
-            msg->set_opt(server::Opt::QUERY_TOP);
-        }
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        for (int i = 0; i < res->payload_size(); ++i) {
-            printf("%s\n", res->payload(i).c_str());
-        }
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 class EnabledHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        msg->add_payload(arg);
-        msg->set_opt(server::Opt::ENABLED);
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        printf("%s\n", res->payload(0).c_str());
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 class DisabledHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        msg->add_payload(arg);
-        msg->set_opt(server::Opt::DISABLED);
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        printf("%s\n", res->payload(0).c_str());
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
 class ListHandler : public CmdHandler {
 public:
-    bool handler(server::Msg *msg) override {
-        msg->set_opt(server::Opt::LIST);
-        return true;
-    }
-
-    bool res_handler(server::Msg *res) override {
-        for (int i = 0; i < res->payload_size(); ++i) {
-            printf("%s\n", res->payload(i).c_str());
-        }
-        return true;
-    }
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
 };
 
+class DownloadHandler : public CmdHandler {
+public:
+    void handler(Msg &msg) override;
+    void res_handler(Msg &msg) override;
+};
 
 CmdHandler* get_cmd_handler(int cmd);
-
 void set_type(char* _type);
 void set_arg(char* _arg);
 void print_help();
+
 #endif // !CLIENT_CMD_HANDLER_H

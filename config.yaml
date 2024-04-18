@@ -1,9 +1,8 @@
 log_path: /var/log/oeAware
 log_level: 1
-schedule_cycle: 10
-plugins:
+enable_list:
+  - name: aaa.so
+plugin_list:
   - name: test
-    type: collector
     description: hello world
-    enabled: true
     url: https://gitee.com/openeuler/oeAware-manager

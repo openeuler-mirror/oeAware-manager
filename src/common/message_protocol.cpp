@@ -95,26 +95,18 @@ static size_t from_hex(std::string s) {
     return ret;
 }
 
-std::string encode(Msg &msg) {
-    std::stringstream ss;
-    boost::archive::binary_oarchive os(ss);
-    os << msg;
-    return ss.str();
-}
-
-int decode(Msg &msg, const std::string &content) {
-    int len = 0;
-    try {
-        std::stringstream ss(content);
-        boost::archive::binary_iarchive ia(ss);
-        ia >> msg;
-    } catch (const boost::archive::archive_exception& e) {
-        std::cerr << "Serialization failed: " << e.what() << "\n";
-        return -1;
+static bool read_buf(int start, int end, char *buf, SocketStream &stream, std::string &msg) {
+    while (start < end) {
+        auto read_len = end - start;
+        int n = stream.read(buf, std::min(read_len, MAX_RECV_BUFF_SIZE));
+        if (n <= 0) { 
+            return false;
+        }
+        msg.append(buf, n);
+        start += n;
     }
-    return 0;
+    return true;
 }
-
 
 bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol) {
     char buf[MAX_RECV_BUFF_SIZE];
@@ -123,37 +115,40 @@ bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol) {
     if (ret <= 0) { 
         return false; 
     }
-    int len = from_hex(buf);
-    msg_protocol.tot_length = len;
+    msg_protocol.tot_length = from_hex(buf);
     ret = stream.read(buf, HEADER_LENGTH_SIZE);
     if (ret <= 0) {
         return false;
     }
     msg_protocol.header_length = from_hex(buf);
-    int i = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
-    while (i < len) {
-        auto read_len = len - i;
-        int n = stream.read(buf, std::min(read_len, MAX_RECV_BUFF_SIZE));
-        if (n <= 0) { 
-            return false;
-        }
-        msg_protocol.body.append(buf, n);
-        i += n;
-    }     
+    int header_start = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
+    int header_end = header_start + msg_protocol.header_length;
+    if (!read_buf(header_start, header_end, buf, stream, msg_protocol.header)) {
+        return false;
+    }
+    
+    int body_start = header_end;
+    int body_end = msg_protocol.tot_length;     
+    if (!read_buf(body_start, body_end, buf, stream, msg_protocol.body)) {
+        return false;
+    }
     return true;    
 }
 
-bool send_response(SocketStream &stream, Msg &msg) {
+bool send_response(SocketStream &stream, const Msg &msg, const MessageHeader &header) {
     MessageProtocol proto;
+    proto.header = encode(header);
     proto.body = encode(msg);
+
     proto.tot_length += PROTOCOL_LENGTH_SIZE;
     proto.tot_length += HEADER_LENGTH_SIZE;
-    proto.tot_length += 0; // header data
+    proto.tot_length += proto.header.size(); 
     proto.tot_length += proto.body.size();
-    proto.header_length = 0;
-    proto.header = "";
+    proto.header_length = proto.header.size();
+
     std::string res = to_hex(proto.tot_length);
     res += to_hex(proto.header_length);
+    res += proto.header;
     res += proto.body;
     return stream.write(res.c_str(), res.size());
 }

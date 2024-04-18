@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
     std::string config_path(argv[1]);
-    if (!check_permission(config_path, S_IRUSR | S_IWUSR)) {
+    if (!check_permission(config_path, S_IRUSR | S_IWUSR | S_IRGRP)) {
         ERROR("Insufficient permission on " << config_path);
         exit(EXIT_FAILURE);
     }
@@ -31,11 +31,11 @@ int main(int argc, char **argv) {
     logger.init(&config);
     SafeQueue<Message> handler_msg;
     SafeQueue<Message> res_msg;
-    INFO("[MessageManager] Start message manager!\n");
+    INFO("[MessageManager] Start message manager!");
     MessageManager message_manager(&handler_msg, &res_msg);
     message_manager.init(&config);
     message_manager.run();
-    INFO("[PluginManager] Start plugin manager!\n");
+    INFO("[PluginManager] Start plugin manager!");
     PluginManager plugin_manager(&handler_msg, &res_msg);
     plugin_manager.init(&config);
     plugin_manager.pre_load();

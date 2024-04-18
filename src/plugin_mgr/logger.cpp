@@ -12,29 +12,30 @@
 #include "logger.h"
 #include <sys/stat.h>
 #include <unistd.h>
+
 Logger::Logger() {
     logger = log4cplus::Logger::getInstance("oeAware");
     log4cplus::SharedAppenderPtr appender(new log4cplus::ConsoleAppender()); 
     appender->setName("console");
-
-    log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m [%l]%n");
-
+    log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m"
+#ifdef OEAWARE_DEBUG 
+    " [%l]"
+#endif
+     "%n");
     appender->setLayout(std::unique_ptr<log4cplus::Layout>(new log4cplus::PatternLayout(pattern)));
-
     logger.setLogLevel(log4cplus::INFO_LOG_LEVEL);
-
     logger.addAppender(appender);
 }
 
 void Logger::init(Config  *config) {   
     log4cplus::SharedAppenderPtr appender(new log4cplus::FileAppender(config->get_log_path() + "/server.log"));
     appender->setName("file");
-    
-    log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m [%l]%n");
-
+    log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m"
+#ifdef OEAWARE_DEBUG 
+    " [%l]"
+#endif
+    "%n");
     appender->setLayout(std::unique_ptr<log4cplus::Layout>(new log4cplus::PatternLayout(pattern)));
-
     logger.setLogLevel(config->get_log_level());
-
     logger.addAppender(appender);
 }

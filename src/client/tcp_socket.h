@@ -9,28 +9,22 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "plugin.h"
+#ifndef CLIENT_TCP_SOCKET_H
+#include "message_protocol.h"
+#include "default_path.h"
 
-int Plugin::load(const std::string dl_path) {
-    void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
-    if (handler == nullptr) {
-        return -1;
-    }
-    this->handler = handler;
-    return 0;
-}
+class TcpSocket {
+public:
+    TcpSocket() { }
+    bool recv_msg(Msg &res, MessageHeader &header);
+    bool send_msg(Msg &msg);
+    int file_connect(const char *name);
+    bool init();
+    void clear();
+private:
+    int sock;
+    SocketStream stream;
+    const std::string SOCK_PATH = DEFAULT_RUN_PATH + "/oeAware-sock";
+};
 
-std::string plugin_type_to_string(PluginType type) {
-    switch (type) {
-        case PluginType::COLLECTOR: {
-            return COLLECTOR_TEXT;
-        }
-        case PluginType::SCENARIO: {
-            return SCENARIO_TEXT;
-        }
-        case PluginType::TUNE: {
-            return TUNE_TEXT;
-        }
-    }
-    return "";
-}
+#endif // !CLIENT_TCP_SOCKET_H

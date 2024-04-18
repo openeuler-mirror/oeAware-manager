@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.22)
 project(common)
 
 aux_source_directory(. SOURCE)
+SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now")
 
 
 include_directories(/usr/include/yaml-cpp)

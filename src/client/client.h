@@ -9,28 +9,31 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "plugin.h"
+#ifndef CLIENT_H
+#define CLIENT_H
+#include "tcp_socket.h"
+#include "cmd_handler.h"
+#include <getopt.h>
 
-int Plugin::load(const std::string dl_path) {
-    void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
-    if (handler == nullptr) {
-        return -1;
+class Client {
+public:
+    Client() : cmd_handler(nullptr) { }
+    ~Client() {
+        if (cmd_handler)
+            delete cmd_handler;
     }
-    this->handler = handler;
-    return 0;
-}
+    bool init();
+    void run_cmd(int cmd);
+    void close();
+    int arg_parse(int argc, char *argv[]);
+private:
+    void arg_error(const std::string &msg);
+    
+    TcpSocket tcp_socket;
+    CmdHandler *cmd_handler;
+    const static  std::string OPT_STRING;
+    const static int MAX_OPT_SIZE = 11;
+    const static struct option long_options[MAX_OPT_SIZE];
+};
 
-std::string plugin_type_to_string(PluginType type) {
-    switch (type) {
-        case PluginType::COLLECTOR: {
-            return COLLECTOR_TEXT;
-        }
-        case PluginType::SCENARIO: {
-            return SCENARIO_TEXT;
-        }
-        case PluginType::TUNE: {
-            return TUNE_TEXT;
-        }
-    }
-    return "";
-}
+#endif // !CLIENT_H

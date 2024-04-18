@@ -46,7 +46,7 @@ public:
     }
     Node* get_node(std::string name);
     bool get_node_state(std::string name) {
-        return nodes[name]->state;
+        return this->nodes[name]->state;
     }
     void add_node(std::string name, std::vector<std::string> dep_nodes = {});
     void del_node(std::string name);
@@ -55,14 +55,11 @@ public:
     void query_node(std::string name, std::vector<std::vector<std::string>> &query);
     // query all instance dependencies
     void query_all_top(std::vector<std::vector<std::string>> &query);
-    bool is_empty() {
+    bool is_empty() const {
         return nodes.empty();
     }
-    size_t get_node_nums() {
+    size_t get_node_nums() const {
         return nodes.size();
-    }
-    Node* get_head_node() {
-        return this->head;
     }
 private:
     void query_node_top(std::string name, std::vector<std::vector<std::string>> &query);

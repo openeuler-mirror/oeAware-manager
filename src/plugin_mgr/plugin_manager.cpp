@@ -16,14 +16,10 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+const std::string PluginManager::COLLECTOR_TEXT = "collector";
+const std::string PluginManager::SCENARIO_TEXT = "scenario";
+const std::string PluginManager::TUNE_TEXT = "tune";
 const static int ST_MODE_MASK = 0777;
-
-bool PluginManager::check(char **deps, int len) {
-    for (int i = 0; i < len; ++i) {
-        if (!is_instance_exist(deps[i])) return false;
-    }
-    return true;
-}
 
 void PluginManager::init(Config *config) {
     plugin_types[COLLECTOR_TEXT] = PluginType::COLLECTOR;
@@ -32,24 +28,29 @@ void PluginManager::init(Config *config) {
     this->config = config;
 }
 
-bool PluginManager::remove(const std::string name) {
-    if (!plugins.count(name)) return false;
-    Plugin *plugin = plugins[name];
+bool PluginManager::remove(const std::string &name) {
+    if (!memory_store.is_plugin_exist(name)) return false;
+    Plugin *plugin = memory_store.get_plugin(name);
+    std::vector<std::string> instance_names;
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
         Instance *instance = plugin->get_instance(i);
         std::string iname = instance->get_name();
-        instances.erase(iname);
-        dep_handler->del_node(iname);
-        INFO("[PluginManager] instance : " << instance->get_name());
+        if (dep_handler->have_dep(iname)) {
+            return false;
+        }
+        instance_names.emplace_back(iname);
     }
-    delete plugin;
-    plugins.erase(name);
+    for(auto &iname : instance_names) {
+        memory_store.delete_instance(iname);
+        dep_handler->del_node(iname);
+    }
+    memory_store.delete_plugin(name);
     update_instance_state();
     return true;
 }
 bool PluginManager::query_all_plugins(Message &res) {
-    for (auto &t : plugins) {
-        Plugin *p = t.second;
+    std::vector<Plugin*> all_plugins = memory_store.get_all_plugins();
+    for (auto &p : all_plugins) {
         res.add_payload(p->get_name());
         for (int i = 0; i < p->get_instance_len(); ++i) {
             std::string info = p->get_instance(i)->get_info();
@@ -60,11 +61,11 @@ bool PluginManager::query_all_plugins(Message &res) {
 }
 
 bool PluginManager::query_plugin(std::string name, Message &res) {
-    if (!plugins.count(name)) {
+    if (!memory_store.is_plugin_exist(name)) {
         res.add_payload("no such plugin!");
         return true;
     }
-    Plugin *plugin = plugins[name];
+    Plugin *plugin = memory_store.get_plugin(name);
     res.add_payload(name);
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
         std::string info = plugin->get_instance(i)->get_info();
@@ -106,10 +107,6 @@ std::vector<std::string> get_dep(T *interface) {
 template<typename T, typename U>
 void PluginManager::save_instance(Plugin *plugin, T *interface_list, int len) {
     if (interface_list == nullptr) return;
-    std::unordered_map<std::string, bool> tmp_interfaces;
-    for (int i = 0; i < len; ++i) {
-        tmp_interfaces[interface_list[i].get_name()] = true;
-    }
     for (int i = 0; i < len; ++i) {
         T *interface = interface_list + i;
         Instance *instance = new U();
@@ -127,7 +124,7 @@ void PluginManager::save_instance(Plugin *plugin, T *interface_list, int len) {
         instance->set_state(dep_handler->get_node_state(name));
         ((U*)instance)->set_interface(interface);
         DEBUG("[PluginManager] Instance: " << name.c_str());
-        this->instances[name] = instance;
+        memory_store.add_instance(name, instance);
         plugin->add_instance(instance);    
     }
 }
@@ -163,17 +160,18 @@ bool PluginManager::load_instance(Plugin *plugin) {
 }
 
 void PluginManager::update_instance_state() {
-    for (auto &v : instances) {
-        if (dep_handler->get_node_state(v.first)) {
-            v.second->set_state(true);
+    std::vector<Instance*> all_instances = memory_store.get_all_instances();
+    for (auto &instance : all_instances) {
+        if (dep_handler->get_node_state(instance->get_name())) {
+            instance->set_state(true);
         } else {
-            v.second->set_state(false);
+            instance->set_state(false);
         }
     }
 }
 
 bool PluginManager::load_plugin(const std::string name, PluginType type) {
-    if (plugins.count(name)) {
+    if (memory_store.is_plugin_exist(name)) {
         WARN("[PluginManager] " << name << " already loaded!");
         return false;
     }
@@ -188,21 +186,21 @@ bool PluginManager::load_plugin(const std::string name, PluginType type) {
         delete plugin;
         return false;
     }
-    plugins[name] = plugin;
+    memory_store.add_plugin(name, plugin);
     return true;
 }
 
-std::string generate_dot(std::unordered_map<std::string, Instance*> instances, const std::vector<std::vector<std::string>> &query) {
+std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vector<std::string>> &query) {
     std::string res;
     res += "digraph G {\n";
     std::unordered_map<std::string, std::vector<std::string>> sub_graph;
     for (auto &vec : query) {
-        Instance *instance = instances[vec[0]];
+        Instance *instance = memory_store.get_instance(vec[0]);
         sub_graph[instance->get_plugin_name()].emplace_back(vec[0]);
         if (vec.size() == 1) {
             continue;
         }
-        instance = instances[vec[1]];
+        instance = memory_store.get_instance(vec[1]);
         sub_graph[instance->get_plugin_name()].emplace_back(vec[1]);
         res += vec[0] + "->"  + vec[1] + ";";
     }
@@ -229,7 +227,7 @@ bool PluginManager::query_top(std::string name, Message &res) {
         res.add_payload("Instance not available!");
         return false;
     }
-    std::string dot_text = generate_dot(instances, query);
+    std::string dot_text = generate_dot(memory_store, query);
     res.add_payload(dot_text);
     return true;
 }
@@ -242,17 +240,17 @@ bool PluginManager::query_all_tops(Message &res) {
         res.add_payload("No instance available!");
         return false;
     }
-    std::string dot_text = generate_dot(instances, query);
+    std::string dot_text = generate_dot(memory_store, query);
     res.add_payload(dot_text);
     return true;
 }
 
 bool PluginManager::instance_enabled(std::string name) {
-    if (!instances.count(name)) {
+    if (!memory_store.is_instance_exist(name)) {
         WARN("[PluginManager] " << name << " instance can't load!");
         return false;
     }
-    Instance *instance = instances[name];
+    Instance *instance = memory_store.get_instance(name);
     if (!instance->get_state()) {
         WARN("[PluginManager] " << name << " instance is unavailable, lacking dependencies!");
         return false;
@@ -263,7 +261,7 @@ bool PluginManager::instance_enabled(std::string name) {
     }
     std::vector<std::string> pre_dependencies = dep_handler->get_pre_dependencies(name);
     for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
-        instance = instances[pre_dependencies[i]];
+        instance = memory_store.get_instance(pre_dependencies[i]);
         if (instance->get_enabled()) {
             continue;
         }
@@ -275,11 +273,11 @@ bool PluginManager::instance_enabled(std::string name) {
 }
 
 bool PluginManager::instance_disabled(std::string name) {
-    if (!instances.count(name)) {
+    if (!memory_store.is_instance_exist(name)) {
         WARN("[PluginManager] " << name << " instance can't load!");
         return false;
     }
-    Instance *instance = instances[name];
+    Instance *instance = memory_store.get_instance(name);
     if (!instance->get_state()) {
         WARN("[PluginManager] " << name << " instance is unavailable, lacking dependencies!");
         return false;
@@ -341,11 +339,11 @@ void PluginManager::pre_enable() {
         EnableItem item = config->get_enable_list(i);
         if (item.get_enabled()) {
             std::string name = item.get_name();
-            if (!plugins.count(name)) {
+            if (!memory_store.is_plugin_exist(name)) {
                 WARN("[PluginManager] plugin " << name << " cannot be enabled, because it does not exist.");
                 continue;
             }
-            Plugin *plugin = plugins[name];
+            Plugin *plugin = memory_store.get_plugin(name);
             for (int j = 0; j < plugin->get_instance_len(); ++j) {
                 instance_enabled(plugin->get_instance(i)->get_name());
             }
@@ -380,7 +378,7 @@ static bool check_load_msg(Message &msg, std::unordered_map<std::string, PluginT
 }
 
 void* PluginManager::get_data_buffer(std::string name) {
-    Instance *instance = instances[name];
+    Instance *instance = memory_store.get_instance(name);
     switch (instance->get_type()) {
         case PluginType::COLLECTOR: {
             CollectorInterface *collector_interface = ((CollectorInstance*)instance)->get_interface();
@@ -397,7 +395,7 @@ void* PluginManager::get_data_buffer(std::string name) {
 }
 
 void PluginManager::instance_dep_check(std::string name, Message &res) {
-    Plugin *plugin = plugins[name];
+    Plugin *plugin = memory_store.get_plugin(name);
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
         std::string instance_name = plugin->get_instance(i)->get_name();
         std::vector<std::vector<std::string>> query;
@@ -405,7 +403,7 @@ void PluginManager::instance_dep_check(std::string name, Message &res) {
         std::vector<std::string> lack;
         for (auto &item : query) {
             if (item.size() < 2) continue;
-            if (!instances.count(item[1])) {
+            if (!memory_store.is_instance_exist(item[1])) {
                 lack.emplace_back(item[1]);
             }
         }
@@ -437,7 +435,7 @@ static bool file_exist(const std::string &file_name) {
 }
 
 int PluginManager::run() {
-    instance_run_handler->set_all_instance(&instances);
+    instance_run_handler->set_memory_store(&memory_store);
     instance_run_handler->run();
     while (true) {
         Message msg;
@@ -483,7 +481,7 @@ int PluginManager::run() {
                     res.add_payload(name + " removed!");
                     INFO("[PluginManager] " << name << " removed!");
                 } else {
-                   res.add_payload(name + " does not exist!");
+                   res.add_payload(name + " remove failed!");
                 }
                 break;
             }

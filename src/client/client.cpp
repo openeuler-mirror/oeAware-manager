@@ -11,6 +11,21 @@
  ******************************************************************************/
 #include "client.h"
 
+const std::string Client::OPT_STRING = "Qqd:t:l:r:e:";
+const struct option Client::long_options[] = {
+    {"help", no_argument, NULL, 'h'},
+    {"load", required_argument, NULL, 'l'},
+    {"type", required_argument, NULL, 't'},
+    {"remove", required_argument, NULL, 'r'}, 
+    {"query", required_argument, NULL, 'q'},
+    {"query-dep", required_argument, NULL, 'Q'},
+    {"enable", required_argument, NULL, 'e'},
+    {"disable", required_argument, NULL, 'd'},
+    {"list", no_argument, NULL, 'L'},
+    {"download", required_argument, NULL, 'D'},
+    {0, 0, 0, 0},
+};
+
 static void print_error(const Msg &msg) {
     for (int i = 0; i < msg.payload_size(); ++i) {
         printf("%s\n", msg.payload(i).c_str());
@@ -40,20 +55,6 @@ void Client::run_cmd(int cmd) {
     this->cmd_handler->res_handler(res);
 }
 
-const std::string Client::OPT_STRING = "Qqd:t:l:r:e:";
-const struct option Client::long_options[] = {
-    {"help", no_argument, NULL, 'h'},
-    {"load", required_argument, NULL, 'l'},
-    {"type", required_argument, NULL, 't'},
-    {"remove", required_argument, NULL, 'r'}, 
-    {"query", required_argument, NULL, 'q'},
-    {"query-dep", required_argument, NULL, 'Q'},
-    {"enable", required_argument, NULL, 'e'},
-    {"disable", required_argument, NULL, 'd'},
-    {"list", no_argument, NULL, 'L'},
-    {"download", required_argument, NULL, 'D'},
-    {0, 0, 0, 0},
-};
 int Client::arg_parse(int argc, char *argv[]) {
     int cmd = -1;
     int opt;
@@ -95,10 +96,12 @@ int Client::arg_parse(int argc, char *argv[]) {
     }
     return cmd;
 }
+
 void Client::arg_error(const std::string &msg) {
     std::cerr << "oeawarectl: " << msg << "\n";
     exit(EXIT_FAILURE);
 }
+
 void Client::close() {
     tcp_socket.clear();
 }

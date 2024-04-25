@@ -14,28 +14,22 @@
 #include <stdio.h>
     
 void DepHandler::add_arc_node(Node* node, const std::vector<std::string> &dep_nodes) {
-    ArcNode *arc_head = new ArcNode();
-    node->head = arc_head;
+    ArcNode *arc_head = node->head;
     node->cnt = dep_nodes.size();
     int real_cnt = 0;
     bool state = true;
-    for (auto val : dep_nodes) {
+    for (auto name : dep_nodes) {
         ArcNode *tmp = new ArcNode();
-        tmp->val = val; 
-        tmp->node_name = node->val;
-        tmp->next = arc_head->next; 
-        if (arc_head->next != nullptr) {
-            arc_head->next->pre = tmp;
-        }
-        
-        tmp->pre = arc_head;
+        tmp->arc_name = name; 
+        tmp->node_name = node->name;
+        tmp->next = arc_head->next;
         arc_head->next = tmp;
         
-        if (nodes.count(val)) {
-            arc_nodes[val][tmp] = true;
+        if (nodes.count(name)) {
+            arc_nodes[name][tmp] = true;
             real_cnt++;
         } else {
-            arc_nodes[val][tmp] = false;
+            arc_nodes[name][tmp] = false;
             state = false;
         }
     }
@@ -46,15 +40,14 @@ void DepHandler::add_arc_node(Node* node, const std::vector<std::string> &dep_no
 
 void DepHandler::add_node(std::string name, std::vector<std::string> dep_nodes) {
     Node *cur_node = add_new_node(name);
-    change_arc_nodes(name, true);
-    add_arc_node(cur_node, dep_nodes);
     this->nodes[name] = cur_node;
+    add_arc_node(cur_node, dep_nodes);
+    change_arc_nodes(name, true);
 }
 
 void DepHandler::del_node(std::string name) {
     del_node_and_arc_nodes(get_node(name));
     this->nodes.erase(name);
-    change_arc_nodes(name, false);
 }
 
 
@@ -65,8 +58,9 @@ Node* DepHandler::get_node(std::string name) {
 
 Node* DepHandler::add_new_node(std::string name) {
     Node *cur_node = new Node(name);
+    cur_node->head = new ArcNode();
+
     tail->next = cur_node;
-    cur_node->pre = tail;
     tail = cur_node;
     return cur_node;
 }
@@ -74,18 +68,15 @@ Node* DepHandler::add_new_node(std::string name) {
 
 
 void DepHandler::del_node_and_arc_nodes(Node *node) {
-    Node *pre = node->pre;
     Node *next = node->next;
-    pre->next = next;
-    if (next != nullptr)
-        next->pre = pre;
     ArcNode *arc = node->head;
     while(arc) {
         ArcNode *tmp = arc->next;
         if (arc != node->head){
-            arc_nodes[node->val].erase(arc);
-            if (arc_nodes[node->val].empty()) {
-                arc_nodes.erase(node->val);
+            std::string name = arc->arc_name;
+            arc_nodes[name].erase(arc);
+            if (arc_nodes[name].empty()) {
+                arc_nodes.erase(name);
             }
         }
         delete arc;
@@ -95,6 +86,7 @@ void DepHandler::del_node_and_arc_nodes(Node *node) {
     delete node;
 }
 void DepHandler::change_arc_nodes(std::string name, bool state) {
+    if (!nodes[name]->state || !arc_nodes.count(name)) return;
     std::unordered_map<ArcNode*, bool> &mp = arc_nodes[name];
     for (auto &vec : mp) {
         vec.second = state;
@@ -127,7 +119,7 @@ void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::s
         return;
     }
     while (p->next != nullptr) {       
-        query.emplace_back(std::vector<std::string>{name, p->next->val});
+        query.emplace_back(std::vector<std::string>{name, p->next->arc_name});
         p = p->next;
     }
 }
@@ -137,8 +129,8 @@ void DepHandler::query_node(std::string name, std::vector<std::vector<std::strin
     Node *p = nodes[name];
     query.emplace_back(std::vector<std::string>{name});
     for (auto cur = p->head->next; cur != nullptr; cur = cur->next) {
-        query.emplace_back(std::vector<std::string>{name, cur->val});
-        query_node(cur->val, query);
+        query.emplace_back(std::vector<std::string>{name, cur->arc_name});
+        query_node(cur->arc_name, query);
     }
 }
 
@@ -149,9 +141,9 @@ std::vector<std::string> DepHandler::get_pre_dependencies(std::string name) {
     while (!q.empty()) {
         auto &node = q.front();
         q.pop();
-        res.emplace_back(node->val);
+        res.emplace_back(node->name);
         for (auto arc_node = node->head->next; arc_node != nullptr; arc_node = arc_node->next) {
-            q.push(nodes[arc_node->val]);
+            q.push(nodes[arc_node->arc_name]);
         }
     }
     return res;

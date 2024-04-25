@@ -21,7 +21,6 @@ static std::string arg;
 
 class CmdHandler {
 public:
-    CmdHandler(){}
     virtual void handler(Msg &msg) = 0;
     virtual void res_handler(Msg &msg) = 0;
 };

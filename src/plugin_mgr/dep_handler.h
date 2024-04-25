@@ -19,23 +19,21 @@
 
 struct ArcNode {
     ArcNode *next;
-    ArcNode *pre;
-    std::string val;
+    std::string arc_name;
     std::string node_name;
-    ArcNode() : next(nullptr), pre(nullptr) {}
+    ArcNode() : next(nullptr) {}
 };
 
 // a instance node 
 struct Node {
     Node *next;
-    Node *pre;
     ArcNode *head;
-    std::string val;
+    std::string name;
     int cnt; 
     int real_cnt; 
     bool state; // dependency closed-loop
-    Node() : next(nullptr), pre(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
-    Node(std::string val): val(val), next(nullptr), pre(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
+    Node() : next(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
+    Node(std::string name): name(name), next(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
 };
 
 class DepHandler {
@@ -55,6 +53,9 @@ public:
     void query_node(std::string name, std::vector<std::vector<std::string>> &query);
     // query all instance dependencies
     void query_all_top(std::vector<std::vector<std::string>> &query);
+    bool have_dep(const std::string &name) {
+        return arc_nodes.count(name);
+    }
     bool is_empty() const {
         return nodes.empty();
     }

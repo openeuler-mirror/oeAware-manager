@@ -16,15 +16,6 @@
 #include <vector>
 #include <dlfcn.h>
 
-const std::string PLUGIN_ENABLED = "running";
-const std::string PLUGIN_DISABLED = "close";
-const std::string PLUGIN_STATE_ON = "available";
-const std::string PLUGIN_STATE_OFF = "unavailable";
-
-const std::string COLLECTOR_TEXT = "collector";
-const std::string SCENARIO_TEXT = "scenario";
-const std::string TUNE_TEXT = "tune";
-
 enum class PluginType {
     COLLECTOR,
     SCENARIO,
@@ -67,17 +58,17 @@ public:
     bool get_enabled() const {
         return this->enabled;
     }
-    std::string get_info() const {
-        std::string state_text = this->state ? PLUGIN_STATE_ON : PLUGIN_STATE_OFF;
-        std::string run_text = this->enabled ? PLUGIN_ENABLED : PLUGIN_DISABLED;
-        return name + "(" + state_text + ", " + run_text + ")"; 
-    }
+    std::string get_info() const;
 private:
     std::string name;
     std::string plugin_name;
     PluginType type;
     bool state;
     bool enabled;
+    const static std::string PLUGIN_ENABLED;
+    const static std::string PLUGIN_DISABLED;
+    const static std::string PLUGIN_STATE_ON;
+    const static std::string PLUGIN_STATE_OFF;
 };
 
 class CollectorInstance : public Instance {

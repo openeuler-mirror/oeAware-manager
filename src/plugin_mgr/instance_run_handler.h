@@ -15,13 +15,12 @@
 #include "safe_queue.h"
 #include "plugin.h"
 #include "logger.h"
+#include "memory_store.h"
 #include <set>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
-const int DEFAULT_CYCLE_SIZE = 10;
-const int MAX_DEPENDENCIES_SIZE = 20;
 enum class RunType {
     ENABLED,
     DISABLED,
@@ -32,9 +31,6 @@ class InstanceRunMessage {
 public:
     InstanceRunMessage() {}
     InstanceRunMessage(RunType type, Instance *instance) : type(type), instance(instance) {}
-    void init()  {
-
-    }
     RunType get_type() {
         return type;
     }
@@ -51,11 +47,12 @@ class InstanceRunHandler {
 public:
     InstanceRunHandler() : cycle(DEFAULT_CYCLE_SIZE) {}
     void run();
+    void schedule_collector(uint64_t time);
+    void schedule_scenario(uint64_t time);
+    void schedule_tune(uint64_t time);
     void handle_instance();
-    void delete_instance(Instance *instance);
-    void insert_instance(Instance *instance);
-    void set_all_instance(std::unordered_map<std::string, Instance*> *all_instance) {
-        this->all_instance = all_instance;
+    void set_memory_store(MemoryStore *memory_store) {
+        this->memory_store = memory_store;
     }
     void set_cycle(int cycle) {
         this->cycle = cycle;
@@ -63,20 +60,8 @@ public:
     int get_cycle() {
         return cycle;
     }
-    bool find(std::string name) {
-        return (*this->all_instance).count(name);
-    }
-    std::unordered_map<std::string, Instance*> get_collector() {
-        return this->collector;
-    }
-    std::unordered_map<std::string, Instance*> get_scenario() {
-        return this->scenario;
-    }
-    std::unordered_map<std::string, Instance*> get_tune() {
-        return this->tune;
-    }
-    std::unordered_map<std::string, Instance*>* get_all_instance() {
-        return this->all_instance;
+    bool is_instance_exist(const std::string &name) {
+        return memory_store->is_instance_exist(name);
     }
     void recv_queue_push(InstanceRunMessage &msg) {
         this->recv_queue.push(msg);
@@ -87,16 +72,22 @@ public:
     bool recv_queue_try_pop(InstanceRunMessage &msg) {
         return this->recv_queue.try_pop(msg);
     }
-    void check_scenario_dependency(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps);
 private:
+    void run_aware(Instance *instance, std::vector<std::string> &deps);
+    void run_tune(Instance *instance, std::vector<std::string> &deps);
+    void delete_instance(Instance *instance);
+    void insert_instance(Instance *instance);
     void adjust_collector_queue(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps, bool flag);
-    
+    void check_scenario_dependency(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps);
+
     std::unordered_map<std::string, Instance*> collector;
     std::unordered_map<std::string, Instance*> scenario;
     std::unordered_map<std::string, Instance*> tune;
     SafeQueue<InstanceRunMessage> recv_queue;
-    std::unordered_map<std::string, Instance*> *all_instance;
+    MemoryStore *memory_store;
     int cycle;
+    static const int DEFAULT_CYCLE_SIZE = 10;
+    static const int MAX_DEPENDENCIES_SIZE = 20;
 };
 
 #endif // !PLUGIN_MGR_INSTANCE_RUN_HANDLER_H

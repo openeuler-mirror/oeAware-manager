@@ -13,11 +13,10 @@
 #define PLUGIN_MGR_PLUGIN_MANAGER_H
 
 #include "instance_run_handler.h"
-#include "plugin.h"
 #include "config.h"
+#include "memory_store.h"
 #include "dep_handler.h"
 #include "message_manager.h"
-#include "logger.h"
 #include <vector>
 #include <queue>
 #include <unordered_map>
@@ -39,7 +38,6 @@ public:
     void* get_data_buffer(std::string name);
 private:
     void pre_load_plugin(PluginType type); 
-    bool check(char **deps, int len);
     bool query_all_plugins(Message &res);
     bool query_plugin(std::string name, Message &res);
     bool query_top(std::string name, Message &res);
@@ -54,24 +52,23 @@ private:
     bool load_instance(Plugin *plugin);
     bool load_plugin(const std::string path, PluginType type);
     void batch_load();
-    bool remove(const std::string name);
+    bool remove(const std::string &name);
     void batch_remove();
     void add_list(Message &msg);
-    bool is_instance_exist(std::string name) {
-        return this->instances.find(name) != this->instances.end();
-    }
     void update_instance_state();
 private:
     InstanceRunHandler *instance_run_handler;
     Config *config;
     SafeQueue<Message> *handler_msg;
     SafeQueue<Message> *res_msg;
-    std::unordered_map<std::string, Plugin*> plugins; 
-    std::unordered_map<std::string, Instance*> instances; 
-    DepHandler *dep_handler; 
-    std::unordered_map<std::string, PluginType> plugin_types;  
+    MemoryStore memory_store;
+    DepHandler *dep_handler;
+    std::unordered_map<std::string, PluginType> plugin_types; 
+    static const std::string COLLECTOR_TEXT;
+    static const std::string SCENARIO_TEXT;
+    static const std::string TUNE_TEXT; 
 };
 
 bool check_permission(std::string path, int mode);
 
-#endif 
+#endif

@@ -80,7 +80,7 @@ void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message>
         for (int i = 0; i < num; ++i) {
             int cur_fd = evs[i].data.fd;
             if (cur_fd == sock) {
-                conn = accept(cur_fd, NULL, NULL);
+                int conn = accept(cur_fd, NULL, NULL);
                 struct epoll_event ev;
                 ev.events = EPOLLIN;
                 ev.data.fd = conn;

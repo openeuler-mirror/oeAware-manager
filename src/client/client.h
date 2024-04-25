@@ -31,9 +31,9 @@ private:
     
     TcpSocket tcp_socket;
     CmdHandler *cmd_handler;
-    const static  std::string OPT_STRING;
-    const static int MAX_OPT_SIZE = 11;
-    const static struct option long_options[MAX_OPT_SIZE];
+    static const std::string OPT_STRING;
+    static const int MAX_OPT_SIZE = 20;
+    static const struct option long_options[MAX_OPT_SIZE];
 };
 
 #endif // !CLIENT_H

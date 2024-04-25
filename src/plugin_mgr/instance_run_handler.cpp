@@ -13,7 +13,7 @@
 #include <thread>
 #include <unistd.h>
 
-void* get_ring_buf(Instance *instance) {
+static void* get_ring_buf(Instance *instance) {
     if (instance == nullptr) {
         return nullptr;
     }
@@ -32,19 +32,19 @@ static void reflash_ring_buf(Instance *instance) {
     ((CollectorInstance*)instance)->get_interface()->reflash_ring_buf();
 }
 
-static void run_aware(Instance *instance, std::vector<std::string> &deps, std::unordered_map<std::string, Instance*> *all_instance) {
+void InstanceRunHandler::run_aware(Instance *instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
     for (int i = 0; i < deps.size(); ++i) {
-        Instance *ins = (*all_instance)[deps[i]];
+        Instance *ins = memory_store->get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
     ((ScenarioInstance*)instance)->get_interface()->aware(a, (int)deps.size());
 }
 
-static void run_tune(Instance *instance, std::vector<std::string> &deps, std::unordered_map<std::string, Instance*> *all_instance) {
+void InstanceRunHandler::run_tune(Instance *instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
     for (int i = 0; i < deps.size(); ++i) {
-        Instance *ins = (*all_instance)[deps[i]];
+        Instance *ins = memory_store->get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
     ((TuneInstance*)instance)->get_interface()->tune(a, (int)deps.size());
@@ -67,6 +67,7 @@ void InstanceRunHandler::insert_instance(Instance *instance) {
     }
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");
 }
+
 void InstanceRunHandler::delete_instance(Instance *instance) {
     switch (instance->get_type()) {
         case PluginType::COLLECTOR:
@@ -85,7 +86,6 @@ void InstanceRunHandler::delete_instance(Instance *instance) {
     INFO("[PluginManager] " << instance->get_name() << " instance delete from running queue.");
 }
 
-
 void InstanceRunHandler::handle_instance() {
     InstanceRunMessage msg;
     while(this->recv_queue_try_pop(msg)){
@@ -100,6 +100,7 @@ void InstanceRunHandler::handle_instance() {
         }
     }
 }
+
 template<typename T>
 static std::vector<std::string> get_deps(Instance *instance) {
     std::string deps = ((T*)instance)->get_interface()->get_dep();
@@ -127,12 +128,12 @@ void InstanceRunHandler::adjust_collector_queue(const std::vector<std::string> &
         }
         if (ok) continue;
         if (flag) {
-            if (find(m_dep) && !collector.count(m_dep)) {
-                this->insert_instance((*this->all_instance)[m_dep]);
+            if (is_instance_exist(m_dep) && !collector.count(m_dep)) {
+                this->insert_instance(memory_store->get_instance(m_dep));
             }
         } else {
-            if (find(m_dep) && collector.count(m_dep)) {
-                this->delete_instance((*this->all_instance)[m_dep]);
+            if (is_instance_exist(m_dep) && collector.count(m_dep)) {
+                this->delete_instance(memory_store->get_instance(m_dep));
             }
         }
     }
@@ -143,26 +144,35 @@ void InstanceRunHandler::check_scenario_dependency(const std::vector<std::string
     adjust_collector_queue(cur_deps, origin_deps, false);
 }
 
-static void schedule_collector(Instance *instance, unsigned long long time) {
-    int t = ((CollectorInstance*)instance)->get_interface()->get_cycle();
-    if (time % t != 0) return;
-    reflash_ring_buf(instance);
+void InstanceRunHandler::schedule_collector(uint64_t time) {
+    for (auto &p : collector) {
+        Instance *instance = p.second;
+        int t = ((CollectorInstance*)instance)->get_interface()->get_cycle();
+        if (time % t != 0) return;
+        reflash_ring_buf(instance);
+    }
 }
 
-static void schedule_scenario(Instance *instance, unsigned long long time, InstanceRunHandler *instance_run_handler) {
-    int t = ((ScenarioInstance*)instance)->get_interface()->get_cycle();
-    if (time % t != 0) return;
-    std::vector<std::string> origin_deps = get_deps<ScenarioInstance>(instance); 
-    run_aware(instance, origin_deps, instance_run_handler->get_all_instance()); 
-    std::vector<std::string> cur_deps = get_deps<ScenarioInstance>(instance);
-    instance_run_handler->check_scenario_dependency(origin_deps, cur_deps);
+void InstanceRunHandler::schedule_scenario(uint64_t time) {
+    for (auto &p : scenario) {
+        Instance *instance = p.second;
+        int t = ((ScenarioInstance*)instance)->get_interface()->get_cycle();
+        if (time % t != 0) return;
+        std::vector<std::string> origin_deps = get_deps<ScenarioInstance>(instance); 
+        run_aware(instance, origin_deps); 
+        std::vector<std::string> cur_deps = get_deps<ScenarioInstance>(instance);
+        check_scenario_dependency(origin_deps, cur_deps);
+    }
 }
 
-static void schedule_tune(Instance *instance, unsigned long long time, InstanceRunHandler *instance_run_handler) {
-    int t = ((TuneInstance*)instance)->get_interface()->get_cycle();
-    if (time % t != 0) return;
-    std::vector<std::string> deps = get_deps<TuneInstance>(instance); 
-    run_tune(instance, deps, instance_run_handler->get_all_instance());
+void InstanceRunHandler::schedule_tune(uint64_t time) {
+    for (auto &p : tune) {
+        Instance *instance = p.second;
+        int t = ((TuneInstance*)instance)->get_interface()->get_cycle();
+        if (time % t != 0) return;
+        std::vector<std::string> deps = get_deps<TuneInstance>(instance); 
+        run_tune(instance, deps);
+    }
 }
 
 void start(InstanceRunHandler *instance_run_handler) {
@@ -170,16 +180,9 @@ void start(InstanceRunHandler *instance_run_handler) {
     INFO("[PluginManager] instance schedule started!");
     while(true) {
         instance_run_handler->handle_instance();
-        for (auto &p : instance_run_handler->get_collector()) {
-            schedule_collector(p.second, time);
-        }
-        for (auto &p : instance_run_handler->get_scenario()) {
-            schedule_scenario(p.second, time, instance_run_handler);
-        }
-
-        for (auto &p : instance_run_handler->get_tune()) {
-            schedule_tune(p.second, time, instance_run_handler);
-        }
+        instance_run_handler->schedule_collector(time);
+        instance_run_handler->schedule_scenario(time);
+        instance_run_handler->schedule_tune(time);
 
         usleep(instance_run_handler->get_cycle() * 1000);
         time += instance_run_handler->get_cycle();

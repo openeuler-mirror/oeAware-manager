@@ -68,15 +68,14 @@ private:
 
 class TcpSocket {
 public:
-    TcpSocket() : conn(-1) {}
-    int domain_listen(const char *name);
+    TcpSocket() {}
     bool init();
     void serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg);    
+private:
+    int domain_listen(const char *name);
+    
     int sock;
-    struct sockaddr_in addr;
-    int conn;
     int epfd;
-    struct epoll_event ev;
 };
 
 class MessageManager {

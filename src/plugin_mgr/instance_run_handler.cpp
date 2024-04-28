@@ -13,74 +13,74 @@
 #include <thread>
 #include <unistd.h>
 
-static void* get_ring_buf(Instance *instance) {
+static void* get_ring_buf(std::shared_ptr<Instance> instance) {
     if (instance == nullptr) {
         return nullptr;
     }
     switch (instance->get_type()) {
         case PluginType::COLLECTOR:
-            return ((CollectorInstance*)instance)->get_interface()->get_ring_buf();
+            return (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->get_ring_buf();
         case PluginType::SCENARIO:
-            return ((ScenarioInstance*)instance)->get_interface()->get_ring_buf();
+            return (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->get_ring_buf();
         case PluginType::TUNE:
             break;
     }
     return nullptr;
 }
 
-static void reflash_ring_buf(Instance *instance) {
-    ((CollectorInstance*)instance)->get_interface()->reflash_ring_buf();
+static void reflash_ring_buf(std::shared_ptr<Instance> instance) {
+    (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->reflash_ring_buf();
 }
 
-void InstanceRunHandler::run_aware(Instance *instance, std::vector<std::string> &deps) {
+void InstanceRunHandler::run_aware(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
     for (int i = 0; i < deps.size(); ++i) {
-        Instance *ins = memory_store->get_instance(deps[i]);
+        std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
-    ((ScenarioInstance*)instance)->get_interface()->aware(a, (int)deps.size());
+    (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->aware(a, (int)deps.size());
 }
 
-void InstanceRunHandler::run_tune(Instance *instance, std::vector<std::string> &deps) {
+void InstanceRunHandler::run_tune(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
     for (int i = 0; i < deps.size(); ++i) {
-        Instance *ins = memory_store->get_instance(deps[i]);
+        std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
-    ((TuneInstance*)instance)->get_interface()->tune(a, (int)deps.size());
+    (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->tune(a, (int)deps.size());
 }
 
-void InstanceRunHandler::insert_instance(Instance *instance) {
+void InstanceRunHandler::insert_instance(std::shared_ptr<Instance> instance) {
     switch (instance->get_type()) {
         case PluginType::COLLECTOR:
             collector[instance->get_name()] = instance;
-            ((CollectorInstance*)instance)->get_interface()->enable();
+            (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->enable();
             break;
         case PluginType::SCENARIO:
             scenario[instance->get_name()] = instance;
-            ((ScenarioInstance*)instance)->get_interface()->enable();
+            (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->enable();
             break;
         case PluginType::TUNE:
             tune[instance->get_name()] = instance;
-            ((TuneInstance*)instance)->get_interface()->enable();
+            (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->enable();
             break;
     }
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");
 }
 
-void InstanceRunHandler::delete_instance(Instance *instance) {
+void InstanceRunHandler::delete_instance(std::shared_ptr<Instance> instance) {
     switch (instance->get_type()) {
         case PluginType::COLLECTOR:
             collector.erase(instance->get_name());
-            ((CollectorInstance*)instance)->get_interface()->disable();
+            (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->disable();
             break;
         case PluginType::SCENARIO:
             scenario.erase(instance->get_name());
-            ((ScenarioInstance*)instance)->get_interface()->disable();
+            (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->disable();
             break;
         case PluginType::TUNE:
             tune.erase(instance->get_name());
-            ((TuneInstance*)instance)->get_interface()->disable();
+            (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->disable();
             break;
     }
     INFO("[PluginManager] " << instance->get_name() << " instance delete from running queue.");
@@ -89,21 +89,22 @@ void InstanceRunHandler::delete_instance(Instance *instance) {
 void InstanceRunHandler::handle_instance() {
     InstanceRunMessage msg;
     while(this->recv_queue_try_pop(msg)){
-        Instance *instance = msg.get_instance();
+        std::shared_ptr<Instance> instance = msg.get_instance();
         switch (msg.get_type()){
             case RunType::ENABLED:
-                insert_instance(instance);
+                insert_instance(std::move(instance));
                 break;
             case RunType::DISABLED:
-                delete_instance(instance);
+                delete_instance(std::move(instance));
                 break;
         }
     }
 }
 
 template<typename T>
-static std::vector<std::string> get_deps(Instance *instance) {
-    std::string deps = ((T*)instance)->get_interface()->get_dep();
+static std::vector<std::string> get_deps(std::shared_ptr<Instance> instance) {
+    std::shared_ptr<T> t_instance = std::dynamic_pointer_cast<T>(instance);
+    std::string deps = (t_instance)->get_interface()->get_dep();
     std::string dep = "";
     std::vector<std::string> vec;
     for (int i = 0; i < deps.length(); ++i) {
@@ -129,11 +130,11 @@ void InstanceRunHandler::adjust_collector_queue(const std::vector<std::string> &
         if (ok) continue;
         if (flag) {
             if (is_instance_exist(m_dep) && !collector.count(m_dep)) {
-                this->insert_instance(memory_store->get_instance(m_dep));
+                this->insert_instance(memory_store.get_instance(m_dep));
             }
         } else {
             if (is_instance_exist(m_dep) && collector.count(m_dep)) {
-                this->delete_instance(memory_store->get_instance(m_dep));
+                this->delete_instance(memory_store.get_instance(m_dep));
             }
         }
     }
@@ -146,8 +147,8 @@ void InstanceRunHandler::check_scenario_dependency(const std::vector<std::string
 
 void InstanceRunHandler::schedule_collector(uint64_t time) {
     for (auto &p : collector) {
-        Instance *instance = p.second;
-        int t = ((CollectorInstance*)instance)->get_interface()->get_cycle();
+        std::shared_ptr<Instance> instance = p.second;
+        int t = (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->get_cycle();
         if (time % t != 0) return;
         reflash_ring_buf(instance);
     }
@@ -155,8 +156,8 @@ void InstanceRunHandler::schedule_collector(uint64_t time) {
 
 void InstanceRunHandler::schedule_scenario(uint64_t time) {
     for (auto &p : scenario) {
-        Instance *instance = p.second;
-        int t = ((ScenarioInstance*)instance)->get_interface()->get_cycle();
+        std::shared_ptr<Instance> instance = p.second;
+        int t = (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->get_cycle();
         if (time % t != 0) return;
         std::vector<std::string> origin_deps = get_deps<ScenarioInstance>(instance); 
         run_aware(instance, origin_deps); 
@@ -167,8 +168,8 @@ void InstanceRunHandler::schedule_scenario(uint64_t time) {
 
 void InstanceRunHandler::schedule_tune(uint64_t time) {
     for (auto &p : tune) {
-        Instance *instance = p.second;
-        int t = ((TuneInstance*)instance)->get_interface()->get_cycle();
+        std::shared_ptr<Instance> instance = p.second;
+        int t = (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->get_cycle();
         if (time % t != 0) return;
         std::vector<std::string> deps = get_deps<TuneInstance>(instance); 
         run_tune(instance, deps);

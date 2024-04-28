@@ -1,0 +1,33 @@
+#ifndef PLUGIN_MGR_ERROR_CODE_H
+#define PLUGIN_MGR_ERROR_CODE_H
+#include <unordered_map>
+#include <string>
+
+enum class ErrorCode { 
+    ENABLE_INSTANCE_NOT_LOAD,
+    ENABLE_INSTANCE_UNAVAILABLE,
+    ENABLE_INSTANCE_ALREADY_ENABLED,
+    DISABLE_INSTANCE_NOT_LOAD,
+    DISABLE_INSTANCE_UNAVAILABLE,
+    DISABLE_INSTANCE_ALREADY_DISABLED,
+    REMOVE_PLUGIN_NOT_EXIST,
+    REMOVE_INSTANCE_IS_RUNNING,
+    REMOVE_INSTANCE_HAVE_DEP,
+    LOAD_PLUGIN_FILE_NOT_EXIST,
+    LOAD_PLUGIN_FILE_PERMISSION_DEFINED,
+    LOAD_PLUGIN_EXIST,
+    LOAD_PLUGIN_DLOPEN_FAILED,
+    LOAD_PLUGIN_DLSYM_FAILED,
+    QUERY_PLUGIN_NOT_EXIST,
+    QUERY_DEP_NOT_EXIST,
+    DOWNLOAD_NOT_FOUND,
+    OK,
+};
+
+class ErrorText {
+public:
+    static std::string get_error_text(ErrorCode code);
+    static const std::unordered_map<ErrorCode, std::string> error_codes;
+};
+
+#endif // !PLUGIN_MGR_ERROR_CODE_H

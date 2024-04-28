@@ -24,7 +24,6 @@ const int MAX_RECV_BUFF_SIZE = 16384;
 const int MAX_EVENT_SIZE = 1024;
 const int PROTOCOL_LENGTH_SIZE = sizeof(size_t);
 const int HEADER_LENGTH_SIZE = sizeof(size_t);
-
 const int HEADER_STATE_OK = 0;
 const int HEADER_STATE_FAILED = 1;
 
@@ -39,7 +38,8 @@ enum class Opt {
     QUERY_ALL_TOP,
     LIST,
     DOWNLOAD,
-    RESPONSE,
+    RESPONSE_OK,
+    RESPONSE_ERROR,
     SHUTDOWN,
 };
 
@@ -70,6 +70,9 @@ class Msg {
         void set_opt(Opt opt) {
             this->_opt = opt;
         }
+        Opt get_opt() const {
+            return this->_opt;
+        }
     private:
         Opt _opt;
         std::vector<std::string> _payload;
@@ -80,17 +83,17 @@ private:
     friend class boost::serialization::access;
     template <typename Archive>
     void serialize(Archive &ar, const unsigned int version) {
-        ar & state_code;
+        ar & code;
     }
 public:
     void set_state_code(int code) {
-        this->state_code = code;
+        this->code = code;
     }
     int get_state_code() {
-        return this->state_code;
+        return this->code;
     }
 private:
-    int state_code;
+    int code;
 };
 
 class MessageProtocol {

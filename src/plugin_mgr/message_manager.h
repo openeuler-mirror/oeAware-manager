@@ -28,7 +28,7 @@ enum class MessageType {
 
 class Message {
 public:
-    Message() : type(MessageType::EXTERNAL), state_code(HEADER_STATE_OK) {}
+    Message() : type(MessageType::EXTERNAL) {}
     Message(Opt opt) : opt(opt) {}
     Message(Opt opt, MessageType type) : opt(opt), type(type) {} 
     Message(Opt opt, std::vector<std::string> payload) : opt(opt), payload(payload) {}
@@ -53,16 +53,9 @@ public:
     int get_payload_len() const {
         return this->payload.size();
     }
-    void set_state_code(int code) {
-        this->state_code = code;
-    }
-    int get_state_code() const {
-        return this->state_code;
-    }
 private:
     Opt opt;
     MessageType type;
-    int state_code;
     std::vector<std::string> payload;
 };
 

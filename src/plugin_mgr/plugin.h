@@ -14,6 +14,7 @@
 #include "interface.h"
 #include <string>
 #include <vector>
+#include <memory>
 #include <dlfcn.h>
 
 enum class PluginType {
@@ -122,11 +123,8 @@ private:
 class Plugin {
 public:
     Plugin(std::string name, PluginType type) : name(name), type(type), handler(nullptr) { }
-    ~Plugin() {        
-        for (int i = 0; i < instances.size(); ++i) {
-            delete instances[i];
-        }
-        dlclose(this->handler);
+    ~Plugin() {     
+        dlclose(handler);
     }
     int load(const std::string dl_path);
     std::string get_name() const {
@@ -135,21 +133,21 @@ public:
     PluginType get_type() const {
         return this->type;
     }
-    void add_instance(Instance *ins) {
+    void add_instance(std::shared_ptr<Instance> ins) {
         instances.emplace_back(ins);
     }
-    Instance* get_instance(int i) const {
+    std::shared_ptr<Instance> get_instance(int i) const {
         return instances[i];
     }
     size_t get_instance_len() const {
         return instances.size();
     }
-    void * get_handler() const {
+    void* get_handler() const {
         return handler;
     }
 private:
     void *handler;
-    std::vector<Instance*> instances;
+    std::vector<std::shared_ptr<Instance>> instances;
     PluginType type;
     std::string name;
 };

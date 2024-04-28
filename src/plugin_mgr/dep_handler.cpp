@@ -13,13 +13,13 @@
 #include <queue>
 #include <stdio.h>
     
-void DepHandler::add_arc_node(Node* node, const std::vector<std::string> &dep_nodes) {
-    ArcNode *arc_head = node->head;
+void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std::string> &dep_nodes) {
+    std::shared_ptr<ArcNode> arc_head = node->head;
     node->cnt = dep_nodes.size();
     int real_cnt = 0;
     bool state = true;
     for (auto name : dep_nodes) {
-        ArcNode *tmp = new ArcNode();
+        std::shared_ptr<ArcNode> tmp = std::make_shared<ArcNode>();
         tmp->arc_name = name; 
         tmp->node_name = node->name;
         tmp->next = arc_head->next;
@@ -39,7 +39,7 @@ void DepHandler::add_arc_node(Node* node, const std::vector<std::string> &dep_no
 
 
 void DepHandler::add_node(std::string name, std::vector<std::string> dep_nodes) {
-    Node *cur_node = add_new_node(name);
+    std::shared_ptr<Node> cur_node = add_new_node(name);
     this->nodes[name] = cur_node;
     add_arc_node(cur_node, dep_nodes);
     change_arc_nodes(name, true);
@@ -51,27 +51,24 @@ void DepHandler::del_node(std::string name) {
 }
 
 
-Node* DepHandler::get_node(std::string name) {
+std::shared_ptr<Node> DepHandler::get_node(std::string name) {
     return this->nodes[name];
 }
 
 
-Node* DepHandler::add_new_node(std::string name) {
-    Node *cur_node = new Node(name);
-    cur_node->head = new ArcNode();
-
+std::shared_ptr<Node> DepHandler::add_new_node(std::string name) {
+    std::shared_ptr<Node> cur_node = std::make_shared<Node>(name);
+    cur_node->head = std::make_shared<ArcNode>();
     tail->next = cur_node;
     tail = cur_node;
     return cur_node;
 }
 
-
-
-void DepHandler::del_node_and_arc_nodes(Node *node) {
-    Node *next = node->next;
-    ArcNode *arc = node->head;
+void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
+    std::shared_ptr<Node> next = node->next;
+    std::shared_ptr<ArcNode> arc = node->head;
     while(arc) {
-        ArcNode *tmp = arc->next;
+        std::shared_ptr<ArcNode> tmp = arc->next;
         if (arc != node->head){
             std::string name = arc->arc_name;
             arc_nodes[name].erase(arc);
@@ -79,19 +76,16 @@ void DepHandler::del_node_and_arc_nodes(Node *node) {
                 arc_nodes.erase(name);
             }
         }
-        delete arc;
-        arc = tmp;
-        
+        arc = tmp; 
     } 
-    delete node;
 }
 void DepHandler::change_arc_nodes(std::string name, bool state) {
     if (!nodes[name]->state || !arc_nodes.count(name)) return;
-    std::unordered_map<ArcNode*, bool> &mp = arc_nodes[name];
+    std::unordered_map<std::shared_ptr<ArcNode>, bool> &mp = arc_nodes[name];
     for (auto &vec : mp) {
         vec.second = state;
         if (nodes.count(vec.first->node_name)) {
-            Node *tmp = nodes[vec.first->node_name];
+            std::shared_ptr<Node> tmp = nodes[vec.first->node_name];
             if (state) {
                 tmp->real_cnt++;
                 if (tmp->real_cnt == tmp->cnt) {
@@ -101,6 +95,7 @@ void DepHandler::change_arc_nodes(std::string name, bool state) {
                 tmp->real_cnt--;
                 tmp->state = false;
             }
+            change_arc_nodes(vec.first->node_name, state);
         }
     }
 }
@@ -113,7 +108,7 @@ void DepHandler::query_all_top(std::vector<std::vector<std::string>> &query) {
 }
 
 void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::string>> &query) {
-    ArcNode *p = nodes[name]->head;
+    std::shared_ptr<ArcNode> p = nodes[name]->head;
     if (p->next == nullptr) {
         query.emplace_back(std::vector<std::string>{name});
         return;
@@ -126,7 +121,7 @@ void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::s
 
 void DepHandler::query_node(std::string name, std::vector<std::vector<std::string>> &query) {
     if (!nodes.count(name)) return;
-    Node *p = nodes[name];
+    std::shared_ptr<Node> p = nodes[name];
     query.emplace_back(std::vector<std::string>{name});
     for (auto cur = p->head->next; cur != nullptr; cur = cur->next) {
         query.emplace_back(std::vector<std::string>{name, cur->arc_name});
@@ -136,7 +131,7 @@ void DepHandler::query_node(std::string name, std::vector<std::vector<std::strin
 
 std::vector<std::string> DepHandler::get_pre_dependencies(std::string name) {
     std::vector<std::string> res;
-    std::queue<Node*> q;
+    std::queue<std::shared_ptr<Node>> q;
     q.push(nodes[name]);
     while (!q.empty()) {
         auto &node = q.front();

@@ -16,9 +16,10 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 struct ArcNode {
-    ArcNode *next;
+    std::shared_ptr<ArcNode> next;
     std::string arc_name;
     std::string node_name;
     ArcNode() : next(nullptr) {}
@@ -26,8 +27,8 @@ struct ArcNode {
 
 // a instance node 
 struct Node {
-    Node *next;
-    ArcNode *head;
+    std::shared_ptr<Node> next;
+    std::shared_ptr<ArcNode> head;
     std::string name;
     int cnt; 
     int real_cnt; 
@@ -39,10 +40,10 @@ struct Node {
 class DepHandler {
 public:
     DepHandler() {
-        this->head = new Node();
+        this->head = std::make_shared<Node>();
         this->tail = head;
     }
-    Node* get_node(std::string name);
+    std::shared_ptr<Node> get_node(std::string name);
     bool get_node_state(std::string name) {
         return this->nodes[name]->state;
     }
@@ -64,15 +65,15 @@ public:
     }
 private:
     void query_node_top(std::string name, std::vector<std::vector<std::string>> &query);
-    void add_arc_node(Node* node, const std::vector<std::string> &dep_nodes);
+    void add_arc_node(std::shared_ptr<Node> node, const std::vector<std::string> &dep_nodes);
     void change_arc_nodes(std::string name, bool state);
-    void del_node_and_arc_nodes(Node *node);
-    Node* add_new_node(std::string name);
+    void del_node_and_arc_nodes(std::shared_ptr<Node> node);
+    std::shared_ptr<Node> add_new_node(std::string name);
 
-    std::unordered_map<std::string, std::unordered_map<ArcNode*, bool>> arc_nodes;
-    std::unordered_map<std::string, Node*> nodes;
-    Node * head;
-    Node *tail;
+    std::unordered_map<std::string, std::unordered_map<std::shared_ptr<ArcNode>, bool>> arc_nodes;
+    std::unordered_map<std::string, std::shared_ptr<Node>> nodes;
+    std::shared_ptr<Node> head;
+    std::shared_ptr<Node> tail;
 };
 
 #endif // !PLUGIN_MGR_DEP_HANDLER_H

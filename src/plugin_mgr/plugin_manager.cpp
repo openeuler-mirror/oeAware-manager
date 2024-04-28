@@ -21,61 +21,64 @@ const std::string PluginManager::SCENARIO_TEXT = "scenario";
 const std::string PluginManager::TUNE_TEXT = "tune";
 const static int ST_MODE_MASK = 0777;
 
-void PluginManager::init(Config *config) {
+void PluginManager::init() {
     plugin_types[COLLECTOR_TEXT] = PluginType::COLLECTOR;
     plugin_types[SCENARIO_TEXT] = PluginType::SCENARIO;
     plugin_types[TUNE_TEXT] = PluginType::TUNE;
-    this->config = config;
 }
 
-bool PluginManager::remove(const std::string &name) {
-    if (!memory_store.is_plugin_exist(name)) return false;
-    Plugin *plugin = memory_store.get_plugin(name);
+ErrorCode PluginManager::remove(const std::string &name) {
+    if (!memory_store.is_plugin_exist(name)) {
+        return ErrorCode::REMOVE_PLUGIN_NOT_EXIST;
+    }
+    std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
     std::vector<std::string> instance_names;
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
-        Instance *instance = plugin->get_instance(i);
+        std::shared_ptr<Instance> instance = plugin->get_instance(i);
         std::string iname = instance->get_name();
-        if (dep_handler->have_dep(iname)) {
-            return false;
+        if (instance->get_enabled()) {
+            return ErrorCode::REMOVE_INSTANCE_IS_RUNNING;
+        }
+        if (dep_handler.have_dep(iname)) {
+            return ErrorCode::REMOVE_INSTANCE_HAVE_DEP;
         }
         instance_names.emplace_back(iname);
     }
     for(auto &iname : instance_names) {
         memory_store.delete_instance(iname);
-        dep_handler->del_node(iname);
+        dep_handler.del_node(iname);
     }
     memory_store.delete_plugin(name);
     update_instance_state();
-    return true;
+    return ErrorCode::OK;
 }
-bool PluginManager::query_all_plugins(Message &res) {
-    std::vector<Plugin*> all_plugins = memory_store.get_all_plugins();
+ErrorCode PluginManager::query_all_plugins(std::string &res) {
+    std::vector<std::shared_ptr<Plugin>> all_plugins = memory_store.get_all_plugins();
     for (auto &p : all_plugins) {
-        res.add_payload(p->get_name());
+        res += p->get_name() + "\n";
         for (int i = 0; i < p->get_instance_len(); ++i) {
             std::string info = p->get_instance(i)->get_info();
-            res.add_payload("   " + info);
+            res += "\t" + info + "\n";
         }
     }
-    return 1;
+    return ErrorCode::OK;
 }
 
-bool PluginManager::query_plugin(std::string name, Message &res) {
+ErrorCode PluginManager::query_plugin(const std::string &name, std::string &res) {
     if (!memory_store.is_plugin_exist(name)) {
-        res.add_payload("no such plugin!");
-        return true;
+        return ErrorCode::QUERY_PLUGIN_NOT_EXIST;
     }
-    Plugin *plugin = memory_store.get_plugin(name);
-    res.add_payload(name);
+    std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
+    res += name + "\n";
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
         std::string info = plugin->get_instance(i)->get_info();
-        res.add_payload("   " + info);
+        res += "\t" + info + "\n";
     }
-    return true;
+    return ErrorCode::OK;
 }
 
 template <typename T>
-int PluginManager::load_dl_instance(Plugin *plugin, T **interface_list) {
+int PluginManager::load_dl_instance(std::shared_ptr<Plugin> plugin, T **interface_list) {
     int (*get_instance)(T**) = (int(*)(T**))dlsym(plugin->get_handler(), "get_instance");
     if (get_instance == nullptr) {
         ERROR("[PluginManager] dlsym error!\n");
@@ -105,11 +108,11 @@ std::vector<std::string> get_dep(T *interface) {
 }
 
 template<typename T, typename U>
-void PluginManager::save_instance(Plugin *plugin, T *interface_list, int len) {
+void PluginManager::save_instance(std::shared_ptr<Plugin> plugin, T *interface_list, int len) {
     if (interface_list == nullptr) return;
     for (int i = 0; i < len; ++i) {
         T *interface = interface_list + i;
-        Instance *instance = new U();
+        std::shared_ptr<Instance> instance = std::make_shared<U>();
         std::string name = interface->get_name();
         instance->set_name(name);
         instance->set_plugin_name(plugin->get_name());
@@ -117,19 +120,19 @@ void PluginManager::save_instance(Plugin *plugin, T *interface_list, int len) {
         instance->set_enabled(false);
         if (plugin->get_type() == PluginType::COLLECTOR) {
             DEBUG("[PluginManager] add node");
-            dep_handler->add_node(name); 
+            dep_handler.add_node(name); 
         } else {
-            dep_handler->add_node(name, get_dep<T>(interface));
+            dep_handler.add_node(name, get_dep<T>(interface));
         }
-        instance->set_state(dep_handler->get_node_state(name));
-        ((U*)instance)->set_interface(interface);
+        instance->set_state(dep_handler.get_node_state(name));
+        (std::dynamic_pointer_cast<U>(instance))->set_interface(interface);
         DEBUG("[PluginManager] Instance: " << name.c_str());
         memory_store.add_instance(name, instance);
         plugin->add_instance(instance);    
     }
 }
 
-bool PluginManager::load_instance(Plugin *plugin) {
+bool PluginManager::load_instance(std::shared_ptr<Plugin> plugin) {
     int len = 0;
     DEBUG("plugin: " << plugin->get_name());
     switch (plugin->get_type()) {
@@ -160,9 +163,9 @@ bool PluginManager::load_instance(Plugin *plugin) {
 }
 
 void PluginManager::update_instance_state() {
-    std::vector<Instance*> all_instances = memory_store.get_all_instances();
+    std::vector<std::shared_ptr<Instance>> all_instances = memory_store.get_all_instances();
     for (auto &instance : all_instances) {
-        if (dep_handler->get_node_state(instance->get_name())) {
+        if (dep_handler.get_node_state(instance->get_name())) {
             instance->set_state(true);
         } else {
             instance->set_state(false);
@@ -170,24 +173,28 @@ void PluginManager::update_instance_state() {
     }
 }
 
-bool PluginManager::load_plugin(const std::string name, PluginType type) {
+ErrorCode PluginManager::load_plugin(const std::string name, PluginType type) {
+    std::string plugin_path = get_path(type) + "/" + name;
+    if (!file_exist(plugin_path)) {
+        return ErrorCode::LOAD_PLUGIN_FILE_NOT_EXIST;
+    }
+    if (!check_permission(plugin_path, S_IRUSR | S_IRGRP)) {
+        return ErrorCode::LOAD_PLUGIN_FILE_PERMISSION_DEFINED;
+    }
     if (memory_store.is_plugin_exist(name)) {
-        WARN("[PluginManager] " << name << " already loaded!");
-        return false;
+        return ErrorCode::LOAD_PLUGIN_EXIST;
     }
     const std::string dl_path = get_path(type) + '/' + name;
-    Plugin *plugin = new Plugin(name, type);
+    std::shared_ptr<Plugin> plugin = std::make_shared<Plugin>(name, type);
     int error = plugin->load(dl_path);
     if (error) {
-        WARN("[PluginManager] " << name << " load error!");
-        return false;
+        return ErrorCode::LOAD_PLUGIN_DLOPEN_FAILED;
     } 
     if (!this->load_instance(plugin)) {
-        delete plugin;
-        return false;
+        return ErrorCode::LOAD_PLUGIN_DLSYM_FAILED;
     }
     memory_store.add_plugin(name, plugin);
-    return true;
+    return ErrorCode::OK;
 }
 
 std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vector<std::string>> &query) {
@@ -195,7 +202,7 @@ std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vecto
     res += "digraph G {\n";
     std::unordered_map<std::string, std::vector<std::string>> sub_graph;
     for (auto &vec : query) {
-        Instance *instance = memory_store.get_instance(vec[0]);
+        std::shared_ptr<Instance> instance = memory_store.get_instance(vec[0]);
         sub_graph[instance->get_plugin_name()].emplace_back(vec[0]);
         if (vec.size() == 1) {
             continue;
@@ -219,47 +226,37 @@ std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vecto
     return res;
 }
 
-bool PluginManager::query_top(std::string name, Message &res) {
+ErrorCode PluginManager::query_top(const std::string &name, std::string &res) {
+    if (!memory_store.is_instance_exist(name)) {
+        return ErrorCode::QUERY_DEP_NOT_EXIST;
+    }
     DEBUG("[PluginManager] query top : " << name);
     std::vector<std::vector<std::string>> query;
-    dep_handler->query_node(name, query);
-    if (query.empty()) {
-        res.add_payload("Instance not available!");
-        return false;
-    }
-    std::string dot_text = generate_dot(memory_store, query);
-    res.add_payload(dot_text);
-    return true;
+    dep_handler.query_node(name, query);
+    res = generate_dot(memory_store, query);
+    return ErrorCode::OK;
 }
 
-bool PluginManager::query_all_tops(Message &res) {
+ErrorCode PluginManager::query_all_tops(std::string &res) {
     std::vector<std::vector<std::string>> query;
-    dep_handler->query_all_top(query);  
+    dep_handler.query_all_top(query);  
     DEBUG("[PluginManager] query size:" << query.size());
-    if (query.empty()) {
-        res.add_payload("No instance available!");
-        return false;
-    }
-    std::string dot_text = generate_dot(memory_store, query);
-    res.add_payload(dot_text);
-    return true;
+    res = generate_dot(memory_store, query);
+    return ErrorCode::OK;
 }
 
-bool PluginManager::instance_enabled(std::string name) {
+ErrorCode PluginManager::instance_enabled(std::string name) {
     if (!memory_store.is_instance_exist(name)) {
-        WARN("[PluginManager] " << name << " instance can't load!");
-        return false;
+        return ErrorCode::ENABLE_INSTANCE_NOT_LOAD;
     }
-    Instance *instance = memory_store.get_instance(name);
+    std::shared_ptr<Instance> instance = memory_store.get_instance(name);
     if (!instance->get_state()) {
-        WARN("[PluginManager] " << name << " instance is unavailable, lacking dependencies!");
-        return false;
+        return ErrorCode::ENABLE_INSTANCE_UNAVAILABLE;
     }
     if (instance->get_enabled()) {
-        WARN("[PluginManager] " << name << " instance was enabled!");
-        return false;
+        return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
-    std::vector<std::string> pre_dependencies = dep_handler->get_pre_dependencies(name);
+    std::vector<std::string> pre_dependencies = dep_handler.get_pre_dependencies(name);
     for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
         instance = memory_store.get_instance(pre_dependencies[i]);
         if (instance->get_enabled()) {
@@ -267,29 +264,25 @@ bool PluginManager::instance_enabled(std::string name) {
         }
         instance->set_enabled(true);
         instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
-        INFO("[PluginManager] " << name << " instance enabled!");
+        DEBUG("[PluginManager] " << instance->get_name() << " instance enabled.");
     }
-    return true;
+    return ErrorCode::OK;
 }
 
-bool PluginManager::instance_disabled(std::string name) {
+ErrorCode PluginManager::instance_disabled(std::string name) {
     if (!memory_store.is_instance_exist(name)) {
-        WARN("[PluginManager] " << name << " instance can't load!");
-        return false;
+        return ErrorCode::DISABLE_INSTANCE_NOT_LOAD;
     }
-    Instance *instance = memory_store.get_instance(name);
+    std::shared_ptr<Instance> instance = memory_store.get_instance(name);
     if (!instance->get_state()) {
-        WARN("[PluginManager] " << name << " instance is unavailable, lacking dependencies!");
-        return false;
+        return ErrorCode::DISABLE_INSTANCE_UNAVAILABLE;
     }
     if (!instance->get_enabled()) {
-        WARN("[PluginManager] " << name << " instance was disabled!");
-        return false;
+        return ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED;
     }
     instance->set_enabled(false);
     instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::DISABLED, instance));
-    INFO("[PluginManager] " << name << " instance disabled!");
-    return true;
+    return ErrorCode::OK;
 }
 
 static bool end_with(const std::string &s, const std::string &ending) {
@@ -320,30 +313,46 @@ static std::string get_plugin_in_dir(const std::string &path) {
     return res;
 }
 
-void PluginManager::add_list(Message &res) {
-    std::string list_text;
-    list_text += "Download Packages:\n";
-    for (int i = 0; i < config->get_plugin_list_size(); ++i) {
-        PluginInfo info = config->get_plugin_list(i);
-        list_text += info.get_name() + "\n";
+ErrorCode PluginManager::add_list(std::string &res) {
+    res += "Download Packages:\n";
+    for (int i = 0; i < config.get_plugin_list_size(); ++i) {
+        PluginInfo info = config.get_plugin_list(i);
+        res += info.get_name() + "\n";
     }   
-    list_text += "Installed Plugins:\n";
-    list_text += get_plugin_in_dir(DEFAULT_COLLECTOR_PATH);
-    list_text += get_plugin_in_dir(DEFAULT_SCENARIO_PATH);
-    list_text += get_plugin_in_dir(DEFAULT_TUNE_PATH);
-    res.add_payload(list_text);
+    res += "Installed Plugins:\n";
+    res += get_plugin_in_dir(DEFAULT_COLLECTOR_PATH);
+    res += get_plugin_in_dir(DEFAULT_SCENARIO_PATH);
+    res += get_plugin_in_dir(DEFAULT_TUNE_PATH);
+    return ErrorCode::OK;
+}
+
+ErrorCode PluginManager::download(const std::string &name, std::string &res) {
+    std::string url;
+    std::string type;
+    for (int i = 0; i < config.get_plugin_list_size(); ++i) {
+        PluginInfo info = config.get_plugin_list(i);
+        if (info.get_name() == name) {
+            url = info.get_url();
+            break;
+        }
+    }             
+    if (url.empty()) {
+        return ErrorCode::DOWNLOAD_NOT_FOUND;
+    }
+    res += url;
+    return ErrorCode::OK;
 }
 
 void PluginManager::pre_enable() {
-    for (int i = 0; i < config->get_enable_list_size(); ++i) {
-        EnableItem item = config->get_enable_list(i);
+    for (int i = 0; i < config.get_enable_list_size(); ++i) {
+        EnableItem item = config.get_enable_list(i);
         if (item.get_enabled()) {
             std::string name = item.get_name();
             if (!memory_store.is_plugin_exist(name)) {
                 WARN("[PluginManager] plugin " << name << " cannot be enabled, because it does not exist.");
                 continue;
             }
-            Plugin *plugin = memory_store.get_plugin(name);
+            std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
             for (int j = 0; j < plugin->get_instance_len(); ++j) {
                 instance_enabled(plugin->get_instance(i)->get_name());
             }
@@ -373,19 +382,15 @@ void PluginManager::pre_load() {
     pre_enable();
 }
 
-static bool check_load_msg(Message &msg, std::unordered_map<std::string, PluginType> &plugin_types) {
-    return msg.get_payload_len() == 2 && plugin_types.count(msg.get_payload(1));
-}
-
 void* PluginManager::get_data_buffer(std::string name) {
-    Instance *instance = memory_store.get_instance(name);
+    std::shared_ptr<Instance> instance = memory_store.get_instance(name);
     switch (instance->get_type()) {
         case PluginType::COLLECTOR: {
-            CollectorInterface *collector_interface = ((CollectorInstance*)instance)->get_interface();
+            CollectorInterface *collector_interface = (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface();
             return collector_interface->get_ring_buf();
         }
         case PluginType::SCENARIO: {
-            ScenarioInterface *scenario_interface = ((ScenarioInstance*)instance)->get_interface();
+            ScenarioInterface *scenario_interface = (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface();
             return scenario_interface->get_ring_buf();
         }
         default:
@@ -394,12 +399,13 @@ void* PluginManager::get_data_buffer(std::string name) {
     return nullptr;
 }
 
-void PluginManager::instance_dep_check(std::string name, Message &res) {
-    Plugin *plugin = memory_store.get_plugin(name);
+std::string PluginManager::instance_dep_check(const std::string &name) {
+    std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
+    std::string res;
     for (int i = 0; i < plugin->get_instance_len(); ++i) {
         std::string instance_name = plugin->get_instance(i)->get_name();
         std::vector<std::vector<std::string>> query;
-        dep_handler->query_node(instance_name, query);
+        dep_handler.query_node(instance_name, query);
         std::vector<std::string> lack;
         for (auto &item : query) {
             if (item.size() < 2) continue;
@@ -408,13 +414,13 @@ void PluginManager::instance_dep_check(std::string name, Message &res) {
             }
         }
         if (!lack.empty()) {
-            std::string info = instance_name + " needed the following dependencies:";
-            for (auto &dep : lack) {
-                info += "\n     " + dep;
+            for (int i = 0; i < lack.size(); ++i) {
+                res += "\t" + lack[i];
+                if (i != lack.size() - 1) res += '\n';
             }
-            res.add_payload(info);
         }
     }
+    return res;
 }
 
 // Check the file permission. The file owner is root.
@@ -429,76 +435,110 @@ bool check_permission(std::string path, int mode) {
     return true;
 }
 
-static bool file_exist(const std::string &file_name) {
+bool file_exist(const std::string &file_name) {
     std::ifstream file(file_name);
     return file.good();
 }
 
 int PluginManager::run() {
-    instance_run_handler->set_memory_store(&memory_store);
     instance_run_handler->run();
     while (true) {
         Message msg;
         Message res;
-        res.set_opt(Opt::RESPONSE);
-        this->handler_msg->wait_and_pop(msg);
+        this->handler_msg.wait_and_pop(msg);
         if (msg.get_opt() == Opt::SHUTDOWN) break;
         switch (msg.get_opt()) {
             case Opt::LOAD: {
-                if (!check_load_msg(msg, plugin_types)) {
-                    WARN("[PluginManager] args error!");
-                    res.add_payload("args error!");
-                    break;
-                }
                 std::string plugin_name = msg.get_payload(0);
                 PluginType type = plugin_types[msg.get_payload(1)];
-                std::string plugin_path = get_path(type) + "/" + plugin_name;
                 if (!end_with(plugin_name, ".so")) break;
-                if (!file_exist(plugin_path)) {
-                    WARN("[PluginManager] plugin " << plugin_name << " does not exist!");
-                    res.add_payload("plugin does not exist!");
-                    break;
-                }
-                if (!check_permission(plugin_path, S_IRUSR | S_IRGRP)) {
-                    WARN("[PluginManager] plugin " << plugin_name << " does not have the execute permission!");
-                    res.add_payload("does not have the execute permission!");
-                    break;
-                }
-                if(this->load_plugin(plugin_name, type)) {
-                    INFO("[PluginManager] plugin " << plugin_name << " loaded.");
-                    res.add_payload("plugin load succeed!");
-                    instance_dep_check(plugin_name, res);
-                    DEBUG("[PluginManager] instance dependency checked!");
+                ErrorCode ret_code = load_plugin(plugin_name, type);
+                if(ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] " << plugin_name << "plugin loaded.");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    std::string lack_dep = instance_dep_check(plugin_name);
+                    if (!lack_dep.empty()) {
+                        INFO("[PluginManager] " << plugin_name << " requires the following dependencies:\n" << lack_dep);
+                        res.add_payload(lack_dep);
+                    }
                 } else {
-                    INFO("[PluginManager] plugin " << plugin_name << " load error!");
-                    res.add_payload("plugin load failed!");
+                    WARN("[PluginManager] " << plugin_name << " " << ErrorText::get_error_text(ret_code)  << ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
                 }
                 break;
             }
             case Opt::REMOVE: {
                 std::string name = msg.get_payload(0);
-                if (remove(name)) {
-                    res.add_payload(name + " removed!");
-                    INFO("[PluginManager] " << name << " removed!");
+                ErrorCode ret_code = remove(name); 
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] " << name << " plugin removed.");
+                    res.set_opt(Opt::RESPONSE_OK);
                 } else {
-                   res.add_payload(name + " remove failed!");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                    INFO("[PluginManager] " << name << " " << ErrorText::get_error_text(ret_code) + ".");
                 }
                 break;
             }
             case Opt::QUERY_ALL: {
-                query_all_plugins(res);
+                std::string res_text;
+                ErrorCode ret_code = query_all_plugins(res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] query all plugins information.");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    res.add_payload(res_text);
+                } else {
+                    WARN("[PluginManager] query all plugins failed, because " << ErrorText::get_error_text(ret_code) + ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                }
                 break;
             }
             case Opt::QUERY: {
-                query_plugin(msg.get_payload(0), res);
+                std::string res_text;
+                std::string name = msg.get_payload(0);
+                ErrorCode ret_code = query_plugin(name, res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] " << name << " plugin query successfully.");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    res.add_payload(res_text);
+                } else {
+                    WARN("[PluginManager] " << name << " " << ErrorText::get_error_text(ret_code) + ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                }
                 break;
             }
             case Opt::QUERY_TOP: {
-                query_top(msg.get_payload(0), res);
+                std::string res_text;
+                std::string name = msg.get_payload(0);
+                ErrorCode ret_code = query_top(name , res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] query " << name << " instance dependencies.");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    res.add_payload(res_text);
+                } else {
+                    WARN("[PluginManager] query  "<< name  << " instance dependencies failed, because " 
+                    << ErrorText::get_error_text(ret_code) << ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                }
                 break;
             }
             case Opt::QUERY_ALL_TOP: {
-                query_all_tops(res);
+                std::string res_text;
+                ErrorCode ret_code = query_all_tops(res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] query all instances dependencies.");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    res.add_payload(res_text);
+                } else {
+                    WARN("[PluginManager] query all instances dependencies failed. because " 
+                    << ErrorText::get_error_text(ret_code) << ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                }
                 break;
             }
             case Opt::ENABLED: {
@@ -508,10 +548,15 @@ int PluginManager::run() {
                     break;
                 }
                 std::string instance_name = msg.get_payload(0);
-                if (instance_enabled(instance_name)) {
-                    res.add_payload("instance enabled!");
+                ErrorCode ret_code = instance_enabled(instance_name);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] " << instance_name << " enabled successful.");
+                    res.set_opt(Opt::RESPONSE_OK);
                 } else {
-                    res.add_payload("instance enabled failed!");
+                    WARN("[PluginManager] " << instance_name << " enabled failed. because " 
+                    << ErrorText::get_error_text(ret_code) + ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
                 }
                 break;
             }
@@ -522,42 +567,50 @@ int PluginManager::run() {
                     break;
                 }
                 std::string instance_name = msg.get_payload(0);
-                if (instance_disabled(instance_name)) {
-                    res.add_payload("instance disabled!");
+                ErrorCode ret_code = instance_disabled(instance_name);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] " << instance_name << " disabled successful.");
+                    res.set_opt(Opt::RESPONSE_OK);    
                 } else {
-                    res.add_payload("instance disabled failed!");
+                    WARN("[PluginManager] " << instance_name << " " << ErrorText::get_error_text(ret_code) << ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
                 }
                 break;
             }
             case Opt::LIST: {
-                add_list(res);
+                std::string res_text;
+                ErrorCode ret_code = add_list(res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] query plugin_list.");
+                    res.set_opt(Opt::RESPONSE_OK);   
+                    res.add_payload(res_text); 
+                } else {
+                    WARN("[PluginManager] query plugin_list failed, because " << ErrorText::get_error_text(ret_code) << ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
+                }
                 break;
             }
             case Opt::DOWNLOAD: {
+                std::string res_text;
                 std::string name = msg.get_payload(0);
-                std::string url = "";
-                std::string type = "";
-                for (int i = 0; i < config->get_plugin_list_size(); ++i) {
-                    PluginInfo info = config->get_plugin_list(i);
-                    if (info.get_name() == name) {
-                        url = info.get_url();
-                        break;
-                    }
-                }             
-                if (url.empty()) {
-                    WARN("[PluginManager] unable to find a match: " << name);
-                    res.set_state_code(HEADER_STATE_FAILED);
-                    res.add_payload("unable to find a match: " + name);
-                    break;
+                ErrorCode ret_code = download(name, res_text);
+                if (ret_code == ErrorCode::OK) {
+                    INFO("[PluginManager] download " << name << " from " << res_text << ".");
+                    res.set_opt(Opt::RESPONSE_OK);
+                    res.add_payload(res_text);
+                } else {
+                    WARN("[PluginManager] download " << name << " failed, because " << ErrorText::get_error_text(ret_code) + ".");
+                    res.set_opt(Opt::RESPONSE_ERROR);
+                    res.add_payload(ErrorText::get_error_text(ret_code));
                 }
-                res.add_payload(url);
-                INFO("[PluginManager] download " << name << " from " << url << ".");
             }
             default:
                 break;
         }
         if (msg.get_type() == MessageType::EXTERNAL)
-            res_msg->push(res);
+            res_msg.push(res);
     }
     return 0;
 }

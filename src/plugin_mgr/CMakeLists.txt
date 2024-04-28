@@ -12,7 +12,7 @@ include_directories(/usr/include)
 include_directories(../common)
 link_directories(/usr/lib64)
 
-add_executable (oeAware
+add_executable (oeaware
                 ${SOURCE}
                 ) 
-target_link_libraries(oeAware common)
+target_link_libraries(oeaware common)

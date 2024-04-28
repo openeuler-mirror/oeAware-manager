@@ -14,29 +14,27 @@
 #include "plugin.h"
 #include "logger.h"
 #include <unordered_map>
+#include <memory>
 
 //OeAware memory storage, which is used to store plugins and instances in the memory.
 class MemoryStore {
 public:
-    void add_plugin(const std::string &name, Plugin *plugin) {
+    void add_plugin(const std::string &name, std::shared_ptr<Plugin> plugin) {
         this->plugins.insert(std::make_pair(name, plugin));
     }
-    void add_instance(const std::string &name, Instance *instance) {
+    void add_instance(const std::string &name, std::shared_ptr<Instance> instance) {
         this->instances.insert(std::make_pair(name, instance));
     }
-    Plugin* get_plugin(const std::string &name) const {
+    std::shared_ptr<Plugin> get_plugin(const std::string &name) const {
         return this->plugins.at(name);
     }
-    Instance* get_instance(const std::string &name) const {
+    std::shared_ptr<Instance> get_instance(const std::string &name) const {
         return this->instances.at(name);
     }
     void delete_plugin(const std::string &name) {
-        Plugin *plugin = plugins.at(name);
         this->plugins.erase(name);
-        delete plugin;
     }
     void delete_instance(const std::string &name) {
-        Instance *instance = instances.at(name);
         this->instances.erase(name);
     }
     bool is_plugin_exist(const std::string &name) const {
@@ -45,23 +43,23 @@ public:
     bool is_instance_exist(const std::string &name) const {
         return this->instances.count(name);
     }
-    std::vector<Plugin*> get_all_plugins() {
-        std::vector<Plugin*> res;
+    std::vector<std::shared_ptr<Plugin>> get_all_plugins() {
+        std::vector<std::shared_ptr<Plugin>> res;
         for (auto &p : plugins) {
             res.emplace_back(p.second);
         }
         return res;
     }
-    std::vector<Instance*> get_all_instances() {
-        std::vector<Instance*> res;
+    std::vector<std::shared_ptr<Instance>> get_all_instances() {
+        std::vector<std::shared_ptr<Instance>> res;
         for (auto &p : instances) {
             res.emplace_back(p.second);
         }
         return res;
     }
 private:
-    std::unordered_map<std::string, Plugin*> plugins; 
-    std::unordered_map<std::string, Instance*> instances; 
+    std::unordered_map<std::string, std::shared_ptr<Plugin>> plugins; 
+    std::unordered_map<std::string, std::shared_ptr<Instance>> instances; 
 };
 
 #endif // !PLUGIN_MGR_MEMORY_STORE_H

@@ -52,14 +52,14 @@ bool Config::load(const std::string path) {
             YAML::Node enable_list = node["enable_list"];
             if (enable_list.IsSequence()) {
                 for (int i = 0; i < enable_list.size(); ++i) {
-                    YAML::Node instances = enable_list[i]["instances"];
+                    YAML::Node plugin = enable_list[i]["name"];
                     std::string name = enable_list[i]["name"].as<std::string>();
                     EnableItem enable_item(name);
-                    if (instances.IsNull()) {
+                    if (plugin.IsScalar()) {
                         enable_item.set_enabled(true);
-                    } else if (instances.IsSequence()) {
-                        for (int j = 0; j < instances.size(); ++j) {
-                            std::string i_name = instances[j]["name"].as<std::string>();
+                    } else if (plugin.IsSequence()) {
+                        for (int j = 0; j < plugin.size(); ++j) {
+                            std::string i_name = plugin[j].as<std::string>();
                             enable_item.add_instance(i_name);
                         }
                     } else {

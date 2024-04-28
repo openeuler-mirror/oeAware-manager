@@ -17,6 +17,7 @@
 #include "memory_store.h"
 #include "dep_handler.h"
 #include "message_manager.h"
+#include "error_code.h"
 #include <vector>
 #include <queue>
 #include <unordered_map>
@@ -24,45 +25,43 @@
 
 class PluginManager {
 public:
-    PluginManager(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg) {
-        this->handler_msg = handler_msg;
-        this->res_msg = res_msg;
-        dep_handler = new DepHandler();
-        instance_run_handler = new InstanceRunHandler();
-    }
-    ~PluginManager() { }
+    PluginManager(Config &config, SafeQueue<Message> &handler_msg, SafeQueue<Message> &res_msg) : 
+    config(config), handler_msg(handler_msg), res_msg(res_msg) {
+        instance_run_handler.reset(new InstanceRunHandler(memory_store));
+     }
     int run();
     void pre_load();
     void pre_enable();
-    void init(Config *config);
+    void init();
     void* get_data_buffer(std::string name);
 private:
     void pre_load_plugin(PluginType type); 
-    bool query_all_plugins(Message &res);
-    bool query_plugin(std::string name, Message &res);
-    bool query_top(std::string name, Message &res);
-    bool query_all_tops(Message &res);
-    bool instance_enabled(std::string name);
-    bool instance_disabled(std::string name);
-    void instance_dep_check(std::string name, Message &res);
+    ErrorCode load_plugin(const std::string path, PluginType type);
+    ErrorCode remove(const std::string &name);
+    ErrorCode query_all_plugins(std::string &res);
+    ErrorCode query_plugin(const std::string &name, std::string &res);
+    ErrorCode query_top(const std::string &name, std::string &res);
+    ErrorCode query_all_tops(std::string &res);
+    ErrorCode instance_enabled(std::string name);
+    ErrorCode instance_disabled(std::string name);
+    ErrorCode add_list(std::string &res);
+    ErrorCode download(const std::string &name, std::string &res);
+    std::string instance_dep_check(const std::string &name);
     template <typename T>
-    int load_dl_instance(Plugin *plugin, T **interface_list);
+    int load_dl_instance(std::shared_ptr<Plugin> plugin, T **interface_list);
     template <typename T, typename U>
-    void save_instance(Plugin *plugin, T *interface_list, int len);
-    bool load_instance(Plugin *plugin);
-    bool load_plugin(const std::string path, PluginType type);
+    void save_instance(std::shared_ptr<Plugin> plugin, T *interface_list, int len);
+    bool load_instance(std::shared_ptr<Plugin> plugin);
     void batch_load();
-    bool remove(const std::string &name);
     void batch_remove();
-    void add_list(Message &msg);
     void update_instance_state();
 private:
-    InstanceRunHandler *instance_run_handler;
-    Config *config;
-    SafeQueue<Message> *handler_msg;
-    SafeQueue<Message> *res_msg;
+    std::unique_ptr<InstanceRunHandler> instance_run_handler;
+    Config &config;
+    SafeQueue<Message> &handler_msg;
+    SafeQueue<Message> &res_msg;
     MemoryStore memory_store;
-    DepHandler *dep_handler;
+    DepHandler dep_handler;
     std::unordered_map<std::string, PluginType> plugin_types; 
     static const std::string COLLECTOR_TEXT;
     static const std::string SCENARIO_TEXT;
@@ -70,5 +69,5 @@ private:
 };
 
 bool check_permission(std::string path, int mode);
-
-#endif
+bool file_exist(const std::string &file_name);
+#endif 

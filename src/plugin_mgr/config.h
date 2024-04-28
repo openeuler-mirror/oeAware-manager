@@ -14,6 +14,7 @@
 
 #include "plugin.h"
 #include <string>
+#include <unordered_map>
 #include <yaml-cpp/yaml.h>
 #include <sys/stat.h>
 
@@ -31,11 +32,23 @@ public:
     std::string get_url() const {
         return this->url;
     }
+    bool operator ==(const PluginInfo &other) const {
+        return name == other.get_name();
+    }
 private:
     std::string name;
     std::string description;
     std::string url;
 };
+
+namespace std {
+    template <>
+    struct hash<PluginInfo> {
+        size_t operator ()(const PluginInfo &obj) const {
+            return hash<std::string>()(obj.get_name());
+        }
+    };
+}
 
 class EnableItem {
 public:
@@ -79,11 +92,17 @@ public:
     std::string get_log_path() const {
         return this->log_path;
     }
-    PluginInfo get_plugin_list(int i) const {
-        return this->plugin_list[i];
+    PluginInfo get_plugin_info(const std::string &name) const {
+        return this->plugin_list.at(name);
+    }
+    std::unordered_map<std::string, PluginInfo> get_plugin_list() const {
+        return this->plugin_list;
     }
     size_t get_plugin_list_size() const {
         return this->plugin_list.size();
+    }
+    bool is_plugin_info_exist(const std::string &name) {
+        return this->plugin_list.count(name);
     }
     EnableItem get_enable_list(int i) const {
         return this->enable_list[i];
@@ -96,11 +115,11 @@ private:
     int schedule_cycle;
     std::string log_path;
     std::string log_type;
-    std::vector<PluginInfo> plugin_list;
+    std::unordered_map<std::string, PluginInfo> plugin_list;
     std::vector<EnableItem> enable_list;
 };
 
 std::string get_path(PluginType type);
-void create_dir(std::string path);
+bool create_dir(const std::string &path);
 
 #endif

@@ -9,14 +9,29 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "client.h"
+#ifndef CLIENT_ARG_PARSE_H
+#define CLIENT_ARG_PARSE_H
+#include <string>
 
-int main(int argc, char *argv[]) {
-    Client client;
-    if (!client.init(argc, argv)) {
-        exit(EXIT_FAILURE);
+class ArgParse {
+public:
+    static void arg_error(const std::string &msg);
+    static void print_help();
+    int init(int argc, char *argv[]);
+    void set_type(char* _type);
+    void set_arg(char* _arg);
+    std::string get_type() const {
+        return this->type;
     }
-    client.run_cmd();       
-    client.close();
-    return 0;
-}
+    std::string get_arg() const {
+        return this->arg;
+    }
+private:
+    std::string arg;
+    std::string type;
+    static const std::string OPT_STRING;
+    static const int MAX_OPT_SIZE = 20;
+    static const struct option long_options[MAX_OPT_SIZE];
+};
+
+#endif // !CLIENT_ARG_PARSE_H

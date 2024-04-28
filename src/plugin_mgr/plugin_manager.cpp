@@ -173,10 +173,13 @@ void PluginManager::update_instance_state() {
     }
 }
 
-ErrorCode PluginManager::load_plugin(const std::string name, PluginType type) {
+ErrorCode PluginManager::load_plugin(const std::string &name, PluginType type) {
     std::string plugin_path = get_path(type) + "/" + name;
     if (!file_exist(plugin_path)) {
         return ErrorCode::LOAD_PLUGIN_FILE_NOT_EXIST;
+    }
+    if (!end_with(name, ".so")) {
+        return ErrorCode::LOAD_PLUGIN_FILE_IS_NOT_SO; 
     }
     if (!check_permission(plugin_path, S_IRUSR | S_IRGRP)) {
         return ErrorCode::LOAD_PLUGIN_FILE_PERMISSION_DEFINED;
@@ -285,7 +288,7 @@ ErrorCode PluginManager::instance_disabled(std::string name) {
     return ErrorCode::OK;
 }
 
-static bool end_with(const std::string &s, const std::string &ending) {
+bool PluginManager::end_with(const std::string &s, const std::string &ending) {
     if (s.length() >= ending.length()) {
         return (s.compare(s.length() - ending.length(), ending.length(), ending) == 0);
     } else {
@@ -293,7 +296,7 @@ static bool end_with(const std::string &s, const std::string &ending) {
     }
 }
 
-static std::string get_plugin_in_dir(const std::string &path) {
+std::string PluginManager::get_plugin_in_dir(const std::string &path) {
     std::string res;
     struct stat s = {};
     lstat(path.c_str(), &s);
@@ -314,10 +317,10 @@ static std::string get_plugin_in_dir(const std::string &path) {
 }
 
 ErrorCode PluginManager::add_list(std::string &res) {
-    res += "Download Packages:\n";
-    for (int i = 0; i < config.get_plugin_list_size(); ++i) {
-        PluginInfo info = config.get_plugin_list(i);
-        res += info.get_name() + "\n";
+    auto plugin_list = config.get_plugin_list();
+    res += "Supported Packages:\n";
+    for (auto &p : plugin_list) {
+        res += p.first + "\n";
     }   
     res += "Installed Plugins:\n";
     res += get_plugin_in_dir(DEFAULT_COLLECTOR_PATH);
@@ -326,20 +329,11 @@ ErrorCode PluginManager::add_list(std::string &res) {
     return ErrorCode::OK;
 }
 
-ErrorCode PluginManager::download(const std::string &name, std::string &res) {
-    std::string url;
-    std::string type;
-    for (int i = 0; i < config.get_plugin_list_size(); ++i) {
-        PluginInfo info = config.get_plugin_list(i);
-        if (info.get_name() == name) {
-            url = info.get_url();
-            break;
-        }
-    }             
-    if (url.empty()) {
+ErrorCode PluginManager::download(const std::string &name, std::string &res) {          
+    if (!config.is_plugin_info_exist(name)) {
         return ErrorCode::DOWNLOAD_NOT_FOUND;
     }
-    res += url;
+    res += config.get_plugin_info(name).get_url();
     return ErrorCode::OK;
 }
 
@@ -451,7 +445,6 @@ int PluginManager::run() {
             case Opt::LOAD: {
                 std::string plugin_name = msg.get_payload(0);
                 PluginType type = plugin_types[msg.get_payload(1)];
-                if (!end_with(plugin_name, ".so")) break;
                 ErrorCode ret_code = load_plugin(plugin_name, type);
                 if(ret_code == ErrorCode::OK) {
                     INFO("[PluginManager] " << plugin_name << "plugin loaded.");

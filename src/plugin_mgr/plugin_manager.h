@@ -36,7 +36,7 @@ public:
     void* get_data_buffer(std::string name);
 private:
     void pre_load_plugin(PluginType type); 
-    ErrorCode load_plugin(const std::string path, PluginType type);
+    ErrorCode load_plugin(const std::string &path, PluginType type);
     ErrorCode remove(const std::string &name);
     ErrorCode query_all_plugins(std::string &res);
     ErrorCode query_plugin(const std::string &name, std::string &res);
@@ -55,6 +55,8 @@ private:
     void batch_load();
     void batch_remove();
     void update_instance_state();
+    bool end_with(const std::string &s, const std::string &ending);
+    std::string get_plugin_in_dir(const std::string &path);
 private:
     std::unique_ptr<InstanceRunHandler> instance_run_handler;
     Config &config;

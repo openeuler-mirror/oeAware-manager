@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/oeAware /etc/oeAware/config.yaml
+ExecStart=/usr/bin/oeaware /etc/oeAware/config.yaml
 ExecStop=kill -9 $MAINPID
 Restart=on-failure
 RestartSec=1

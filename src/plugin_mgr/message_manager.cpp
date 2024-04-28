@@ -68,7 +68,6 @@ static void recv_msg(Msg &msg, MessageHeader &header, SafeQueue<Message> *res_ms
     for (int i = 0; i < res.get_payload_len(); ++i) {
         msg.add_payload(res.get_payload(i));
     }
-    header.set_state_code(res.get_state_code());
 }
 
 void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg){

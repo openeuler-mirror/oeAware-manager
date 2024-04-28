@@ -13,10 +13,25 @@
 
 Logger logger;
 
+void print_help() {
+    printf("Usage: ./oeaware [path]\n"
+            "      ./oeaware --help\n"
+           "Examples:\n"
+           "    ./oeaware /etc/oeAware/config.yaml\n");
+}
+
 int main(int argc, char **argv) {
     Config config;
     if (argc < 2) {
-        ERROR("System need config arg!");
+        ERROR("System need a argument!");
+        exit(EXIT_FAILURE);
+    }
+    if (std::string(argv[1]) == "--help") {
+        print_help();
+        exit(EXIT_SUCCESS);
+    }
+    if (!file_exist(argv[1])) {
+        ERROR("Config file " << argv[1] << " does not exist!");
         exit(EXIT_FAILURE);
     }
     std::string config_path(argv[1]);
@@ -36,8 +51,8 @@ int main(int argc, char **argv) {
     message_manager.init(&config);
     message_manager.run();
     INFO("[PluginManager] Start plugin manager!");
-    PluginManager plugin_manager(&handler_msg, &res_msg);
-    plugin_manager.init(&config);
+    PluginManager plugin_manager(config, handler_msg, res_msg);
+    plugin_manager.init();
     plugin_manager.pre_load();
     plugin_manager.run();
     return 0;

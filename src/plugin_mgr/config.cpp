@@ -14,10 +14,20 @@
 #include <iostream>
 #include <unistd.h>
 
-void create_dir(std::string path) {
-    if (access(path.c_str(), F_OK) == -1) {
-        mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IROTH);
-    }
+bool create_dir(const std::string &path) {
+    size_t  pos = 0;
+    do {
+        pos = path.find_first_of("/", pos + 1);
+        std::string sub_path = path.substr(0, pos);
+        struct stat buffer;
+        if (stat(sub_path.c_str(), &buffer) == 0) {
+            continue;
+        }
+        if (mkdir(sub_path.c_str(), S_IRWXU | S_IRWXG) != 0) {
+            return false;
+        }
+    } while (pos != std::string::npos);
+    return true;
 }
 
 bool Config::load(const std::string path) {
@@ -42,7 +52,16 @@ bool Config::load(const std::string path) {
                     std::string name = plugin_list[i]["name"].as<std::string>();
                     std::string description = plugin_list[i]["description"].as<std::string>();
                     std::string url = plugin_list[i]["url"].as<std::string>();
-                    this->plugin_list.emplace_back(PluginInfo(name, description, url));
+                    PluginInfo info(name, description, url);
+                    if (name.empty()) {
+                        std::cerr << "Warn: " << name << " url is empty.\n";
+                        continue;
+                    }
+                    if (this->plugin_list.count(name)) {
+                        std::cerr << "Warn: duplicate " << name << " in plugin_list.\n";
+                        continue;
+                    }
+                    this->plugin_list.insert(std::make_pair(name, info));
                 }
             } else {
                 std::cerr << "Error: 'plugin_list' is not a sequence" << '\n';

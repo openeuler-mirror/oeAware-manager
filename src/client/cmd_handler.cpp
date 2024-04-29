@@ -13,42 +13,13 @@
 #include "utils.h"
 #include <fstream>
 
-CmdHandler* get_cmd_handler(int cmd) {
-    switch (cmd) {
-        case 'l':
-            return new LoadHandler();
-        case 'q':
-            return new QueryHandler();
-        case 'r':
-            return new RemoveHandler();
-        case 'Q':
-            return new QueryTopHandler();
-        case 'e':
-            return new EnabledHandler();
-        case 'd':
-            return new DisabledHandler();
-        case 'L':
-            return new ListHandler();
-        case 'D':
-            return new DownloadHandler();
-        default:
-            return nullptr;
-    }
-    return nullptr;
-}
+std::unordered_set<std::string> LoadHandler::types = {"collector", "scenario", "tune"};
 
-void set_type(char *_type) {
-    type = _type;
-}
-
-void set_arg(char *_arg) {
-    arg = std::string(_arg);
-}
-
-void LoadHandler::handler(Msg &msg) {
-    if (type.empty()) {
-        printf("plugin type needed!\n");
-        exit(EXIT_FAILURE);
+void LoadHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
+    std::string type = arg_parse.get_type();
+    if (arg.empty() || type.empty() || !types.count(type)) {
+        ArgParse::arg_error("args error.");
     }
     msg.add_payload(arg);
     msg.add_payload(type);
@@ -56,12 +27,24 @@ void LoadHandler::handler(Msg &msg) {
 }
 
 void LoadHandler::res_handler(Msg &msg) {
-    for (int i = 0; i < msg.payload_size(); ++i) {
-        printf("%s\n", msg.payload(i).c_str());
+    if (msg.get_opt() == Opt::RESPONSE_OK) {
+        std::cout << "Plugin loaded successfully.";
+        if (msg.payload_size()) {
+            std::cout << "But plugin requires the following dependencies to run.\n";
+            for (int i = 0; i < msg.payload_size(); ++i) {
+                std::cout << msg.payload(i) << '\n';
+            }
+        } else {
+            std::cout << '\n';
+        }
+    } else {
+        std::cout << "Plugin loaded failed, because "<< msg.payload(0) << ".\n";
     }
+    
 }
 
-void QueryHandler::handler(Msg &msg) {
+void QueryHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     if (arg.empty()) {
         msg.set_opt(Opt::QUERY_ALL);
     } else {
@@ -70,37 +53,57 @@ void QueryHandler::handler(Msg &msg) {
     }
 }
 
-void QueryHandler::res_handler(Msg &msg) {
-    int len = msg.payload_size();
-    if (len == 0) {
-        printf("no plugins loaded!\n");
-        return;
-    }
-    for (int i = 0; i < len; ++i) {
-        printf("%s\n", msg.payload(i).c_str());
-    }
+void QueryHandler::print_format() {
+    std::cout << "format:\n"
+            "[plugin]\n"
+            "\t[instance]([dependency status], [running status])\n"
+            "dependency status: available means satisfying dependency, otherwise unavailable.\n"
+            "running status: running means that instance is running, otherwise close.\n";
 }
 
-void RemoveHandler::handler(Msg &msg) {
+void QueryHandler::res_handler(Msg &msg) {
+    if (msg.get_opt() == Opt::RESPONSE_ERROR) {
+        std::cout << "Plugin query failed, because " << msg.payload(0).c_str() <<".\n";
+        return;
+    } 
+    int len = msg.payload_size();
+    std::cout << "Show plugins and instances status.\n";
+    std::cout << "------------------------------------------------------------\n";
+    for (int i = 0; i < len; ++i) {
+        std::cout << msg.payload(i).c_str();
+    }
+    std::cout << "------------------------------------------------------------\n";
+    print_format();
+}
+
+void RemoveHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::REMOVE);
 }
 
 void RemoveHandler::res_handler(Msg &msg) {
-    printf("%s\n", msg.payload(0).c_str());
+    if (msg.get_opt() == Opt::RESPONSE_OK) {
+        std::cout << "plugin remove successful.\n";
+    } else {
+        std::cout << "plugin remove failed, because " << msg.payload(0) << ".\n";
+    }
 }
 
 void generate_png_from_dot(const std::string &dot_file, const std::string &png_file) {
     std::string command = "dot -Tpng " + dot_file + " -o " + png_file;
     std::system(command.c_str());
 }
+
 void write_to_file(const std::string &file_name, const std::string &text) {
     std::ofstream out(file_name);
     if (!out.is_open()) return;
     out << text;
     out.close(); 
 }
-void QueryTopHandler::handler(Msg &msg) {
+
+void QueryTopHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     if (arg.empty()) { 
         msg.set_opt(Opt::QUERY_ALL_TOP);
     } else {
@@ -110,70 +113,80 @@ void QueryTopHandler::handler(Msg &msg) {
 }
 
 void QueryTopHandler::res_handler(Msg &msg) {
-    std::string text;
-    for(int i = 0; i < msg.payload_size(); ++i) {
-        text += msg.payload(i).c_str();
+    if (msg.get_opt() == Opt::RESPONSE_ERROR) {
+        std::cout << "Query instance dependencies failed, because "<< msg.payload(0) << ".\n";
+        return;
     }
+    std::string text = msg.payload(0);
     write_to_file("dep.dot", text);
     generate_png_from_dot("dep.dot", "dep.png");
+    std::cout << "Generate dependencies graph dep.png.\n";
 }
 
-void EnabledHandler::handler(Msg &msg) {
+void EnabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::ENABLED);
 }
 
 void EnabledHandler::res_handler(Msg &msg) {
-    printf("%s\n", msg.payload(0).c_str());
+    if (msg.get_opt() == Opt::RESPONSE_OK) {
+        std::cout << "instance enabled.\n";
+    } else {
+        std::cout << "instance enabled failed, because "<< msg.payload(0) << ".\n";
+    }
 }
 
-void DisabledHandler::handler(Msg &msg) {
+void DisabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::DISABLED);
 }
 
 void DisabledHandler::res_handler(Msg &msg) {
-    printf("%s\n", msg.payload(0).c_str());
+    if (msg.get_opt() == Opt::RESPONSE_OK) {
+        std::cout << "instance disabled.\n";
+    } else {
+        std::cout << "instance disabled failed, because "<< msg.payload(0) << ".\n";
+    }
 }
 
-void ListHandler::handler(Msg &msg) {
+void ListHandler::handler(const ArgParse &arg_parse, Msg &msg) {
     msg.set_opt(Opt::LIST);
 }
 
 void ListHandler::res_handler(Msg &msg) {
-    for (int i = 0; i < msg.payload_size(); ++i) {
-        printf("%s", msg.payload(i).c_str());
+    if (msg.get_opt() == Opt::RESPONSE_ERROR) {
+        std::cerr << "query list failed, because "<< msg.payload(0) << ".\n";
+        return;
     }
+    std::cout << "plugin list as follows.\n";
+    std::cout << "------------------------------------------------------------\n";
+    for (int i = 0; i < msg.payload_size(); ++i) {
+        std::cout << msg.payload(i);
+    }
+    std::cout << "------------------------------------------------------------\n";
 }
 
-void DownloadHandler::handler(Msg &msg) {
+void InstallHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+    std::string arg = arg_parse.get_arg();
     msg.set_opt(Opt::DOWNLOAD);
     msg.add_payload(arg);
 }
 
-void DownloadHandler::res_handler(Msg &msg) {
-    std::string path = arg;
+void InstallHandler::res_handler(Msg &msg) {
+    if (msg.get_opt() == Opt::RESPONSE_ERROR) {
+        std::cout << "download failed, because " << msg.payload(0) <<": " << this->arg.c_str() << '\n';
+        return;
+    }
+    std::string path = this->arg;
     std::string url = msg.payload(0);
-    download(url, path);
+    if (!download(url, path)) {
+        std::cout << "download failed, please check url or your network.\n";
+        return;
+    }
     std::string command = "rpm -ivh " + path;
     std::string rm = "rm -f " + path;
     system(command.c_str());
     system(rm.c_str());
-}
-
-void print_help() {
-    printf("oeAware-client [options]...\n"
-           "  options\n"
-           "    -l|--load [plugin]      load plugin and need plugin type.\n"
-           "    -t|--type [plugin_type] assign plugin type.\n"
-           "    -r|--remove [plugin]    remove plugin from system.\n"
-           "    -e|--enable [instance]  enable the plugin instance.\n"
-           "    -d|--disable [instance] disable the plugin instance.\n"
-           "    -q                      query all plugins information.\n"
-           "    --query [plugin]        query the plugin information.\n"
-           "    -Q                      query all instances dependencies.\n"
-           "    --query-dep [instance]  query the instance dependency.\n"
-           "    --list                  the list of supported plugins.\n"
-           "    --download [plugin]     download plugin from the list.\n"
-           );
 }

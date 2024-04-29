@@ -12,33 +12,39 @@
 #include "utils.h"
 #include <curl/curl.h>
 
-static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
-    size_t written = fwrite(ptr, size, nmemb, (FILE*)stream);
-    return written;
+static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *file) {
+    return fwrite(ptr, size, nmemb, file);
 }
 
+// set curl options
+static void curl_set_opt(CURL *curl, const std::string &url, FILE *file) {
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+        
+}
+// Downloads file from the specified url to the path.
 bool download(const std::string &url, const std::string &path) {
     CURL *curl = nullptr;
     CURLcode res;
+    bool ok = true;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
     if (curl) {
-        FILE *fp = fopen(path.c_str(), "wb");
-        if (fp == nullptr) {
+        FILE *file = fopen(path.c_str(), "wb");
+        if (file == nullptr) {
             return false;
         }
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_set_opt(curl, url, file);
         res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        fclose(fp);
-        if (res == CURLE_OK) {
-            return true;
-        } else {
-            return false;
-        }
+        fclose(file);
+        if (res != CURLE_OK) {
+            ok = false;
+        } 
+    } else {
+        ok = false;
     }
     curl_global_cleanup();
-    return false;
+    curl_easy_cleanup(curl);
+    return ok;
 }

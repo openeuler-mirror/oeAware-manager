@@ -13,7 +13,7 @@
 #define CLIENT_H
 #include "tcp_socket.h"
 #include "cmd_handler.h"
-#include <getopt.h>
+#include <unordered_map>
 
 class Client {
 public:
@@ -22,18 +22,17 @@ public:
         if (cmd_handler)
             delete cmd_handler;
     }
-    bool init();
-    void run_cmd(int cmd);
+    bool init(int argc, char *argv[]);
+    void run_cmd();
     void close();
-    int arg_parse(int argc, char *argv[]);
 private:
-    void arg_error(const std::string &msg);
+    void cmd_groups_init();
     
+    int cmd;
     TcpSocket tcp_socket;
+    ArgParse arg_parse;
     CmdHandler *cmd_handler;
-    static const std::string OPT_STRING;
-    static const int MAX_OPT_SIZE = 20;
-    static const struct option long_options[MAX_OPT_SIZE];
+    std::unordered_map<int, CmdHandler*> cmd_handler_groups;
 };
 
 #endif // !CLIENT_H

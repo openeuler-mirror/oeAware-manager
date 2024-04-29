@@ -11,72 +11,72 @@
  ******************************************************************************/
 #ifndef CLIENT_CMD_HANDLER_H
 #define CLIENT_CMD_HANDLER_H
-
 #include "message_protocol.h"
+#include "arg_parse.h"
+#include <unordered_set>
 #include <string>
 #include <stdio.h>
 
-static std::string type;
-static std::string arg;
-
 class CmdHandler {
 public:
-    virtual void handler(Msg &msg) = 0;
+    virtual void handler(const ArgParse &arg_parse, Msg &msg) = 0;
     virtual void res_handler(Msg &msg) = 0;
+private:
 };
 
 class LoadHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
+private:
+    static std::unordered_set<std::string> types; 
 };
 
 class QueryHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
+    void print_format();
 };
 
 class RemoveHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 
 class QueryTopHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class EnabledHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class DisabledHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class ListHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
-class DownloadHandler : public CmdHandler {
+class InstallHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
+    InstallHandler(const std::string &arg) : arg(arg) { }
+    void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
+private:
+    std::string arg;
 };
-
-CmdHandler* get_cmd_handler(int cmd);
-void set_type(char* _type);
-void set_arg(char* _arg);
-void print_help();
 
 #endif // !CLIENT_CMD_HANDLER_H

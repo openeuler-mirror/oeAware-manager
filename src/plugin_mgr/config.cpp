@@ -30,6 +30,18 @@ bool create_dir(const std::string &path) {
     return true;
 }
 
+bool check_plugin_list(YAML::Node plugin_list_item) {
+    if (plugin_list_item["name"].IsNull()) {
+        std::cerr << "Warn: null name in plugin_list.\n";
+        return false;
+    }
+    if (plugin_list_item["url"].IsNull()) {
+        std::cerr << "Warn: null url in plugin_list.\n";
+        return false;
+    }
+    return true;
+}
+
 bool Config::load(const std::string path) {
     YAML::Node node;
     struct stat buffer;
@@ -49,16 +61,15 @@ bool Config::load(const std::string path) {
             YAML::Node plugin_list = node["plugin_list"];
             if (plugin_list.IsSequence()) {
                 for (int i = 0; i < plugin_list.size(); ++i) {
+                    if (!check_plugin_list(plugin_list[i])){
+                        continue;
+                    }
                     std::string name = plugin_list[i]["name"].as<std::string>();
                     std::string description = plugin_list[i]["description"].as<std::string>();
                     std::string url = plugin_list[i]["url"].as<std::string>();
                     PluginInfo info(name, description, url);
-                    if (name.empty()) {
-                        std::cerr << "Warn: " << name << " url is empty.\n";
-                        continue;
-                    }
                     if (this->plugin_list.count(name)) {
-                        std::cerr << "Warn: duplicate " << name << " in plugin_list.\n";
+                        std::cerr << "Warn: duplicate \"" << name << "\" in plugin_list.\n";
                         continue;
                     }
                     this->plugin_list.insert(std::make_pair(name, info));

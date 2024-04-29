@@ -30,6 +30,7 @@ const struct option ArgParse::long_options[] = {
 
 void ArgParse::arg_error(const std::string &msg) {
     std::cerr << "oeawarectl: " << msg << "\n";
+    print_help();
     exit(EXIT_FAILURE);
 }
 
@@ -42,7 +43,7 @@ void ArgParse::set_arg(char *_arg) {
 }
 
 void ArgParse::print_help() {
-    std::cout << "oeawarectl [options]...\n"
+    std::cout << "usage: oeawarectl [options]...\n"
            "  options\n"
            "    -l|--load [plugin]      load plugin and need plugin type.\n"
            "    -t|--type [plugin_type] assign plugin type. there are three types:\n"
@@ -76,12 +77,12 @@ int ArgParse::init(int argc, char *argv[]) {
                 help = true;
                 break;
             case '?':
-                arg_error("unknown option.  See --help.");
+                arg_error("unknown option.");
                 return -1;
             default: {
                 if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' || opt == 'd'  || opt == 'L' || opt == 'i') {
                     if (cmd != -1) {
-                        arg_error("invalid option. See --help.\n");
+                        arg_error("invalid option.");
                         return -1;
                     }
                     cmd = opt;

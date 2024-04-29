@@ -65,6 +65,9 @@ public:
     size_t get_instance_size() const {
         return this->instance.size();
     }
+    std::string get_instance_name(int i) {
+        return this->instance[i];
+    }
     std::string get_name() const {
         return this->name;
     }

@@ -348,7 +348,16 @@ void PluginManager::pre_enable() {
             }
             std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
             for (int j = 0; j < plugin->get_instance_len(); ++j) {
-                instance_enabled(plugin->get_instance(i)->get_name());
+                instance_enabled(plugin->get_instance(j)->get_name());
+            }
+        } else {
+            for (int j = 0; j < item.get_instance_size(); ++j) {
+                std::string name = item.get_instance_name(j);
+                if (!memory_store.is_instance_exist(name)) {
+                    WARN("[PluginManager] instance " << name << " cannot be enabled, because it does not exist.");
+                    continue;
+                }
+                instance_enabled(name);
             }
         }
     }

@@ -23,28 +23,34 @@ static void curl_set_opt(CURL *curl, const std::string &url, FILE *file) {
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
         
 }
+static bool curl_handle(CURL *curl, const std::string &url, const std::string &path) {
+    FILE *file = fopen(path.c_str(), "wb");
+    if (file == nullptr) {
+        return false;
+    }
+    curl_set_opt(curl, url, file);
+    CURLcode res = curl_easy_perform(curl);
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    fclose(file);
+    if (res == CURLE_OK && http_code >= 200 && http_code < 300) {
+        return true;
+    } 
+    return false;
+}
+
 // Downloads file from the specified url to the path.
 bool download(const std::string &url, const std::string &path) {
     CURL *curl = nullptr;
-    CURLcode res;
-    bool ok = true;
+    bool ret = true;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
     if (curl) {
-        FILE *file = fopen(path.c_str(), "wb");
-        if (file == nullptr) {
-            return false;
-        }
-        curl_set_opt(curl, url, file);
-        res = curl_easy_perform(curl);
-        fclose(file);
-        if (res != CURLE_OK) {
-            ok = false;
-        } 
+        if (!curl_handle(curl, url, path)) ret = false;
     } else {
-        ok = false;
+        ret = false;
     }
     curl_global_cleanup();
     curl_easy_cleanup(curl);
-    return ok;
+    return ret;
 }

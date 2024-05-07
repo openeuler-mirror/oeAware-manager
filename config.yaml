@@ -1,8 +1,9 @@
 log_path: /var/log/oeAware
-log_level: 1
+log_level: 2
 enable_list:
-  - name: aaa.so
+  
 plugin_list:
-  - name: test
-    description: hello world
-    url: https://gitee.com/openeuler/oeAware-manager
+  - name: numafast
+    description: numafast is a userspace tool designed for Kunpeng Chips that aims to improve 
+                 system performance by reducing cross-NUMA memory access.
+    url: https://repo.oepkgs.net/openeuler/rpm/openEuler-22.03-LTS-SP1/extras/aarch64/Packages/n/numafast-v1.0.0-2.aarch64.rpm

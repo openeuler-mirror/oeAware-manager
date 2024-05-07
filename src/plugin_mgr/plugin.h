@@ -123,8 +123,10 @@ private:
 class Plugin {
 public:
     Plugin(std::string name, PluginType type) : name(name), type(type), handler(nullptr) { }
-    ~Plugin() {     
-        dlclose(handler);
+    ~Plugin() {   
+        if (handler != nullptr) {
+            dlclose(handler);
+        }
     }
     int load(const std::string dl_path);
     std::string get_name() const {

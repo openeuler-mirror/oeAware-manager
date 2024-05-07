@@ -25,6 +25,9 @@ int TcpSocket::domain_listen(const char *name) {
         ERROR("[MessageManager] bind error!");
         return -1;
     }
+    if (chmod(name, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
+        ERROR("[MessageManager] " << name << " chmod error!");
+    }
     if (listen(sock, 20) < 0) {
         ERROR("[MessageManager] listen error!");
         return -1;

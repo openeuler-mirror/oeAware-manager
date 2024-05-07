@@ -29,6 +29,7 @@ public:
     void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
 private:
+    void check(const std::string &arg, const std::string &type);
     static std::unordered_set<std::string> types; 
 };
 
@@ -36,6 +37,7 @@ class QueryHandler : public CmdHandler {
 public:
     void handler(const ArgParse &arg_parse, Msg &msg) override;
     void res_handler(Msg &msg) override;
+private:
     void print_format();
 };
 

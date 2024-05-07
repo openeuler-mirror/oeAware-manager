@@ -12,7 +12,7 @@ const std::unordered_map<ErrorCode, std::string> ErrorText::error_codes = {
     {ErrorCode::REMOVE_INSTANCE_HAVE_DEP, "instance with pre-dependency"},
     {ErrorCode::LOAD_PLUGIN_FILE_NOT_EXIST, "plugin file does not exist"},
     {ErrorCode::LOAD_PLUGIN_FILE_IS_NOT_SO, "file is not a plugin file"},
-    {ErrorCode::LOAD_PLUGIN_FILE_PERMISSION_DEFINED, "plugin file permission defined"},
+    {ErrorCode::LOAD_PLUGIN_FILE_PERMISSION_DEFINED, "plugin file permission is not the specified permission"},
     {ErrorCode::LOAD_PLUGIN_EXIST, "plugin already loaded"},
     {ErrorCode::LOAD_PLUGIN_DLOPEN_FAILED, "plugin dlopen failed"},
     {ErrorCode::LOAD_PLUGIN_DLSYM_FAILED, "plugin dlsym failed"},

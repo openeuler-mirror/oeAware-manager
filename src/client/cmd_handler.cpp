@@ -15,12 +15,22 @@
 
 std::unordered_set<std::string> LoadHandler::types = {"collector", "scenario", "tune"};
 
+void LoadHandler::check(const std::string &arg, const std::string &type) {
+    if (arg.empty()) {
+        ArgParse::arg_error("plugin name empty.");
+    }
+    if (type.empty()) {
+        ArgParse::arg_error("type empty.");
+    }
+    if (!types.count(type)) {
+        ArgParse::arg_error("this type is not supported.");
+    }
+}
+
 void LoadHandler::handler(const ArgParse &arg_parse, Msg &msg) {
     std::string arg = arg_parse.get_arg();
     std::string type = arg_parse.get_type();
-    if (arg.empty() || type.empty() || !types.count(type)) {
-        ArgParse::arg_error("args error.");
-    }
+    check(arg, type);
     msg.add_payload(arg);
     msg.add_payload(type);
     msg.set_opt(Opt::LOAD);
@@ -84,7 +94,7 @@ void RemoveHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void RemoveHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "plugin remove successful.\n";
+        std::cout << "plugin remove successfully.\n";
     } else {
         std::cout << "plugin remove failed, because " << msg.payload(0) << ".\n";
     }
@@ -131,7 +141,7 @@ void EnabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void EnabledHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "instance enabled.\n";
+        std::cout << "instance enabled successfully.\n";
     } else {
         std::cout << "instance enabled failed, because "<< msg.payload(0) << ".\n";
     }
@@ -145,7 +155,7 @@ void DisabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void DisabledHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "instance disabled.\n";
+        std::cout << "instance disabled successfully.\n";
     } else {
         std::cout << "instance disabled failed, because "<< msg.payload(0) << ".\n";
     }

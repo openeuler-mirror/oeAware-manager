@@ -13,6 +13,7 @@
 #include "default_path.h"
 #include "utils.h"
 #include <iostream>
+#include <unordered_set>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -203,15 +204,15 @@ ErrorCode PluginManager::load_plugin(const std::string &name, PluginType type) {
 std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vector<std::string>> &query) {
     std::string res;
     res += "digraph G {\n";
-    std::unordered_map<std::string, std::vector<std::string>> sub_graph;
+    std::unordered_map<std::string, std::unordered_set<std::string>> sub_graph;
     for (auto &vec : query) {
         std::shared_ptr<Instance> instance = memory_store.get_instance(vec[0]);
-        sub_graph[instance->get_plugin_name()].emplace_back(vec[0]);
+        sub_graph[instance->get_plugin_name()].insert(vec[0]);
         if (vec.size() == 1) {
             continue;
         }
         instance = memory_store.get_instance(vec[1]);
-        sub_graph[instance->get_plugin_name()].emplace_back(vec[1]);
+        sub_graph[instance->get_plugin_name()].insert(vec[1]);
         res += vec[0] + "->"  + vec[1] + ";";
     }
     int id = 0;
@@ -371,8 +372,12 @@ void PluginManager::pre_load_plugin(PluginType type) {
     while ((entry = readdir(dir)) != nullptr) {
         std::string name = entry->d_name;
         if (end_with(name, ".so")) {
-            Message msg;
-            load_plugin(name, type);
+            auto ret = load_plugin(name, type);
+            if (ret != ErrorCode::OK) {
+                WARN("[PluginManager] " << name << " plugin preload failed, because " << ErrorText::get_error_text(ret) << ".");
+            } else {
+                INFO("[PluginManager] " << name << " plugin loaded.");
+            }
         }
     }
     closedir(dir);

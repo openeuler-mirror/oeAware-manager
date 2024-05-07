@@ -47,11 +47,11 @@ public:
     bool get_node_state(std::string name) {
         return this->nodes[name]->state;
     }
-    void add_node(std::string name, std::vector<std::string> dep_nodes = {});
-    void del_node(std::string name);
-    std::vector<std::string> get_pre_dependencies(std::string name);
+    void add_node(const std::string &name, std::vector<std::string> dep_nodes = {});
+    void del_node(const std::string &name);
+    std::vector<std::string> get_pre_dependencies(const std::string &name);
     // query instance dependency
-    void query_node(std::string name, std::vector<std::vector<std::string>> &query);
+    void query_node(const std::string &name, std::vector<std::vector<std::string>> &query);
     // query all instance dependencies
     void query_all_top(std::vector<std::vector<std::string>> &query);
     bool have_dep(const std::string &name) {

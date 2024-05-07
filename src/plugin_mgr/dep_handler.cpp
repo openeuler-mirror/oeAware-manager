@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "dep_handler.h"
 #include <queue>
+#include <unordered_set>
 #include <stdio.h>
     
 void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std::string> &dep_nodes) {
@@ -38,14 +39,14 @@ void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std:
 }
 
 
-void DepHandler::add_node(std::string name, std::vector<std::string> dep_nodes) {
+void DepHandler::add_node(const std::string &name, std::vector<std::string> dep_nodes) {
     std::shared_ptr<Node> cur_node = add_new_node(name);
     this->nodes[name] = cur_node;
     add_arc_node(cur_node, dep_nodes);
     change_arc_nodes(name, true);
 }
 
-void DepHandler::del_node(std::string name) {
+void DepHandler::del_node(const std::string &name) {
     del_node_and_arc_nodes(get_node(name));
     this->nodes.erase(name);
 }
@@ -119,26 +120,41 @@ void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::s
     }
 }
 
-void DepHandler::query_node(std::string name, std::vector<std::vector<std::string>> &query) {
+void DepHandler::query_node(const std::string &name, std::vector<std::vector<std::string>> &query) {
     if (!nodes.count(name)) return;
-    std::shared_ptr<Node> p = nodes[name];
-    query.emplace_back(std::vector<std::string>{name});
-    for (auto cur = p->head->next; cur != nullptr; cur = cur->next) {
-        query.emplace_back(std::vector<std::string>{name, cur->arc_name});
-        query_node(cur->arc_name, query);
+    std::queue<std::string> q;
+    std::unordered_set<std::string> vis;
+    vis.insert(name);
+    q.push(name);
+    while (!q.empty()) {
+        auto node = nodes[q.front()];
+        q.pop();
+        query.emplace_back(std::vector<std::string>{node->name});
+        for (auto cur = node->head->next; cur != nullptr; cur = cur->next) {
+            query.emplace_back(std::vector<std::string>{node->name, cur->arc_name});
+            if (!vis.count(cur->arc_name)) {
+                vis.insert(cur->arc_name);
+                q.push(cur->arc_name);
+            }
+        }
     }
 }
 
-std::vector<std::string> DepHandler::get_pre_dependencies(std::string name) {
+std::vector<std::string> DepHandler::get_pre_dependencies(const std::string &name) {
     std::vector<std::string> res;
     std::queue<std::shared_ptr<Node>> q;
+    std::unordered_set<std::string> vis;
+    vis.insert(name);
     q.push(nodes[name]);
     while (!q.empty()) {
         auto &node = q.front();
         q.pop();
         res.emplace_back(node->name);
         for (auto arc_node = node->head->next; arc_node != nullptr; arc_node = arc_node->next) {
-            q.push(nodes[arc_node->arc_name]);
+            if (!vis.count(arc_node->arc_name)) {
+                vis.insert(arc_node->arc_name);
+                q.push(nodes[arc_node->arc_name]);
+            }
         }
     }
     return res;

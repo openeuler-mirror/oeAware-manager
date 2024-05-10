@@ -132,7 +132,7 @@ void DepHandler::query_node(const std::string &name, std::vector<std::vector<std
         query.emplace_back(std::vector<std::string>{node->name});
         for (auto cur = node->head->next; cur != nullptr; cur = cur->next) {
             query.emplace_back(std::vector<std::string>{node->name, cur->arc_name});
-            if (!vis.count(cur->arc_name)) {
+            if (!vis.count(cur->arc_name) && nodes.count(cur->arc_name)) {
                 vis.insert(cur->arc_name);
                 q.push(cur->arc_name);
             }

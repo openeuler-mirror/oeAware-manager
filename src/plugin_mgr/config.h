@@ -52,7 +52,7 @@ namespace std {
 
 class EnableItem {
 public:
-    EnableItem(std::string name) : name(name) { }
+    EnableItem(std::string name) : name(name), enabled(false) { }
     void set_enabled(bool enabled) {
         this->enabled = enabled;
     }

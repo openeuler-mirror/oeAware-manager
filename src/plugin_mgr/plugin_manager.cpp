@@ -461,7 +461,7 @@ int PluginManager::run() {
                 PluginType type = plugin_types[msg.get_payload(1)];
                 ErrorCode ret_code = load_plugin(plugin_name, type);
                 if(ret_code == ErrorCode::OK) {
-                    INFO("[PluginManager] " << plugin_name << "plugin loaded.");
+                    INFO("[PluginManager] " << plugin_name << " plugin loaded.");
                     res.set_opt(Opt::RESPONSE_OK);
                     std::string lack_dep = instance_dep_check(plugin_name);
                     if (!lack_dep.empty()) {

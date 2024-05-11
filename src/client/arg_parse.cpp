@@ -62,10 +62,23 @@ void ArgParse::print_help() {
            "    --help                  show this help message.\n";
 }
 
+void ArgParse::init_opts() {
+    opts.insert('l');
+    opts.insert('r');
+    opts.insert('q');
+    opts.insert('Q');
+    opts.insert('e');
+    opts.insert('d');
+    opts.insert('L');
+    opts.insert('i');
+    opts.insert('t');
+}
+
 int ArgParse::init(int argc, char *argv[]) {
     int cmd = -1;
     int opt;
     bool help = false;
+    init_opts();
     opterr = 0;
     while((opt = getopt_long(argc, argv, OPT_STRING.c_str(), long_options, nullptr)) != -1) {
         std::string full_opt;
@@ -76,9 +89,15 @@ int ArgParse::init(int argc, char *argv[]) {
             case 'h':
                 help = true;
                 break;
-            case '?':
-                arg_error("unknown option.");
-                return -1;
+            case '?': {
+                std::string err;
+                err += optopt;
+                if (!opts.count(optopt)) {
+                    arg_error("unknown option '-" + err  + "'.");
+                } else{
+                    arg_error("option -" + err  + " requires an argument.");
+                }
+            }
             default: {
                 if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' || opt == 'd'  || opt == 'L' || opt == 'i') {
                     if (cmd != -1) {
@@ -93,6 +112,9 @@ int ArgParse::init(int argc, char *argv[]) {
             }
                 
         }
+    }
+    if (cmd == 'l' && type.empty()) {
+        arg_error("option '-t' is required.");
     }
     if (help) {
         print_help();

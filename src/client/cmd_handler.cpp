@@ -16,14 +16,8 @@
 std::unordered_set<std::string> LoadHandler::types = {"collector", "scenario", "tune"};
 
 void LoadHandler::check(const std::string &arg, const std::string &type) {
-    if (arg.empty()) {
-        ArgParse::arg_error("plugin name empty.");
-    }
-    if (type.empty()) {
-        ArgParse::arg_error("type empty.");
-    }
     if (!types.count(type)) {
-        ArgParse::arg_error("this type is not supported.");
+        ArgParse::arg_error("type '" + type + "' is not supported.");
     }
 }
 
@@ -94,9 +88,9 @@ void RemoveHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void RemoveHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "plugin remove successfully.\n";
+        std::cout << "Plugin remove successfully.\n";
     } else {
-        std::cout << "plugin remove failed, because " << msg.payload(0) << ".\n";
+        std::cout << "Plugin remove failed, because " << msg.payload(0) << ".\n";
     }
 }
 
@@ -141,9 +135,9 @@ void EnabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void EnabledHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "instance enabled successfully.\n";
+        std::cout << "Instance enabled successfully.\n";
     } else {
-        std::cout << "instance enabled failed, because "<< msg.payload(0) << ".\n";
+        std::cout << "Instance enabled failed, because "<< msg.payload(0) << ".\n";
     }
 }
 
@@ -155,9 +149,9 @@ void DisabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void DisabledHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_OK) {
-        std::cout << "instance disabled successfully.\n";
+        std::cout << "Instance disabled successfully.\n";
     } else {
-        std::cout << "instance disabled failed, because "<< msg.payload(0) << ".\n";
+        std::cout << "Instance disabled failed, because "<< msg.payload(0) << ".\n";
     }
 }
 
@@ -167,10 +161,10 @@ void ListHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void ListHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_ERROR) {
-        std::cerr << "query list failed, because "<< msg.payload(0) << ".\n";
+        std::cerr << "Query list failed, because "<< msg.payload(0) << ".\n";
         return;
     }
-    std::cout << "plugin list as follows.\n";
+    std::cout << "Plugin list as follows.\n";
     std::cout << "------------------------------------------------------------\n";
     for (int i = 0; i < msg.payload_size(); ++i) {
         std::cout << msg.payload(i);
@@ -186,13 +180,13 @@ void InstallHandler::handler(const ArgParse &arg_parse, Msg &msg) {
 
 void InstallHandler::res_handler(Msg &msg) {
     if (msg.get_opt() == Opt::RESPONSE_ERROR) {
-        std::cout << "download failed, because " << msg.payload(0) <<": " << this->arg.c_str() << '\n';
+        std::cout << "Download failed, because " << msg.payload(0) <<": " << this->arg.c_str() << '\n';
         return;
     }
     std::string path = this->arg;
     std::string url = msg.payload(0);
     if (!download(url, path)) {
-        std::cout << "download failed, please check url or your network.\n";
+        std::cout << "Download failed, please check url or your network.\n";
         return;
     }
     std::string command = "rpm -ivh " + path;

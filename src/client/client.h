@@ -14,14 +14,11 @@
 #include "tcp_socket.h"
 #include "cmd_handler.h"
 #include <unordered_map>
+#include <memory>
 
 class Client {
 public:
     Client() : cmd_handler(nullptr) { }
-    ~Client() {
-        if (cmd_handler)
-            delete cmd_handler;
-    }
     bool init(int argc, char *argv[]);
     void run_cmd();
     void close();
@@ -30,9 +27,8 @@ private:
     
     int cmd;
     TcpSocket tcp_socket;
-    ArgParse arg_parse;
-    CmdHandler *cmd_handler;
-    std::unordered_map<int, CmdHandler*> cmd_handler_groups;
+    std::shared_ptr<CmdHandler> cmd_handler;
+    std::unordered_map<int, std::shared_ptr<CmdHandler>> cmd_handler_groups;
 };
 
 #endif // !CLIENT_H

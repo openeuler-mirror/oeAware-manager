@@ -44,7 +44,6 @@ bool TcpSocket::init() {
         return false;
     }
     if (domain_listen(path.c_str()) < 0) {
-        close(sock);
         return false;
     }
     epfd = epoll_create(1);
@@ -52,6 +51,9 @@ bool TcpSocket::init() {
     ev.events = EPOLLIN;
     ev.data.fd = sock;
     int ret = epoll_ctl(epfd, EPOLL_CTL_ADD, sock, &ev);
+    if (ret < 0) {
+        return false;
+    }
     return true;
 
 }
@@ -64,7 +66,7 @@ static void send_msg(Msg &msg, SafeQueue<Message> *handler_msg) {
     }
     handler_msg->push(message);
 }
-static void recv_msg(Msg &msg, MessageHeader &header, SafeQueue<Message> *res_msg) {
+static void recv_msg(Msg &msg, SafeQueue<Message> *res_msg) {
     Message res;
     res_msg->wait_and_pop(res);
     msg.set_opt(res.get_opt());
@@ -76,7 +78,6 @@ static void recv_msg(Msg &msg, MessageHeader &header, SafeQueue<Message> *res_ms
 void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg){
     struct epoll_event evs[MAX_EVENT_SIZE];
     int sz = sizeof(evs) / sizeof(struct epoll_event);
-    char buf[MAX_RECV_BUFF_SIZE];
     while (true) {
         int num = epoll_wait(epfd, evs, sz, -1);
         for (int i = 0; i < num; ++i) {
@@ -102,7 +103,7 @@ void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message>
                 }
                 decode(client_msg, msg_protocol.body);
                 send_msg(client_msg, handler_msg);
-                recv_msg(internal_msg, header, res_msg);
+                recv_msg(internal_msg, res_msg);
                 if (!send_response(stream, internal_msg, header)) {
                     WARN("[MessageManager] send msg to client failed!");
                 }

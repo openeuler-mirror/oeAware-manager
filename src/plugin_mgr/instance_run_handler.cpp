@@ -18,12 +18,18 @@ static void* get_ring_buf(std::shared_ptr<Instance> instance) {
         return nullptr;
     }
     switch (instance->get_type()) {
-        case PluginType::COLLECTOR:
+        case PluginType::COLLECTOR: {
             return (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->get_ring_buf();
-        case PluginType::SCENARIO:
+        }
+        case PluginType::SCENARIO: {
             return (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->get_ring_buf();
-        case PluginType::TUNE:
+        }
+        case PluginType::TUNE: {
             break;
+        }
+        default: {
+            break;
+        }
     }
     return nullptr;
 }
@@ -34,7 +40,7 @@ static void reflash_ring_buf(std::shared_ptr<Instance> instance) {
 
 void InstanceRunHandler::run_aware(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
-    for (int i = 0; i < deps.size(); ++i) {
+    for (size_t i = 0; i < deps.size(); ++i) {
         std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
@@ -43,7 +49,7 @@ void InstanceRunHandler::run_aware(std::shared_ptr<Instance> instance, std::vect
 
 void InstanceRunHandler::run_tune(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
     void *a[MAX_DEPENDENCIES_SIZE];
-    for (int i = 0; i < deps.size(); ++i) {
+    for (size_t i = 0; i < deps.size(); ++i) {
         std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
         a[i] = get_ring_buf(ins);
     }
@@ -52,36 +58,48 @@ void InstanceRunHandler::run_tune(std::shared_ptr<Instance> instance, std::vecto
 
 void InstanceRunHandler::insert_instance(std::shared_ptr<Instance> instance) {
     switch (instance->get_type()) {
-        case PluginType::COLLECTOR:
+        case PluginType::COLLECTOR: {
             collector[instance->get_name()] = instance;
             (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->enable();
             break;
-        case PluginType::SCENARIO:
+        }
+        case PluginType::SCENARIO: {
             scenario[instance->get_name()] = instance;
             (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->enable();
             break;
-        case PluginType::TUNE:
+        }
+        case PluginType::TUNE: {
             tune[instance->get_name()] = instance;
             (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->enable();
             break;
+        }
+        default: {
+            break;
+        }
     }
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");
 }
 
 void InstanceRunHandler::delete_instance(std::shared_ptr<Instance> instance) {
     switch (instance->get_type()) {
-        case PluginType::COLLECTOR:
+        case PluginType::COLLECTOR: {
             collector.erase(instance->get_name());
             (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->disable();
             break;
-        case PluginType::SCENARIO:
+        }
+        case PluginType::SCENARIO: {
             scenario.erase(instance->get_name());
             (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->disable();
             break;
-        case PluginType::TUNE:
+        }
+        case PluginType::TUNE: {
             tune.erase(instance->get_name());
             (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->disable();
             break;
+        }
+        default: {
+            break;
+        }
     }
     INFO("[PluginManager] " << instance->get_name() << " instance delete from running queue.");
 }
@@ -91,12 +109,14 @@ void InstanceRunHandler::handle_instance() {
     while(this->recv_queue_try_pop(msg)){
         std::shared_ptr<Instance> instance = msg.get_instance();
         switch (msg.get_type()){
-            case RunType::ENABLED:
+            case RunType::ENABLED: {
                 insert_instance(std::move(instance));
                 break;
-            case RunType::DISABLED:
+            }
+            case RunType::DISABLED: {
                 delete_instance(std::move(instance));
                 break;
+            }
         }
     }
 }
@@ -107,7 +127,7 @@ static std::vector<std::string> get_deps(std::shared_ptr<Instance> instance) {
     std::string deps = (t_instance)->get_interface()->get_dep();
     std::string dep = "";
     std::vector<std::string> vec;
-    for (int i = 0; i < deps.length(); ++i) {
+    for (size_t i = 0; i < deps.length(); ++i) {
         if (deps[i] != '-') {
             dep += deps[i];
         }else {

@@ -33,8 +33,8 @@ struct Node {
     int cnt; 
     int real_cnt; 
     bool state; // dependency closed-loop
-    Node() : next(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
-    Node(std::string name): name(name), next(nullptr), head(nullptr), state(true), cnt(0), real_cnt(0) {}
+    Node() : next(nullptr), head(nullptr), cnt(0), real_cnt(0), state(true) {}
+    Node(std::string name): next(nullptr), head(nullptr), name(name), cnt(0), real_cnt(0), state(true) {}
 };
 
 class DepHandler {

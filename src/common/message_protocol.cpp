@@ -13,7 +13,7 @@
 #include <iostream>
 
 template <typename T>
-inline ssize_t handle_EINTR(T fn) {
+inline ssize_t handle_error(T fn) {
     ssize_t res = 0;
     while (true) {
         res = fn();
@@ -25,27 +25,27 @@ inline ssize_t handle_EINTR(T fn) {
     return res;
 }
 
-inline ssize_t read_socket(int sock, void *ptr, size_t size, int flags) {
-    return handle_EINTR([&]() {
-        return recv(sock, ptr, size, flags);
+inline ssize_t read_socket(int sock, void *buf, size_t size, int flags) {
+    return handle_error([&]() {
+        return recv(sock, buf, size, flags);
     });
 }
 
-inline ssize_t send_socket(int sock, const void *ptr, size_t size, int flags) {
-    return handle_EINTR([&]() {
-        return send(sock, ptr, size, flags);
+inline ssize_t send_socket(int sock, const void *buf, size_t size, int flags) {
+    return handle_error([&]() {
+        return send(sock, buf, size, flags);
     });
 }
 
-ssize_t SocketStream::read(char *ptr, size_t size) {
+ssize_t SocketStream::read(char *buf, size_t size) {
     if (read_buff_off < read_buff_content_size) {
         auto remaining_size = read_buff_content_size - read_buff_off;
         if (size <= remaining_size) {
-            memcpy(ptr, read_buff.data() + read_buff_off, size);
+            memcpy(buf, read_buff.data() + read_buff_off, size);
             read_buff_off += size;
             return size;
         } else {
-            memcpy(ptr, read_buff.data() + read_buff_off, remaining_size);
+            memcpy(buf, read_buff.data() + read_buff_off, remaining_size);
             read_buff_off += remaining_size;
             return remaining_size;
         }
@@ -56,22 +56,22 @@ ssize_t SocketStream::read(char *ptr, size_t size) {
         auto n = read_socket(sock, read_buff.data(), MAX_BUFF_SIZE, 0);
         if (n <= 0) {
             return n;
-        } else if (n < size) {
-            memcpy(ptr, read_buff.data(), n);
+        } else if (static_cast<size_t>(n) < size) {
+            memcpy(buf, read_buff.data(), n);
             return n;
         } else {
-            memcpy(ptr, read_buff.data(), size);
+            memcpy(buf, read_buff.data(), size);
             read_buff_off = size;
             read_buff_content_size = n;
             return size;
         }
     } else {
-        return read_socket(sock, ptr, size, 0);
+        return read_socket(sock, buf, size, 0);
     }
 }
 
-ssize_t SocketStream::write(const char *ptr, size_t size) {
-    return send_socket(sock, ptr, size, 0);
+ssize_t SocketStream::write(const char *buf, size_t size) {
+    return send_socket(sock, buf, size, 0);
 }
 
 static std::string to_hex(size_t x) {
@@ -80,7 +80,7 @@ static std::string to_hex(size_t x) {
     ss << std::hex << std::uppercase << x;
     result = ss.str();
     std::string zero = "";
-    for (int i = result.length(); i < sizeof(size_t); ++i) {
+    for (size_t i = result.length(); i < sizeof(size_t); ++i) {
         zero += "0";
     }
     result = zero + result;

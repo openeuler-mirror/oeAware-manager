@@ -18,20 +18,20 @@ class ArgParse {
 public:
     static void arg_error(const std::string &msg);
     static void print_help();
-    int init(int argc, char *argv[]);
-    void init_opts();
-    void set_type(char* _type);
-    void set_arg(char* _arg);
-    std::string get_type() const {
-        return this->type;
+    static int init(int argc, char *argv[]);
+    static void init_opts();
+    static void set_type(char* _type);
+    static void set_arg(char* _arg);
+    static std::string get_type() {
+        return type;
     }
-    std::string get_arg() const {
-        return this->arg;
+    static std::string get_arg() {
+        return arg;
     }
 private:
-    std::string arg;
-    std::string type;
-    std::unordered_set<char> opts;
+    static std::string arg;
+    static std::string type;
+    static std::unordered_set<char> opts;
     static const std::string OPT_STRING;
     static const int MAX_OPT_SIZE = 20;
     static const struct option long_options[MAX_OPT_SIZE];

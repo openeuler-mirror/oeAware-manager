@@ -62,6 +62,9 @@ private:
 class TcpSocket {
 public:
     TcpSocket() {}
+    ~TcpSocket() {
+        close(sock);
+    }
     bool init();
     void serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg);    
 private:
@@ -77,7 +80,7 @@ public:
         this->handler_msg = handler_msg;
         this->res_msg = res_msg;
     }
-    void init(Config *config){
+    void init(){
        this->tcp_socket = new TcpSocket();
     }
     void run();

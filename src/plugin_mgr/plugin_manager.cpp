@@ -34,7 +34,7 @@ ErrorCode PluginManager::remove(const std::string &name) {
     }
     std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
     std::vector<std::string> instance_names;
-    for (int i = 0; i < plugin->get_instance_len(); ++i) {
+    for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
         std::shared_ptr<Instance> instance = plugin->get_instance(i);
         std::string iname = instance->get_name();
         if (instance->get_enabled()) {
@@ -57,7 +57,7 @@ ErrorCode PluginManager::query_all_plugins(std::string &res) {
     std::vector<std::shared_ptr<Plugin>> all_plugins = memory_store.get_all_plugins();
     for (auto &p : all_plugins) {
         res += p->get_name() + "\n";
-        for (int i = 0; i < p->get_instance_len(); ++i) {
+        for (size_t i = 0; i < p->get_instance_len(); ++i) {
             std::string info = p->get_instance(i)->get_info();
             res += "\t" + info + "\n";
         }
@@ -71,7 +71,7 @@ ErrorCode PluginManager::query_plugin(const std::string &name, std::string &res)
     }
     std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
     res += name + "\n";
-    for (int i = 0; i < plugin->get_instance_len(); ++i) {
+    for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
         std::string info = plugin->get_instance(i)->get_info();
         res += "\t" + info + "\n";
     }
@@ -92,7 +92,6 @@ int PluginManager::load_dl_instance(std::shared_ptr<Plugin> plugin, T **interfac
 
 template<typename T>
 std::vector<std::string> get_dep(T *interface) {
-    int dep_len = 0;
     char *deps = interface->get_dep();
     std::vector<std::string> res;
     std::string dep;
@@ -152,12 +151,16 @@ bool PluginManager::load_instance(std::shared_ptr<Plugin> plugin) {
             save_instance<ScenarioInterface, ScenarioInstance>(plugin, interface_list, len);
             break;
         }
-        case PluginType::TUNE:
+        case PluginType::TUNE: {
             TuneInterface *interface_list = nullptr;
             len = load_dl_instance<TuneInterface>(plugin, &interface_list);
             if (len == -1) return false;
             save_instance<TuneInterface, TuneInstance>(plugin, interface_list, len);
             break;
+        }
+        default: {
+            return false;
+        }
     }
     update_instance_state();
     return true;
@@ -211,9 +214,13 @@ std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vecto
         if (vec.size() == 1) {
             continue;
         }
-        instance = memory_store.get_instance(vec[1]);
-        sub_graph[instance->get_plugin_name()].insert(vec[1]);
-        res += vec[0] + "->"  + vec[1] + ";";
+        if (memory_store.is_instance_exist(vec[1])) {
+            instance = memory_store.get_instance(vec[1]);
+            sub_graph[instance->get_plugin_name()].insert(vec[1]);
+        } else {
+            res += vec[1] + "[label=\"(missing)\\n" + vec[1] + "\", fontcolor=red];\n";
+        }
+        res += vec[0] + "->"  + vec[1] + ";\n";
     }
     int id = 0;
     for (auto &p : sub_graph) {
@@ -339,7 +346,7 @@ ErrorCode PluginManager::download(const std::string &name, std::string &res) {
 }
 
 void PluginManager::pre_enable() {
-    for (int i = 0; i < config.get_enable_list_size(); ++i) {
+    for (size_t i = 0; i < config.get_enable_list_size(); ++i) {
         EnableItem item = config.get_enable_list(i);
         if (item.get_enabled()) {
             std::string name = item.get_name();
@@ -348,11 +355,11 @@ void PluginManager::pre_enable() {
                 continue;
             }
             std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
-            for (int j = 0; j < plugin->get_instance_len(); ++j) {
+            for (size_t j = 0; j < plugin->get_instance_len(); ++j) {
                 instance_enabled(plugin->get_instance(j)->get_name());
             }
         } else {
-            for (int j = 0; j < item.get_instance_size(); ++j) {
+            for (size_t j = 0; j < item.get_instance_size(); ++j) {
                 std::string name = item.get_instance_name(j);
                 if (!memory_store.is_instance_exist(name)) {
                     WARN("[PluginManager] instance " << name << " cannot be enabled, because it does not exist.");
@@ -410,7 +417,7 @@ void* PluginManager::get_data_buffer(std::string name) {
 std::string PluginManager::instance_dep_check(const std::string &name) {
     std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
     std::string res;
-    for (int i = 0; i < plugin->get_instance_len(); ++i) {
+    for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
         std::string instance_name = plugin->get_instance(i)->get_name();
         std::vector<std::vector<std::string>> query;
         dep_handler.query_node(instance_name, query);
@@ -422,9 +429,9 @@ std::string PluginManager::instance_dep_check(const std::string &name) {
             }
         }
         if (!lack.empty()) {
-            for (int i = 0; i < lack.size(); ++i) {
-                res += "\t" + lack[i];
-                if (i != lack.size() - 1) res += '\n';
+            for (size_t j = 0; j < lack.size(); ++j) {
+                res += "\t" + lack[j];
+                if (j != lack.size() - 1) res += '\n';
             }
         }
     }

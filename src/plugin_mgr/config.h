@@ -72,9 +72,9 @@ public:
         return this->name;
     }
 private:
-    bool enabled;
-    std::string name;
     std::vector<std::string> instance;
+    std::string name;
+    bool enabled;
 };
 
 class Config {

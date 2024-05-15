@@ -32,11 +32,11 @@ bool create_dir(const std::string &path) {
 
 bool check_plugin_list(YAML::Node plugin_list_item) {
     if (plugin_list_item["name"].IsNull()) {
-        std::cerr << "Warn: null name in plugin_list.\n";
+        std::cerr << "WARN: null name in plugin_list.\n";
         return false;
     }
     if (plugin_list_item["url"].IsNull()) {
-        std::cerr << "Warn: null url in plugin_list.\n";
+        std::cerr << "WARN: null url in plugin_list.\n";
         return false;
     }
     return true;
@@ -60,7 +60,7 @@ bool Config::load(const std::string path) {
         if (!node["plugin_list"].IsNull()) {
             YAML::Node plugin_list = node["plugin_list"];
             if (plugin_list.IsSequence()) {
-                for (int i = 0; i < plugin_list.size(); ++i) {
+                for (size_t i = 0; i < plugin_list.size(); ++i) {
                     if (!check_plugin_list(plugin_list[i])){
                         continue;
                     }
@@ -81,15 +81,14 @@ bool Config::load(const std::string path) {
         if (!node["enable_list"].IsNull()) {
             YAML::Node enable_list = node["enable_list"];
             if (enable_list.IsSequence()) {
-                for (int i = 0; i < enable_list.size(); ++i) {
-                    YAML::Node plugin = enable_list[i]["name"];
+                for (size_t i = 0; i < enable_list.size(); ++i) {
                     std::string name = enable_list[i]["name"].as<std::string>();
                     YAML::Node instances = enable_list[i]["instances"];
                     EnableItem enable_item(name);
-                    if (instances.IsNull()) {
+                    if (!instances.IsDefined() || instances.IsNull()) {
                         enable_item.set_enabled(true);
                     } else {
-                        for (int j = 0; j < instances.size(); ++j) {
+                        for (size_t j = 0; j < instances.size(); ++j) {
                             std::string i_name = instances[j].as<std::string>();
                             enable_item.add_instance(i_name);
                         }
@@ -117,6 +116,9 @@ std::string get_path(PluginType type) {
         }
         case PluginType::TUNE: {
             return DEFAULT_TUNE_PATH;
+        }
+        default: {
+            break;
         }
     }
     return "";

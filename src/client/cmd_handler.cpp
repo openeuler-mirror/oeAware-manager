@@ -15,16 +15,16 @@
 
 std::unordered_set<std::string> LoadHandler::types = {"collector", "scenario", "tune"};
 
-void LoadHandler::check(const std::string &arg, const std::string &type) {
+void LoadHandler::check(const std::string &type) {
     if (!types.count(type)) {
         ArgParse::arg_error("type '" + type + "' is not supported.");
     }
 }
 
-void LoadHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
-    std::string type = arg_parse.get_type();
-    check(arg, type);
+void LoadHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
+    std::string type = ArgParse::get_type();
+    check(type);
     msg.add_payload(arg);
     msg.add_payload(type);
     msg.set_opt(Opt::LOAD);
@@ -47,8 +47,8 @@ void LoadHandler::res_handler(Msg &msg) {
     
 }
 
-void QueryHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void QueryHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     if (arg.empty()) {
         msg.set_opt(Opt::QUERY_ALL);
     } else {
@@ -80,8 +80,8 @@ void QueryHandler::res_handler(Msg &msg) {
     print_format();
 }
 
-void RemoveHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void RemoveHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::REMOVE);
 }
@@ -106,8 +106,8 @@ void write_to_file(const std::string &file_name, const std::string &text) {
     out.close(); 
 }
 
-void QueryTopHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void QueryTopHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     if (arg.empty()) { 
         msg.set_opt(Opt::QUERY_ALL_TOP);
     } else {
@@ -127,8 +127,8 @@ void QueryTopHandler::res_handler(Msg &msg) {
     std::cout << "Generate dependencies graph dep.png.\n";
 }
 
-void EnabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void EnabledHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::ENABLED);
 }
@@ -141,8 +141,8 @@ void EnabledHandler::res_handler(Msg &msg) {
     }
 }
 
-void DisabledHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void DisabledHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     msg.add_payload(arg);
     msg.set_opt(Opt::DISABLED);
 }
@@ -155,7 +155,7 @@ void DisabledHandler::res_handler(Msg &msg) {
     }
 }
 
-void ListHandler::handler(const ArgParse &arg_parse, Msg &msg) {
+void ListHandler::handler(Msg &msg) {
     msg.set_opt(Opt::LIST);
 }
 
@@ -172,18 +172,19 @@ void ListHandler::res_handler(Msg &msg) {
     std::cout << "------------------------------------------------------------\n";
 }
 
-void InstallHandler::handler(const ArgParse &arg_parse, Msg &msg) {
-    std::string arg = arg_parse.get_arg();
+void InstallHandler::handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     msg.set_opt(Opt::DOWNLOAD);
     msg.add_payload(arg);
 }
 
 void InstallHandler::res_handler(Msg &msg) {
+    std::string arg = ArgParse::get_arg();
     if (msg.get_opt() == Opt::RESPONSE_ERROR) {
-        std::cout << "Download failed, because " << msg.payload(0) <<": " << this->arg.c_str() << '\n';
+        std::cout << "Download failed, because " << msg.payload(0) <<": " << arg.c_str() << '\n';
         return;
     }
-    std::string path = this->arg;
+    std::string path = arg;
     std::string url = msg.payload(0);
     if (!download(url, path)) {
         std::cout << "Download failed, please check url or your network.\n";

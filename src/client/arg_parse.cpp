@@ -13,7 +13,7 @@
 #include <iostream>
 #include <getopt.h>
 
-const std::string ArgParse::OPT_STRING = "Qqd:t:l:r:e:";
+const std::string ArgParse::OPT_STRING = "Qqd:t:l:r:e:i:";
 const struct option ArgParse::long_options[] = {
     {"help", no_argument, NULL, 'h'},
     {"load", required_argument, NULL, 'l'},
@@ -58,7 +58,7 @@ void ArgParse::print_help() {
            "    -Q                      query all instances dependencies.\n"
            "    --query-dep [instance]  query the instance dependency.\n"
            "    --list                  the list of supported plugins.\n"
-           "    --install [plugin]      install plugin from the list.\n"
+           "    -i|--install [plugin]   install plugin from the list.\n"
            "    --help                  show this help message.\n";
 }
 
@@ -69,7 +69,6 @@ void ArgParse::init_opts() {
     opts.insert('Q');
     opts.insert('e');
     opts.insert('d');
-    opts.insert('L');
     opts.insert('i');
     opts.insert('t');
 }
@@ -90,13 +89,18 @@ int ArgParse::init(int argc, char *argv[]) {
                 help = true;
                 break;
             case '?': {
-                std::string err;
-                err += optopt;
-                if (!opts.count(optopt)) {
-                    arg_error("unknown option '-" + err  + "'.");
-                } else{
-                    arg_error("option -" + err  + " requires an argument.");
+                std::string opt_string;
+                if (optind == argc) {
+                    opt_string += argv[optind - 1];    
+                } else {
+                    opt_string += argv[optind];
                 }
+                if (!opts.count(optopt)) {
+                    arg_error("unknown option '" + opt_string  + "'.");
+                } else{
+                    arg_error("option " + opt_string  + " requires an argument.");
+                }
+                break;
             }
             default: {
                 if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' || opt == 'd'  || opt == 'L' || opt == 'i') {
@@ -109,19 +113,20 @@ int ArgParse::init(int argc, char *argv[]) {
                         set_arg(optarg);
                     }
                 } 
+                break;
             }
                 
         }
     }
     if (cmd == 'l' && type.empty()) {
-        arg_error("option '-t' is required.");
+        arg_error("missing arguments.");
     }
     if (help) {
         print_help();
         exit(EXIT_SUCCESS);
     }
     if (cmd < 0) {
-        arg_error("no option.");
+        arg_error("option error.");
     }
     return cmd;
 }

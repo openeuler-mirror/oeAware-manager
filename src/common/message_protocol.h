@@ -44,38 +44,39 @@ enum class Opt {
 };
 
 class Msg {
-    private:
-        friend class boost::serialization::access;
-        template <typename Archive>
-        void serialize(Archive &ar, const unsigned int version) {
-            ar & _opt;
-            ar & _payload;
-        }
-    public:
-        int payload_size() const {
-            return this->_payload.size();
-        }
-        std::string payload(int id) const {
-            return this->_payload[id];
-        }
-        Opt opt() {
-            return this->_opt;
-        }
-        void add_payload(std::string &context) {
-            this->_payload.emplace_back(context);
-        }
-        void add_payload(std::string &&context) {
-            this->_payload.emplace_back(context);
-        }
-        void set_opt(Opt opt) {
-            this->_opt = opt;
-        }
-        Opt get_opt() const {
-            return this->_opt;
-        }
-    private:
-        Opt _opt;
-        std::vector<std::string> _payload;
+private:
+    friend class boost::serialization::access;
+    template <typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & _opt;
+        ar & _payload;
+    }
+public:
+    Msg() { }
+    int payload_size() const {
+        return this->_payload.size();
+    }
+    std::string payload(int id) const {
+        return this->_payload[id];
+    }
+    Opt opt() {
+        return this->_opt;
+    }
+    void add_payload(std::string &context) {
+        this->_payload.emplace_back(context);
+    }
+    void add_payload(std::string &&context) {
+        this->_payload.emplace_back(context);
+    }
+    void set_opt(Opt opt) {
+        this->_opt = opt;
+    }
+    Opt get_opt() const {
+        return this->_opt;
+    }
+private:
+    Opt _opt;
+    std::vector<std::string> _payload;
 };
 
 class MessageHeader {
@@ -86,6 +87,7 @@ private:
         ar & code;
     }
 public:
+    MessageHeader() { }
     void set_state_code(int code) {
         this->code = code;
     }
@@ -109,8 +111,8 @@ class SocketStream {
 public:
     SocketStream() : read_buff(MAX_BUFF_SIZE, 0) { }
     SocketStream(int sock) : sock(sock), read_buff(MAX_BUFF_SIZE, 0) { }
-    ssize_t read(char *ptr, size_t size);
-    ssize_t write(const char *ptr, size_t size);
+    ssize_t read(char *buf, size_t size);
+    ssize_t write(const char *buf, size_t size);
     void set_sock(int sock) {
         this->sock = sock;
     }
@@ -135,7 +137,6 @@ std::string encode(const T &msg) {
 
 template<typename T> 
 int decode(T &msg, const std::string &content) {
-    int len = 0;
     try {
         std::stringstream ss(content);
         boost::archive::binary_iarchive ia(ss);

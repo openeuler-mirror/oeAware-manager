@@ -16,11 +16,13 @@
 class TcpSocket {
 public:
     TcpSocket() { }
+    ~TcpSocket() {
+        close(sock);
+    }
     bool recv_msg(Msg &res, MessageHeader &header);
-    bool send_msg(Msg &msg);
+    bool send_msg(Msg &msg, MessageHeader &header);
     int file_connect(const char *name);
     bool init();
-    void clear();
 private:
     int sock;
     SocketStream stream;

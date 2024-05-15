@@ -17,6 +17,5 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     client.run_cmd();       
-    client.close();
     return 0;
 }

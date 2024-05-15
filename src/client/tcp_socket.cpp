@@ -15,7 +15,7 @@
 
 bool TcpSocket::recv_msg(Msg &res, MessageHeader &header) {
     MessageProtocol proto;
-    if (handle_request(stream, proto) < 0) {
+    if (!handle_request(stream, proto)) {
         printf("can't connect to server!\n");
         return false;
     }
@@ -24,8 +24,7 @@ bool TcpSocket::recv_msg(Msg &res, MessageHeader &header) {
     return true;
 }
 
-bool TcpSocket::send_msg(Msg &msg) {
-    MessageHeader header;
+bool TcpSocket::send_msg(Msg &msg, MessageHeader &header) {
     if (!send_response(stream, msg, header)) {
         return false;
     }
@@ -52,13 +51,8 @@ bool TcpSocket::init() {
         return -1;
     }
     if (file_connect(SOCK_PATH.c_str()) < 0) {
-        close(sock);
         return false;
     }
     stream.set_sock(sock);
     return true;
-}
-
-void TcpSocket::clear() {
-    close(sock);
 }

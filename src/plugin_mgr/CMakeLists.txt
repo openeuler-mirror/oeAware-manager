@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.22)
 project(oeAware-server)
 
-SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now")
+SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now -Wall -Wextra -O2")
 
 if("${OEAWARE_DEBUG}" EQUAL 1)
 add_definitions(-DOEAWARE_DEBUG)

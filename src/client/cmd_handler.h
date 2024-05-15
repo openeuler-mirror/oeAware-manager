@@ -19,23 +19,25 @@
 
 class CmdHandler {
 public:
-    virtual void handler(const ArgParse &arg_parse, Msg &msg) = 0;
+    virtual void handler(Msg &msg) = 0;
     virtual void res_handler(Msg &msg) = 0;
-private:
+
+    static ArgParse &arg_parse;
 };
 
 class LoadHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    // LoadHandler(const ArgParse &arg_parse) { }
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 private:
-    void check(const std::string &arg, const std::string &type);
+    void check(const std::string &type);
     static std::unordered_set<std::string> types; 
 };
 
 class QueryHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 private:
     void print_format();
@@ -43,42 +45,39 @@ private:
 
 class RemoveHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 
 class QueryTopHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class EnabledHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class DisabledHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class ListHandler : public CmdHandler {
 public:
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 };
 
 class InstallHandler : public CmdHandler {
 public:
-    InstallHandler(const std::string &arg) : arg(arg) { }
-    void handler(const ArgParse &arg_parse, Msg &msg) override;
+    void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
-private:
-    std::string arg;
 };
 
 #endif // !CLIENT_CMD_HANDLER_H

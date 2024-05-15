@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     SafeQueue<Message> res_msg;
     INFO("[MessageManager] Start message manager!");
     MessageManager message_manager(&handler_msg, &res_msg);
-    message_manager.init(&config);
+    message_manager.init();
     message_manager.run();
     INFO("[PluginManager] Start plugin manager!");
     PluginManager plugin_manager(config, handler_msg, res_msg);

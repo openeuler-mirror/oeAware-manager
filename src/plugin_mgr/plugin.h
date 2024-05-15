@@ -148,10 +148,10 @@ public:
         return handler;
     }
 private:
-    void *handler;
     std::vector<std::shared_ptr<Instance>> instances;
-    PluginType type;
     std::string name;
+    PluginType type;
+    void *handler;
 };
 
 #endif 

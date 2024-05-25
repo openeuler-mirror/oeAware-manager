@@ -34,7 +34,7 @@ struct Node {
     int real_cnt; 
     bool state; // dependency closed-loop
     Node() : next(nullptr), head(nullptr), cnt(0), real_cnt(0), state(true) {}
-    Node(std::string name): next(nullptr), head(nullptr), name(name), cnt(0), real_cnt(0), state(true) {}
+    Node(const std::string &name): next(nullptr), head(nullptr), name(name), cnt(0), real_cnt(0), state(true) {}
 };
 
 class DepHandler {
@@ -43,11 +43,11 @@ public:
         this->head = std::make_shared<Node>();
         this->tail = head;
     }
-    std::shared_ptr<Node> get_node(std::string name);
+    std::shared_ptr<Node> get_node(const std::string &name);
     bool get_node_state(std::string name) {
         return this->nodes[name]->state;
     }
-    void add_node(const std::string &name, std::vector<std::string> dep_nodes = {});
+    void add_node(const std::string &name, const std::vector<std::string> &dep_nodes = {});
     void del_node(const std::string &name);
     std::vector<std::string> get_pre_dependencies(const std::string &name);
     // query instance dependency

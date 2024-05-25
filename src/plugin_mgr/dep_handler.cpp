@@ -39,7 +39,7 @@ void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std:
 }
 
 
-void DepHandler::add_node(const std::string &name, std::vector<std::string> dep_nodes) {
+void DepHandler::add_node(const std::string &name, const std::vector<std::string> &dep_nodes) {
     std::shared_ptr<Node> cur_node = add_new_node(name);
     this->nodes[name] = cur_node;
     add_arc_node(cur_node, dep_nodes);
@@ -52,10 +52,9 @@ void DepHandler::del_node(const std::string &name) {
 }
 
 
-std::shared_ptr<Node> DepHandler::get_node(std::string name) {
+std::shared_ptr<Node> DepHandler::get_node(const std::string &name) {
     return this->nodes[name];
 }
-
 
 std::shared_ptr<Node> DepHandler::add_new_node(std::string name) {
     std::shared_ptr<Node> cur_node = std::make_shared<Node>(name);
@@ -80,6 +79,7 @@ void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
         arc = tmp; 
     } 
 }
+
 void DepHandler::change_arc_nodes(std::string name, bool state) {
     if (!nodes[name]->state || !arc_nodes.count(name)) return;
     std::unordered_map<std::shared_ptr<ArcNode>, bool> &mp = arc_nodes[name];
@@ -100,7 +100,6 @@ void DepHandler::change_arc_nodes(std::string name, bool state) {
         }
     }
 }
-
 
 void DepHandler::query_all_top(std::vector<std::vector<std::string>> &query) {
     for (auto &p : nodes) {

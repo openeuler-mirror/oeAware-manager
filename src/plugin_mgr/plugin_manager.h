@@ -33,10 +33,10 @@ public:
     void pre_load();
     void pre_enable();
     void init();
-    void* get_data_buffer(std::string name);
+    const void* get_data_buffer(std::string name);
 private:
-    void pre_load_plugin(PluginType type); 
-    ErrorCode load_plugin(const std::string &path, PluginType type);
+    void pre_load_plugin(); 
+    ErrorCode load_plugin(const std::string &path);
     ErrorCode remove(const std::string &name);
     ErrorCode query_all_plugins(std::string &res);
     ErrorCode query_plugin(const std::string &name, std::string &res);
@@ -47,10 +47,8 @@ private:
     ErrorCode add_list(std::string &res);
     ErrorCode download(const std::string &name, std::string &res);
     std::string instance_dep_check(const std::string &name);
-    template <typename T>
-    int load_dl_instance(std::shared_ptr<Plugin> plugin, T **interface_list);
-    template <typename T, typename U>
-    void save_instance(std::shared_ptr<Plugin> plugin, T *interface_list, int len);
+    int load_dl_instance(std::shared_ptr<Plugin> plugin, Interface **interface_list);
+    void save_instance(std::shared_ptr<Plugin> plugin, Interface *interface_list, int len);
     bool load_instance(std::shared_ptr<Plugin> plugin);
     void batch_load();
     void batch_remove();

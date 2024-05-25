@@ -15,6 +15,7 @@ const std::unordered_map<ErrorCode, std::string> ErrorText::error_codes = {
     {ErrorCode::ENABLE_INSTANCE_NOT_LOAD, "instance is not loaded"},
     {ErrorCode::ENABLE_INSTANCE_UNAVAILABLE, "instance is unavailable"},
     {ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED, "instance is already enabled"},
+    {ErrorCode::ENABLE_INSTANCE_ENV, "instance init environment failed"},
     {ErrorCode::DISABLE_INSTANCE_NOT_LOAD, "instance is not loaded"},
     {ErrorCode::DISABLE_INSTANCE_UNAVAILABLE, "instance is unavailable"},
     {ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED, "instance is already disabled"},

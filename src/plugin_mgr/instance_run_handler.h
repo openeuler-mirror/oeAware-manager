@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <queue>
 #include <memory>
 
 enum class RunType {
@@ -43,15 +44,22 @@ private:
     std::shared_ptr<Instance> instance;
 };
 
+class ScheduleInstance {
+public:
+    bool operator < (const ScheduleInstance &rhs) const {
+        return time > rhs.time || (time == rhs.time && instance->get_type() > rhs.instance->get_type());
+    }
+    std::shared_ptr<Instance> instance;
+    uint64_t time;
+};
+
 // A handler to schedule plugin instance 
 class InstanceRunHandler {
 public:
     InstanceRunHandler(MemoryStore &memory_store) : memory_store(memory_store), cycle(DEFAULT_CYCLE_SIZE) {}
     void run();
-    void schedule_collector(uint64_t time);
-    void schedule_scenario(uint64_t time);
-    void schedule_tune(uint64_t time);
-    void handle_instance();
+    void schedule(uint64_t time);
+    void handle_instance(uint64_t time);
     void set_cycle(int cycle) {
         this->cycle = cycle;
     }
@@ -71,16 +79,13 @@ public:
         return this->recv_queue.try_pop(msg);
     }
 private:
-    void run_aware(std::shared_ptr<Instance> instance, std::vector<std::string> &deps);
-    void run_tune(std::shared_ptr<Instance> instance, std::vector<std::string> &deps);
+    void run_instance(std::shared_ptr<Instance> instance);
     void delete_instance(std::shared_ptr<Instance> instance);
-    void insert_instance(std::shared_ptr<Instance> instance);
+    void insert_instance(std::shared_ptr<Instance> instance, uint64_t time);
     void adjust_collector_queue(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps, bool flag);
     void check_scenario_dependency(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps);
 
-    std::unordered_map<std::string, std::shared_ptr<Instance>> collector;
-    std::unordered_map<std::string, std::shared_ptr<Instance>> scenario;
-    std::unordered_map<std::string, std::shared_ptr<Instance>> tune;
+    std::priority_queue<ScheduleInstance> schedule_queue;
     SafeQueue<InstanceRunMessage> recv_queue;
     MemoryStore &memory_store;
     int cycle;

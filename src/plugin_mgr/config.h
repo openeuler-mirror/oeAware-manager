@@ -22,7 +22,7 @@ static int log_levels[] = {0, 10000, 20000, 30000, 40000, 50000, 60000};
 
 class PluginInfo {
 public:
-    PluginInfo(std::string name, std::string description, std::string url) : name(name), description(description), url(url) { }
+    PluginInfo(const std::string &name, const std::string &description, const std::string &url) : name(name), description(description), url(url) { }
     std::string get_name() const {
         return this->name;
     }
@@ -52,7 +52,7 @@ namespace std {
 
 class EnableItem {
 public:
-    EnableItem(std::string name) : name(name), enabled(false) { }
+    EnableItem(const std::string &name) : name(name), enabled(false) { }
     void set_enabled(bool enabled) {
         this->enabled = enabled;
     }
@@ -82,7 +82,7 @@ public:
     Config() {
         this->log_level = log_levels[2];
     }
-    bool load(const std::string path);
+    bool load(const std::string &path);
     int get_log_level() const {
         return this->log_level;
     }
@@ -122,7 +122,7 @@ private:
     std::vector<EnableItem> enable_list;
 };
 
-std::string get_path(PluginType type);
+std::string get_path();
 bool create_dir(const std::string &path);
 
 #endif

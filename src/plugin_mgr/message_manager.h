@@ -31,7 +31,7 @@ public:
     Message() : type(MessageType::EXTERNAL) {}
     Message(Opt opt) : opt(opt) {}
     Message(Opt opt, MessageType type) : opt(opt), type(type) {} 
-    Message(Opt opt, std::vector<std::string> payload) : opt(opt), payload(payload) {}
+    Message(Opt opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) {}
     Opt get_opt() {
         return this->opt;
     }

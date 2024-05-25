@@ -13,104 +13,45 @@
 #include <thread>
 #include <unistd.h>
 
-static void* get_ring_buf(std::shared_ptr<Instance> instance) {
+static const void* get_ring_buf(std::shared_ptr<Instance> instance) {
     if (instance == nullptr) {
         return nullptr;
     }
-    switch (instance->get_type()) {
-        case PluginType::COLLECTOR: {
-            return (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->get_ring_buf();
-        }
-        case PluginType::SCENARIO: {
-            return (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->get_ring_buf();
-        }
-        case PluginType::TUNE: {
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    return nullptr;
+    return instance->get_interface()->get_ring_buf();
 }
 
-static void reflash_ring_buf(std::shared_ptr<Instance> instance) {
-    (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->reflash_ring_buf();
-}
-
-void InstanceRunHandler::run_aware(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
-    void *a[MAX_DEPENDENCIES_SIZE];
+void InstanceRunHandler::run_instance(std::shared_ptr<Instance> instance) {
+    std::vector<const void*> input_data;
+    std::vector<std::string> deps = instance->get_deps();
     for (size_t i = 0; i < deps.size(); ++i) {
         std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
-        a[i] = get_ring_buf(ins);
+        input_data.emplace_back(get_ring_buf(ins));
     }
-    (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->aware(a, (int)deps.size());
+    Param param;
+    param.args = input_data.data();
+    param.len = input_data.size();
+    instance->get_interface()->run(&param);
 }
 
-void InstanceRunHandler::run_tune(std::shared_ptr<Instance> instance, std::vector<std::string> &deps) {
-    void *a[MAX_DEPENDENCIES_SIZE];
-    for (size_t i = 0; i < deps.size(); ++i) {
-        std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
-        a[i] = get_ring_buf(ins);
-    }
-    (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->tune(a, (int)deps.size());
-}
-
-void InstanceRunHandler::insert_instance(std::shared_ptr<Instance> instance) {
-    switch (instance->get_type()) {
-        case PluginType::COLLECTOR: {
-            collector[instance->get_name()] = instance;
-            (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->enable();
-            break;
-        }
-        case PluginType::SCENARIO: {
-            scenario[instance->get_name()] = instance;
-            (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->enable();
-            break;
-        }
-        case PluginType::TUNE: {
-            tune[instance->get_name()] = instance;
-            (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->enable();
-            break;
-        }
-        default: {
-            break;
-        }
-    }
+void InstanceRunHandler::insert_instance(std::shared_ptr<Instance> instance, uint64_t time) {
+    instance->set_enabled(true);
+    schedule_queue.push(ScheduleInstance{instance, time});
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");
 }
 
 void InstanceRunHandler::delete_instance(std::shared_ptr<Instance> instance) {
-    switch (instance->get_type()) {
-        case PluginType::COLLECTOR: {
-            collector.erase(instance->get_name());
-            (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->disable();
-            break;
-        }
-        case PluginType::SCENARIO: {
-            scenario.erase(instance->get_name());
-            (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->disable();
-            break;
-        }
-        case PluginType::TUNE: {
-            tune.erase(instance->get_name());
-            (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->disable();
-            break;
-        }
-        default: {
-            break;
-        }
-    }
+    instance->get_interface()->disable();
+    instance->set_enabled(false);
     INFO("[PluginManager] " << instance->get_name() << " instance delete from running queue.");
 }
 
-void InstanceRunHandler::handle_instance() {
+void InstanceRunHandler::handle_instance(uint64_t time) {
     InstanceRunMessage msg;
     while(this->recv_queue_try_pop(msg)){
         std::shared_ptr<Instance> instance = msg.get_instance();
         switch (msg.get_type()){
             case RunType::ENABLED: {
-                insert_instance(std::move(instance));
+                insert_instance(std::move(instance), time);
                 break;
             }
             case RunType::DISABLED: {
@@ -121,78 +62,19 @@ void InstanceRunHandler::handle_instance() {
     }
 }
 
-template<typename T>
-static std::vector<std::string> get_deps(std::shared_ptr<Instance> instance) {
-    std::shared_ptr<T> t_instance = std::dynamic_pointer_cast<T>(instance);
-    std::string deps = (t_instance)->get_interface()->get_dep();
-    std::string dep = "";
-    std::vector<std::string> vec;
-    for (size_t i = 0; i < deps.length(); ++i) {
-        if (deps[i] != '-') {
-            dep += deps[i];
-        }else {
-            vec.emplace_back(dep);
-            dep = "";
+void InstanceRunHandler::schedule(uint64_t time) {
+    while (!schedule_queue.empty()) {
+        auto schedule_instance = schedule_queue.top();
+        if (schedule_instance.time != time) {
+            break;
         }
-    }
-    vec.emplace_back(dep);
-    return vec;
-}
-
-void InstanceRunHandler::adjust_collector_queue(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps, bool flag) {
-    for (auto &m_dep : m_deps) {
-        bool ok = false;
-        for (auto &dep : deps) {
-            if (m_dep == dep) {
-                ok = true;
-            }
+        schedule_queue.pop();
+        if (!schedule_instance.instance->get_enabled()) {
+            break;
         }
-        if (ok) continue;
-        if (flag) {
-            if (is_instance_exist(m_dep) && !collector.count(m_dep)) {
-                this->insert_instance(memory_store.get_instance(m_dep));
-            }
-        } else {
-            if (is_instance_exist(m_dep) && collector.count(m_dep)) {
-                this->delete_instance(memory_store.get_instance(m_dep));
-            }
-        }
-    }
-}
-
-void InstanceRunHandler::check_scenario_dependency(const std::vector<std::string> &origin_deps, const std::vector<std::string> &cur_deps) {
-    adjust_collector_queue(origin_deps, cur_deps, true);
-    adjust_collector_queue(cur_deps, origin_deps, false);
-}
-
-void InstanceRunHandler::schedule_collector(uint64_t time) {
-    for (auto &p : collector) {
-        std::shared_ptr<Instance> instance = p.second;
-        int t = (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface()->get_cycle();
-        if (time % t != 0) return;
-        reflash_ring_buf(instance);
-    }
-}
-
-void InstanceRunHandler::schedule_scenario(uint64_t time) {
-    for (auto &p : scenario) {
-        std::shared_ptr<Instance> instance = p.second;
-        int t = (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface()->get_cycle();
-        if (time % t != 0) return;
-        std::vector<std::string> origin_deps = get_deps<ScenarioInstance>(instance); 
-        run_aware(instance, origin_deps); 
-        std::vector<std::string> cur_deps = get_deps<ScenarioInstance>(instance);
-        check_scenario_dependency(origin_deps, cur_deps);
-    }
-}
-
-void InstanceRunHandler::schedule_tune(uint64_t time) {
-    for (auto &p : tune) {
-        std::shared_ptr<Instance> instance = p.second;
-        int t = (std::dynamic_pointer_cast<TuneInstance>(instance))->get_interface()->get_cycle();
-        if (time % t != 0) return;
-        std::vector<std::string> deps = get_deps<TuneInstance>(instance); 
-        run_tune(instance, deps);
+        run_instance(schedule_instance.instance);
+        schedule_instance.time += schedule_instance.instance->get_interface()->get_cycle();
+        schedule_queue.push(schedule_instance);
     }
 }
 
@@ -200,11 +82,8 @@ void start(InstanceRunHandler *instance_run_handler) {
     unsigned long long time = 0;
     INFO("[PluginManager] instance schedule started!");
     while(true) {
-        instance_run_handler->handle_instance();
-        instance_run_handler->schedule_collector(time);
-        instance_run_handler->schedule_scenario(time);
-        instance_run_handler->schedule_tune(time);
-
+        instance_run_handler->handle_instance(time);
+        instance_run_handler->schedule(time);
         usleep(instance_run_handler->get_cycle() * 1000);
         time += instance_run_handler->get_cycle();
     }

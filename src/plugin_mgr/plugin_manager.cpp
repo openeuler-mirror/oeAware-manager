@@ -78,9 +78,8 @@ ErrorCode PluginManager::query_plugin(const std::string &name, std::string &res)
     return ErrorCode::OK;
 }
 
-template <typename T>
-int PluginManager::load_dl_instance(std::shared_ptr<Plugin> plugin, T **interface_list) {
-    int (*get_instance)(T**) = (int(*)(T**))dlsym(plugin->get_handler(), "get_instance");
+int PluginManager::load_dl_instance(std::shared_ptr<Plugin> plugin, Interface **interface_list) {
+    int (*get_instance)(Interface**) = (int(*)(Interface**))dlsym(plugin->get_handler(), "get_instance");
     if (get_instance == nullptr) {
         ERROR("[PluginManager] dlsym error!\n");
         return -1;
@@ -90,78 +89,33 @@ int PluginManager::load_dl_instance(std::shared_ptr<Plugin> plugin, T **interfac
     return len;
 }
 
-template<typename T>
-std::vector<std::string> get_dep(T *interface) {
-    char *deps = interface->get_dep();
-    std::vector<std::string> res;
-    std::string dep;
-    for (int i = 0; deps[i] != 0; ++i) {
-        if (deps[i] != '-') {
-            dep += deps[i];
-        } else {  
-            res.emplace_back(dep);
-            dep = "";
-        }
-    }
-    if (!dep.empty()) res.emplace_back(dep);
-    return res;
-}
-
-template<typename T, typename U>
-void PluginManager::save_instance(std::shared_ptr<Plugin> plugin, T *interface_list, int len) {
+void PluginManager::save_instance(std::shared_ptr<Plugin> plugin, Interface *interface_list, int len) {
     if (interface_list == nullptr) return;
     for (int i = 0; i < len; ++i) {
-        T *interface = interface_list + i;
-        std::shared_ptr<Instance> instance = std::make_shared<U>();
+        Interface *interface = interface_list + i;
+        std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         std::string name = interface->get_name();
+        instance->set_interface(interface);
         instance->set_name(name);
         instance->set_plugin_name(plugin->get_name());
-        instance->set_type(plugin->get_type());
         instance->set_enabled(false);
-        if (plugin->get_type() == PluginType::COLLECTOR) {
-            DEBUG("[PluginManager] add node");
-            dep_handler.add_node(name); 
-        } else {
-            dep_handler.add_node(name, get_dep<T>(interface));
-        }
+        dep_handler.add_node(name, instance->get_deps());
         instance->set_state(dep_handler.get_node_state(name));
-        (std::dynamic_pointer_cast<U>(instance))->set_interface(interface);
         DEBUG("[PluginManager] Instance: " << name.c_str());
         memory_store.add_instance(name, instance);
-        plugin->add_instance(instance);    
+        plugin->add_instance(instance);
     }
 }
 
 bool PluginManager::load_instance(std::shared_ptr<Plugin> plugin) {
     int len = 0;
     DEBUG("plugin: " << plugin->get_name());
-    switch (plugin->get_type()) {
-        case PluginType::COLLECTOR: {
-            CollectorInterface *interface_list = nullptr;
-            len = load_dl_instance<CollectorInterface>(plugin, &interface_list);
-            if (len == -1) return false;
-            DEBUG("[PluginManager] save collect instance");
-            save_instance<CollectorInterface, CollectorInstance>(plugin, interface_list, len);  
-            break;
-        }
-        case PluginType::SCENARIO: {
-            ScenarioInterface *interface_list = nullptr;
-            len = load_dl_instance<ScenarioInterface>(plugin, &interface_list);
-            if (len == -1) return false;
-            save_instance<ScenarioInterface, ScenarioInstance>(plugin, interface_list, len);
-            break;
-        }
-        case PluginType::TUNE: {
-            TuneInterface *interface_list = nullptr;
-            len = load_dl_instance<TuneInterface>(plugin, &interface_list);
-            if (len == -1) return false;
-            save_instance<TuneInterface, TuneInstance>(plugin, interface_list, len);
-            break;
-        }
-        default: {
-            return false;
-        }
+    Interface *interface_list = nullptr;
+    len = load_dl_instance(plugin, &interface_list);
+    if (len < 0) {
+        return false;
     }
+    save_instance(plugin, interface_list, len);
     update_instance_state();
     return true;
 }
@@ -177,8 +131,8 @@ void PluginManager::update_instance_state() {
     }
 }
 
-ErrorCode PluginManager::load_plugin(const std::string &name, PluginType type) {
-    std::string plugin_path = get_path(type) + "/" + name;
+ErrorCode PluginManager::load_plugin(const std::string &name) {
+    std::string plugin_path = get_path() + "/" + name;
     if (!file_exist(plugin_path)) {
         return ErrorCode::LOAD_PLUGIN_FILE_NOT_EXIST;
     }
@@ -191,9 +145,8 @@ ErrorCode PluginManager::load_plugin(const std::string &name, PluginType type) {
     if (memory_store.is_plugin_exist(name)) {
         return ErrorCode::LOAD_PLUGIN_EXIST;
     }
-    const std::string dl_path = get_path(type) + '/' + name;
-    std::shared_ptr<Plugin> plugin = std::make_shared<Plugin>(name, type);
-    int error = plugin->load(dl_path);
+    std::shared_ptr<Plugin> plugin = std::make_shared<Plugin>(name);
+    int error = plugin->load(plugin_path);
     if (error) {
         return ErrorCode::LOAD_PLUGIN_DLOPEN_FAILED;
     } 
@@ -268,16 +221,35 @@ ErrorCode PluginManager::instance_enabled(std::string name) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
     std::vector<std::string> pre_dependencies = dep_handler.get_pre_dependencies(name);
+    std::vector<std::shared_ptr<Instance>> new_enabled;
+    bool enabled = true;
     for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
         instance = memory_store.get_instance(pre_dependencies[i]);
         if (instance->get_enabled()) {
             continue;
         }
-        instance->set_enabled(true);
-        instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
-        DEBUG("[PluginManager] " << instance->get_name() << " instance enabled.");
+        new_enabled.emplace_back(instance);
+        if (!instance->get_interface()->enable()) {
+            enabled = false;
+            WARN("[PluginManager] " << instance->get_name() << " instance enabled failed, because instance init environment failed.");
+            break;
+        }
     }
-    return ErrorCode::OK;
+    if (enabled) {
+        for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
+            instance = memory_store.get_instance(pre_dependencies[i]);
+            if (instance->get_enabled()) {
+                continue;
+            }
+            instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
+        }
+        return ErrorCode::OK;
+    } else {
+        for (auto instance : new_enabled) {
+            instance->get_interface()->disable();
+        }
+        return ErrorCode::ENABLE_INSTANCE_ENV;
+    }
 }
 
 ErrorCode PluginManager::instance_disabled(std::string name) {
@@ -291,7 +263,6 @@ ErrorCode PluginManager::instance_disabled(std::string name) {
     if (!instance->get_enabled()) {
         return ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED;
     }
-    instance->set_enabled(false);
     instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::DISABLED, instance));
     return ErrorCode::OK;
 }
@@ -331,9 +302,7 @@ ErrorCode PluginManager::add_list(std::string &res) {
         res += p.first + "\n";
     }   
     res += "Installed Plugins:\n";
-    res += get_plugin_in_dir(DEFAULT_COLLECTOR_PATH);
-    res += get_plugin_in_dir(DEFAULT_SCENARIO_PATH);
-    res += get_plugin_in_dir(DEFAULT_TUNE_PATH);
+    res += get_plugin_in_dir(DEFAULT_PLUGIN_PATH);
     return ErrorCode::OK;
 }
 
@@ -371,15 +340,15 @@ void PluginManager::pre_enable() {
     }
 }
 
-void PluginManager::pre_load_plugin(PluginType type) {
-    std::string path = get_path(type);
+void PluginManager::pre_load_plugin() {
+    std::string path = get_path();
     DIR *dir = opendir(path.c_str());
     if (dir == nullptr) return;
     struct dirent *entry;
     while ((entry = readdir(dir)) != nullptr) {
         std::string name = entry->d_name;
         if (end_with(name, ".so")) {
-            auto ret = load_plugin(name, type);
+            auto ret = load_plugin(name);
             if (ret != ErrorCode::OK) {
                 WARN("[PluginManager] " << name << " plugin preload failed, because " << ErrorText::get_error_text(ret) << ".");
             } else {
@@ -391,27 +360,13 @@ void PluginManager::pre_load_plugin(PluginType type) {
 }
 
 void PluginManager::pre_load() {
-    pre_load_plugin(PluginType::COLLECTOR);
-    pre_load_plugin(PluginType::SCENARIO);
-    pre_load_plugin(PluginType::TUNE);
+    pre_load_plugin();
     pre_enable();
 }
 
-void* PluginManager::get_data_buffer(std::string name) {
+const void* PluginManager::get_data_buffer(std::string name) {
     std::shared_ptr<Instance> instance = memory_store.get_instance(name);
-    switch (instance->get_type()) {
-        case PluginType::COLLECTOR: {
-            CollectorInterface *collector_interface = (std::dynamic_pointer_cast<CollectorInstance>(instance))->get_interface();
-            return collector_interface->get_ring_buf();
-        }
-        case PluginType::SCENARIO: {
-            ScenarioInterface *scenario_interface = (std::dynamic_pointer_cast<ScenarioInstance>(instance))->get_interface();
-            return scenario_interface->get_ring_buf();
-        }
-        default:
-            return nullptr;
-    }
-    return nullptr;
+    return instance->get_interface()->get_ring_buf();
 }
 
 std::string PluginManager::instance_dep_check(const std::string &name) {
@@ -465,8 +420,7 @@ int PluginManager::run() {
         switch (msg.get_opt()) {
             case Opt::LOAD: {
                 std::string plugin_name = msg.get_payload(0);
-                PluginType type = plugin_types[msg.get_payload(1)];
-                ErrorCode ret_code = load_plugin(plugin_name, type);
+                ErrorCode ret_code = load_plugin(plugin_name);
                 if(ret_code == ErrorCode::OK) {
                     INFO("[PluginManager] " << plugin_name << " plugin loaded.");
                     res.set_opt(Opt::RESPONSE_OK);

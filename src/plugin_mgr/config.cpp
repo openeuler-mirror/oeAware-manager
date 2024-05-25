@@ -42,7 +42,7 @@ bool check_plugin_list(YAML::Node plugin_list_item) {
     return true;
 }
 
-bool Config::load(const std::string path) {
+bool Config::load(const std::string &path) {
     YAML::Node node;
     struct stat buffer;
     if (stat(path.c_str(), &buffer) != 0) {
@@ -106,20 +106,6 @@ bool Config::load(const std::string path) {
     return true;
 }
 
-std::string get_path(PluginType type) {
-    switch (type) {
-        case PluginType::COLLECTOR:{
-            return DEFAULT_COLLECTOR_PATH;
-        }
-        case PluginType::SCENARIO: {
-            return DEFAULT_SCENARIO_PATH;
-        }
-        case PluginType::TUNE: {
-            return DEFAULT_TUNE_PATH;
-        }
-        default: {
-            break;
-        }
-    }
-    return "";
+std::string get_path() {
+    return DEFAULT_PLUGIN_PATH;
 }

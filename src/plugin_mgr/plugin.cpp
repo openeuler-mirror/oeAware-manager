@@ -16,7 +16,7 @@ const std::string Instance::PLUGIN_DISABLED = "close";
 const std::string Instance::PLUGIN_STATE_ON = "available";
 const std::string Instance::PLUGIN_STATE_OFF = "unavailable";
 
-int Plugin::load(const std::string dl_path) {
+int Plugin::load(const std::string &dl_path) {
     void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
     if (handler == nullptr) {
         return -1;
@@ -29,4 +29,25 @@ std::string Instance::get_info() const {
     std::string state_text = this->state ? PLUGIN_STATE_ON : PLUGIN_STATE_OFF;
     std::string run_text = this->enabled ? PLUGIN_ENABLED : PLUGIN_DISABLED;
     return name + "(" + state_text + ", " + run_text + ")"; 
+}
+
+std::vector<std::string> Instance::get_deps() {
+    std::vector<std::string> vec;
+    if (get_interface()->get_dep == nullptr) {
+        return vec;
+    }
+    std::string deps = get_interface()->get_dep();
+    std::string dep = "";
+    for (size_t i = 0; i < deps.length(); ++i) {
+        if (deps[i] != '-') {
+            dep += deps[i];
+        } else {
+            vec.emplace_back(dep);
+            dep = "";
+        }
+    }
+    if (!dep.empty()) {
+        vec.emplace_back(dep);
+    }
+    return vec;
 }

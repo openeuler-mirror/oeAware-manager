@@ -12,40 +12,28 @@
 #ifndef PLUGIN_MGR_INTERFACE_H
 #define PLUGIN_MGR_INTERFACE_H
 
-struct CollectorInterface {
-    char* (*get_version)();
-    char* (*get_name)();
-    char* (*get_description)();
-    char* (*get_type)();
-    int (*get_cycle)();
-    char* (*get_dep)();
-    void (*enable)();
-    void (*disable)();
-    void* (*get_ring_buf)();
-    void (*reflash_ring_buf)();
+enum PluginType {
+    COLLECTOR,
+    SCENARIO,
+    TUNE,
 };
 
-struct ScenarioInterface {
-    char* (*get_version)();
-    char* (*get_name)();
-    char* (*get_description)();
-    char* (*get_dep)();
-    int (*get_cycle)();
-    void (*enable)();
-    void (*disable)();
-    void (*aware)(void*[], int);
-    void* (*get_ring_buf)();
+struct Param {
+    void *args;
+    int len;
 };
 
-struct TuneInterface {
-    char* (*get_version)();
-    char* (*get_name)();
-    char* (*get_description)();
-    char* (*get_dep)();
+struct Interface {
+    const char* (*get_version)();
+    const char* (*get_name)();
+    const char* (*get_description)();
+    const char* (*get_dep)();
+    PluginType (*get_type)();
     int (*get_cycle)();
-    void (*enable)();
+    bool (*enable)();
     void (*disable)();
-    void (*tune)(void*[], int);
+    const void* (*get_ring_buf)();
+    void (*run)(const Param*);
 };
 
 #endif // !PLUGIN_MGR_INTERFACE_H

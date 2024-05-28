@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "message_protocol.h"
-#include <iostream>
 
 template <typename T>
 inline ssize_t handle_error(T fn) {

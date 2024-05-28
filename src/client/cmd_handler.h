@@ -13,9 +13,6 @@
 #define CLIENT_CMD_HANDLER_H
 #include "message_protocol.h"
 #include "arg_parse.h"
-#include <unordered_set>
-#include <string>
-#include <stdio.h>
 
 class CmdHandler {
 public:
@@ -27,7 +24,6 @@ public:
 
 class LoadHandler : public CmdHandler {
 public:
-    // LoadHandler(const ArgParse &arg_parse) { }
     void handler(Msg &msg) override;
     void res_handler(Msg &msg) override;
 private:

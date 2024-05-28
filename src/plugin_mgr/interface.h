@@ -11,6 +11,8 @@
  ******************************************************************************/ 
 #ifndef PLUGIN_MGR_INTERFACE_H
 #define PLUGIN_MGR_INTERFACE_H
+#include <stdbool.h>
+#include <stdint.h>
 
 enum PluginType {
     COLLECTOR,
@@ -18,8 +20,24 @@ enum PluginType {
     TUNE,
 };
 
+struct DataBuf {
+    int len;
+    void *data;
+};
+
+struct DataRingBuf {
+    /* instance name */
+    const char *instance_name;                              
+    /* buf write index, initial value is -1 */
+    int index;
+    /* instance run times */
+    uint64_t count;                                
+    struct DataBuf *buf;
+    int buf_len;
+};
+
 struct Param {
-    void *args;
+    const struct DataRingBuf **ring_bufs;
     int len;
 };
 
@@ -28,12 +46,17 @@ struct Interface {
     const char* (*get_name)();
     const char* (*get_description)();
     const char* (*get_dep)();
-    PluginType (*get_type)();
-    int (*get_cycle)();
+    enum PluginType (*get_type)();
+    int (*get_period)();
     bool (*enable)();
     void (*disable)();
-    const void* (*get_ring_buf)();
-    void (*run)(const Param*);
+    const struct DataRingBuf* (*get_ring_buf)();
+    void (*run)(const struct Param*);
 };
+
+/* Obtains the instances from the plugin.
+ * The return value is the number of instances.
+ */
+int get_instance(struct Interface **interface);
 
 #endif // !PLUGIN_MGR_INTERFACE_H

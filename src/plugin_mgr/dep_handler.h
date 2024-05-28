@@ -12,68 +12,62 @@
 #ifndef PLUGIN_MGR_DEP_HANDLER_H
 #define PLUGIN_MGR_DEP_HANDLER_H
 
+#include "plugin.h"
 #include <unordered_map>
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <memory>
+#include <unordered_set>
 
 struct ArcNode {
     std::shared_ptr<ArcNode> next;
     std::string arc_name;
     std::string node_name;
-    ArcNode() : next(nullptr) {}
+    bool is_exist;  
+    ArcNode() : next(nullptr), is_exist(false) { }
 };
 
 // a instance node 
 struct Node {
     std::shared_ptr<Node> next;
     std::shared_ptr<ArcNode> head;
-    std::string name;
+    std::shared_ptr<Instance> instance;
     int cnt; 
     int real_cnt; 
-    bool state; // dependency closed-loop
-    Node() : next(nullptr), head(nullptr), cnt(0), real_cnt(0), state(true) {}
-    Node(const std::string &name): next(nullptr), head(nullptr), name(name), cnt(0), real_cnt(0), state(true) {}
+    Node(): next(nullptr), head(nullptr), cnt(0), real_cnt(0) { }
 };
 
 class DepHandler {
 public:
     DepHandler() {
         this->head = std::make_shared<Node>();
-        this->tail = head;
     }
     std::shared_ptr<Node> get_node(const std::string &name);
-    bool get_node_state(std::string name) {
-        return this->nodes[name]->state;
+    bool get_node_state(const std::string &name) {
+        return this->nodes[name]->instance->get_state();
     }
-    void add_node(const std::string &name, const std::vector<std::string> &dep_nodes = {});
-    void del_node(const std::string &name);
-    std::vector<std::string> get_pre_dependencies(const std::string &name);
-    // query instance dependency
-    void query_node(const std::string &name, std::vector<std::vector<std::string>> &query);
-    // query all instance dependencies
-    void query_all_top(std::vector<std::vector<std::string>> &query);
+    void add_instance(std::shared_ptr<Instance> instance);
+    void delete_instance(const std::string &name);
+    bool is_instance_exist(const std::string &name);
+    std::shared_ptr<Instance> get_instance(const std::string &name) const {
+        return nodes.at(name)->instance;
+    }
+    void query_node_dependency(const std::string &name, std::vector<std::vector<std::string>> &query);
+    void query_all_dependencies(std::vector<std::vector<std::string>> &query);
+    /* check whether the instance has dependencies */
     bool have_dep(const std::string &name) {
         return arc_nodes.count(name);
     }
-    bool is_empty() const {
-        return nodes.empty();
-    }
-    size_t get_node_nums() const {
-        return nodes.size();
-    }
+    std::vector<std::string> get_pre_dependencies(const std::string &name);
 private:
-    void query_node_top(std::string name, std::vector<std::vector<std::string>> &query);
+    void add_node(std::shared_ptr<Instance> instance);
+    void del_node(const std::string &name);
+    void query_node_top(const std::string &name, std::vector<std::vector<std::string>> &query);
     void add_arc_node(std::shared_ptr<Node> node, const std::vector<std::string> &dep_nodes);
-    void change_arc_nodes(std::string name, bool state);
+    void update_instance_state(const std::string &name);
     void del_node_and_arc_nodes(std::shared_ptr<Node> node);
-    std::shared_ptr<Node> add_new_node(std::string name);
-
-    std::unordered_map<std::string, std::unordered_map<std::shared_ptr<ArcNode>, bool>> arc_nodes;
+    std::shared_ptr<Node> add_new_node(std::shared_ptr<Instance> instance);
+    /* indegree edges */
+    std::unordered_map<std::string, std::unordered_set<std::shared_ptr<ArcNode>>> arc_nodes;
     std::unordered_map<std::string, std::shared_ptr<Node>> nodes;
     std::shared_ptr<Node> head;
-    std::shared_ptr<Node> tail;
 };
 
 #endif // !PLUGIN_MGR_DEP_HANDLER_H

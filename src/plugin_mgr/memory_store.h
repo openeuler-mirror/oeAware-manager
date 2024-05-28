@@ -11,37 +11,36 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MEMORY_STORE_H
 #define PLUGIN_MGR_MEMORY_STORE_H
-#include "plugin.h"
 #include "logger.h"
+#include "dep_handler.h"
 #include <unordered_map>
-#include <memory>
 
-//OeAware memory storage, which is used to store plugins and instances in the memory.
+/* OeAware memory storage, which is used to store plugins and instances in the memory. */
 class MemoryStore {
 public:
     void add_plugin(const std::string &name, std::shared_ptr<Plugin> plugin) {
         this->plugins.insert(std::make_pair(name, plugin));
     }
-    void add_instance(const std::string &name, std::shared_ptr<Instance> instance) {
-        this->instances.insert(std::make_pair(name, instance));
+    void add_instance(std::shared_ptr<Instance> instance) {
+        dep_handler.add_instance(instance);
     }
     std::shared_ptr<Plugin> get_plugin(const std::string &name) const {
         return this->plugins.at(name);
     }
     std::shared_ptr<Instance> get_instance(const std::string &name) const {
-        return this->instances.at(name);
+        return dep_handler.get_instance(name);
     }
     void delete_plugin(const std::string &name) {
         this->plugins.erase(name);
     }
     void delete_instance(const std::string &name) {
-        this->instances.erase(name);
+        dep_handler.delete_instance(name);
     }
     bool is_plugin_exist(const std::string &name) const {
         return this->plugins.count(name);
     }
-    bool is_instance_exist(const std::string &name) const {
-        return this->instances.count(name);
+    bool is_instance_exist(const std::string &name) {
+        return dep_handler.is_instance_exist(name);
     }
     std::vector<std::shared_ptr<Plugin>> get_all_plugins() {
         std::vector<std::shared_ptr<Plugin>> res;
@@ -50,16 +49,24 @@ public:
         }
         return res;
     }
-    std::vector<std::shared_ptr<Instance>> get_all_instances() {
-        std::vector<std::shared_ptr<Instance>> res;
-        for (auto &p : instances) {
-            res.emplace_back(p.second);
-        }
-        return res;
+    void query_node_dependency(const std::string &name, std::vector<std::vector<std::string>> &query) {
+        return dep_handler.query_node_dependency(name, query);
+    }
+    void query_all_dependencies(std::vector<std::vector<std::string>> &query) {
+        return dep_handler.query_all_dependencies(query);
+    }
+    bool have_dep(const std::string &name) {
+        return dep_handler.have_dep(name);
+    }
+    std::vector<std::string> get_pre_dependencies(const std::string &name) {
+        return dep_handler.get_pre_dependencies(name);
     }
 private:
+    /* instance are stored in the form of DAG. 
+     * DepHandler stores instances and manages dependencies.
+     */
+    DepHandler dep_handler;
     std::unordered_map<std::string, std::shared_ptr<Plugin>> plugins; 
-    std::unordered_map<std::string, std::shared_ptr<Instance>> instances; 
 };
 
 #endif // !PLUGIN_MGR_MEMORY_STORE_H

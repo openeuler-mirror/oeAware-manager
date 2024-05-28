@@ -12,7 +12,6 @@
 #include "client.h"
 
 std::string ArgParse::arg;
-std::string ArgParse::type;
 std::unordered_set<char> ArgParse::opts;
 
 void Client::cmd_groups_init() {

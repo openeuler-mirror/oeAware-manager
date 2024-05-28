@@ -13,7 +13,7 @@
 #include <thread>
 #include <unistd.h>
 
-static const void* get_ring_buf(std::shared_ptr<Instance> instance) {
+static const DataRingBuf* get_ring_buf(std::shared_ptr<Instance> instance) {
     if (instance == nullptr) {
         return nullptr;
     }
@@ -21,14 +21,14 @@ static const void* get_ring_buf(std::shared_ptr<Instance> instance) {
 }
 
 void InstanceRunHandler::run_instance(std::shared_ptr<Instance> instance) {
-    std::vector<const void*> input_data;
+    std::vector<const DataRingBuf*> input_data;
     std::vector<std::string> deps = instance->get_deps();
     for (size_t i = 0; i < deps.size(); ++i) {
         std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
         input_data.emplace_back(get_ring_buf(ins));
     }
     Param param;
-    param.args = input_data.data();
+    param.ring_bufs = input_data.data();
     param.len = input_data.size();
     instance->get_interface()->run(&param);
 }
@@ -73,7 +73,7 @@ void InstanceRunHandler::schedule(uint64_t time) {
             break;
         }
         run_instance(schedule_instance.instance);
-        schedule_instance.time += schedule_instance.instance->get_interface()->get_cycle();
+        schedule_instance.time += schedule_instance.instance->get_interface()->get_period();
         schedule_queue.push(schedule_instance);
     }
 }

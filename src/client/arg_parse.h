@@ -22,15 +22,11 @@ public:
     static void init_opts();
     static void set_type(char* _type);
     static void set_arg(char* _arg);
-    static std::string get_type() {
-        return type;
-    }
     static std::string get_arg() {
         return arg;
     }
 private:
     static std::string arg;
-    static std::string type;
     static std::unordered_set<char> opts;
     static const std::string OPT_STRING;
     static const int MAX_OPT_SIZE = 20;

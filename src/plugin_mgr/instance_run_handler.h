@@ -16,19 +16,14 @@
 #include "plugin.h"
 #include "logger.h"
 #include "memory_store.h"
-#include <set>
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <queue>
-#include <memory>
 
 enum class RunType {
     ENABLED,
     DISABLED,
  };
 
-// Message for communication between plugin manager and instance scheduling
+/* Message for communication between plugin manager and instance scheduling */
 class InstanceRunMessage {
 public:
     InstanceRunMessage() {}
@@ -53,10 +48,10 @@ public:
     uint64_t time;
 };
 
-// A handler to schedule plugin instance 
+/* A handler to schedule instances. */ 
 class InstanceRunHandler {
 public:
-    InstanceRunHandler(MemoryStore &memory_store) : memory_store(memory_store), cycle(DEFAULT_CYCLE_SIZE) {}
+    explicit InstanceRunHandler(MemoryStore &memory_store) : memory_store(memory_store), cycle(DEFAULT_CYCLE_SIZE) {}
     void run();
     void schedule(uint64_t time);
     void handle_instance(uint64_t time);

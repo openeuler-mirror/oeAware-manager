@@ -14,12 +14,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum PluginType {
-    COLLECTOR,
-    SCENARIO,
-    TUNE,
-};
-
 struct DataBuf {
     int len;
     void *data;
@@ -43,10 +37,19 @@ struct Param {
 
 struct Interface {
     const char* (*get_version)();
+    /* The instance name is a unique identifier in the system. */
     const char* (*get_name)();
     const char* (*get_description)();
+    /* Specifies the instance dependencies, which is used as the input information
+     * for instance execution.
+     */
     const char* (*get_dep)();
-    enum PluginType (*get_type)();
+    /* Instance scheduling priority. In a uniform time period, a instance with a 
+     * lower priority is scheduled first.
+     */
+    int (*get_priority)();
+    int (*get_type)();
+    /* Instance execution period. */
     int (*get_period)();
     bool (*enable)();
     void (*disable)();

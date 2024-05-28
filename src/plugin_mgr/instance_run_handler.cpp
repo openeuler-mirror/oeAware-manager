@@ -34,6 +34,7 @@ void InstanceRunHandler::run_instance(std::shared_ptr<Instance> instance) {
 }
 
 void InstanceRunHandler::insert_instance(std::shared_ptr<Instance> instance, uint64_t time) {
+    /* To check if an instance is enabled, enable() is called in the PluginManager. */
     instance->set_enabled(true);
     schedule_queue.push(ScheduleInstance{instance, time});
     INFO("[PluginManager] " << instance->get_name() << " instance insert into running queue.");

@@ -42,7 +42,7 @@ private:
 class ScheduleInstance {
 public:
     bool operator < (const ScheduleInstance &rhs) const {
-        return time > rhs.time || (time == rhs.time && instance->get_type() > rhs.instance->get_type());
+        return time > rhs.time || (time == rhs.time && instance->get_priority() > rhs.instance->get_priority());
     }
     std::shared_ptr<Instance> instance;
     uint64_t time;
@@ -61,9 +61,6 @@ public:
     int get_cycle() {
         return cycle;
     }
-    bool is_instance_exist(const std::string &name) {
-        return memory_store.is_instance_exist(name);
-    }
     void recv_queue_push(InstanceRunMessage &msg) {
         this->recv_queue.push(msg);
     }
@@ -77,15 +74,14 @@ private:
     void run_instance(std::shared_ptr<Instance> instance);
     void delete_instance(std::shared_ptr<Instance> instance);
     void insert_instance(std::shared_ptr<Instance> instance, uint64_t time);
-    void adjust_collector_queue(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps, bool flag);
-    void check_scenario_dependency(const std::vector<std::string> &deps, const std::vector<std::string> &m_deps);
 
+    /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> schedule_queue;
+    /*Receives messages from the PluginManager. */
     SafeQueue<InstanceRunMessage> recv_queue;
     MemoryStore &memory_store;
     int cycle;
     static const int DEFAULT_CYCLE_SIZE = 10;
-    static const int MAX_DEPENDENCIES_SIZE = 20;
 };
 
 #endif // !PLUGIN_MGR_INSTANCE_RUN_HANDLER_H

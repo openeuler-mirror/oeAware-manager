@@ -25,8 +25,8 @@ public:
     std::string get_name() const {
         return this->name;
     }
-    PluginType get_type() const {
-        return interface->get_type();
+    int get_priority() const {
+        return interface->get_priority();
     }
     Interface* get_interface() const {
         return this->interface;

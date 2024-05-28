@@ -29,7 +29,7 @@ enum class MessageType {
 class Message {
 public:
     Message() : type(MessageType::EXTERNAL) {}
-    Message(Opt opt) : opt(opt) {}
+    explicit Message(Opt opt) : opt(opt) {}
     Message(Opt opt, MessageType type) : opt(opt), type(type) {} 
     Message(Opt opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) {}
     Opt get_opt() {
@@ -79,6 +79,7 @@ public:
     MessageManager(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg) {
         this->handler_msg = handler_msg;
         this->res_msg = res_msg;
+        this->tcp_socket = nullptr;
     }
     void init(){
        this->tcp_socket = new TcpSocket();

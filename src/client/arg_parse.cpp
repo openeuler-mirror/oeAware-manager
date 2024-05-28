@@ -13,11 +13,10 @@
 #include <iostream>
 #include <getopt.h>
 
-const std::string ArgParse::OPT_STRING = "Qqd:t:l:r:e:i:";
+const std::string ArgParse::OPT_STRING = "Qqd:l:r:e:i:";
 const struct option ArgParse::long_options[] = {
     {"help", no_argument, NULL, 'h'},
     {"load", required_argument, NULL, 'l'},
-    {"type", required_argument, NULL, 't'},
     {"remove", required_argument, NULL, 'r'}, 
     {"query", required_argument, NULL, 'q'},
     {"query-dep", required_argument, NULL, 'Q'},
@@ -34,10 +33,6 @@ void ArgParse::arg_error(const std::string &msg) {
     exit(EXIT_FAILURE);
 }
 
-void ArgParse::set_type(char *_type) {
-    type = _type;
-}
-
 void ArgParse::set_arg(char *_arg) {
     arg = std::string(_arg);
 }
@@ -46,10 +41,6 @@ void ArgParse::print_help() {
     std::cout << "usage: oeawarectl [options]...\n"
            "  options\n"
            "    -l|--load [plugin]      load plugin and need plugin type.\n"
-           "    -t|--type [plugin_type] assign plugin type. there are three types:\n"
-           "                            collector: collection plugin.\n"
-           "                            scenario: awareness plugin.\n"
-           "                            tune: tune plugin.\n"
            "    -r|--remove [plugin]    remove plugin from system.\n"
            "    -e|--enable [instance]  enable the plugin instance.\n"
            "    -d|--disable [instance] disable the plugin instance.\n"
@@ -70,7 +61,6 @@ void ArgParse::init_opts() {
     opts.insert('e');
     opts.insert('d');
     opts.insert('i');
-    opts.insert('t');
 }
 
 int ArgParse::init(int argc, char *argv[]) {
@@ -82,9 +72,6 @@ int ArgParse::init(int argc, char *argv[]) {
     while((opt = getopt_long(argc, argv, OPT_STRING.c_str(), long_options, nullptr)) != -1) {
         std::string full_opt;
         switch (opt) {
-            case 't':
-                set_type(optarg);
-                break;
             case 'h':
                 help = true;
                 break;
@@ -117,9 +104,6 @@ int ArgParse::init(int argc, char *argv[]) {
             }
                 
         }
-    }
-    if (cmd == 'l' && type.empty()) {
-        arg_error("missing arguments.");
     }
     if (help) {
         print_help();

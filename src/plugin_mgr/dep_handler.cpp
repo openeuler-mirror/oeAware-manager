@@ -11,39 +11,52 @@
  ******************************************************************************/
 #include "dep_handler.h"
 #include <queue>
-#include <unordered_set>
-#include <stdio.h>
     
+bool DepHandler::is_instance_exist(const std::string &name) {
+    return nodes.count(name);
+}   
+
+void DepHandler::add_instance(std::shared_ptr<Instance> instance) {
+    add_node(instance);
+}
+
+void DepHandler::delete_instance(const std::string &name) {
+    del_node(name);
+}
+
 void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std::string> &dep_nodes) {
     std::shared_ptr<ArcNode> arc_head = node->head;
     node->cnt = dep_nodes.size();
     int real_cnt = 0;
-    bool state = true;
     for (auto name : dep_nodes) {
         std::shared_ptr<ArcNode> tmp = std::make_shared<ArcNode>();
         tmp->arc_name = name; 
-        tmp->node_name = node->name;
+        tmp->node_name = node->instance->get_name();
         tmp->next = arc_head->next;
         arc_head->next = tmp;
         
         if (nodes.count(name)) {
-            arc_nodes[name][tmp] = true;
+            tmp->is_exist = true;
+            arc_nodes[name].insert(tmp);
             real_cnt++;
         } else {
-            arc_nodes[name][tmp] = false;
-            state = false;
+            tmp->is_exist = false;
+            arc_nodes[name].insert(tmp);
         }
     }
-    node->state = state;
+    if (real_cnt == node->cnt) {
+        node->instance->set_state(true);
+    }
     node->real_cnt = real_cnt;
 }
 
-
-void DepHandler::add_node(const std::string &name, const std::vector<std::string> &dep_nodes) {
-    std::shared_ptr<Node> cur_node = add_new_node(name);
+void DepHandler::add_node(std::shared_ptr<Instance> instance) {
+    std::string name = instance->get_name();
+    std::shared_ptr<Node> cur_node = add_new_node(instance);
     this->nodes[name] = cur_node;
+    std::vector<std::string> dep_nodes = instance->get_deps();
     add_arc_node(cur_node, dep_nodes);
-    change_arc_nodes(name, true);
+    update_instance_state(name);
 }
 
 void DepHandler::del_node(const std::string &name) {
@@ -56,16 +69,14 @@ std::shared_ptr<Node> DepHandler::get_node(const std::string &name) {
     return this->nodes[name];
 }
 
-std::shared_ptr<Node> DepHandler::add_new_node(std::string name) {
-    std::shared_ptr<Node> cur_node = std::make_shared<Node>(name);
+std::shared_ptr<Node> DepHandler::add_new_node(std::shared_ptr<Instance> instance) {
+    std::shared_ptr<Node> cur_node = std::make_shared<Node>();
+    cur_node->instance = instance;
     cur_node->head = std::make_shared<ArcNode>();
-    tail->next = cur_node;
-    tail = cur_node;
     return cur_node;
 }
 
 void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
-    std::shared_ptr<Node> next = node->next;
     std::shared_ptr<ArcNode> arc = node->head;
     while(arc) {
         std::shared_ptr<ArcNode> tmp = arc->next;
@@ -80,34 +91,28 @@ void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
     } 
 }
 
-void DepHandler::change_arc_nodes(std::string name, bool state) {
-    if (!nodes[name]->state || !arc_nodes.count(name)) return;
-    std::unordered_map<std::shared_ptr<ArcNode>, bool> &mp = arc_nodes[name];
-    for (auto &vec : mp) {
-        vec.second = state;
-        if (nodes.count(vec.first->node_name)) {
-            std::shared_ptr<Node> tmp = nodes[vec.first->node_name];
-            if (state) {
-                tmp->real_cnt++;
-                if (tmp->real_cnt == tmp->cnt) {
-                    tmp->state = true;
-                }
-            } else {
-                tmp->real_cnt--;
-                tmp->state = false;
+void DepHandler::update_instance_state(const std::string &name) {
+    if (!nodes[name]->instance->get_state() || !arc_nodes.count(name)) return;
+    std::unordered_set<std::shared_ptr<ArcNode>> &arcs = arc_nodes[name];
+    for (auto &arc_node : arcs) {
+        if (nodes.count(arc_node->node_name)) {
+            auto tmp = nodes[arc_node->node_name];
+            tmp->real_cnt++;
+            if (tmp->real_cnt == tmp->cnt) {
+                tmp->instance->set_state(true);
             }
-            change_arc_nodes(vec.first->node_name, state);
+            update_instance_state(tmp->instance->get_name());
         }
     }
 }
 
-void DepHandler::query_all_top(std::vector<std::vector<std::string>> &query) {
+void DepHandler::query_all_dependencies(std::vector<std::vector<std::string>> &query) {
     for (auto &p : nodes) {
         query_node_top(p.first, query);
     }
 }
 
-void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::string>> &query) {
+void DepHandler::query_node_top(const std::string &name, std::vector<std::vector<std::string>> &query) {
     std::shared_ptr<ArcNode> p = nodes[name]->head;
     if (p->next == nullptr) {
         query.emplace_back(std::vector<std::string>{name});
@@ -119,7 +124,7 @@ void DepHandler::query_node_top(std::string name, std::vector<std::vector<std::s
     }
 }
 
-void DepHandler::query_node(const std::string &name, std::vector<std::vector<std::string>> &query) {
+void DepHandler::query_node_dependency(const std::string &name, std::vector<std::vector<std::string>> &query) {
     if (!nodes.count(name)) return;
     std::queue<std::string> q;
     std::unordered_set<std::string> vis;
@@ -128,9 +133,10 @@ void DepHandler::query_node(const std::string &name, std::vector<std::vector<std
     while (!q.empty()) {
         auto node = nodes[q.front()];
         q.pop();
-        query.emplace_back(std::vector<std::string>{node->name});
+        std::string node_name = node->instance->get_name();
+        query.emplace_back(std::vector<std::string>{node_name});
         for (auto cur = node->head->next; cur != nullptr; cur = cur->next) {
-            query.emplace_back(std::vector<std::string>{node->name, cur->arc_name});
+            query.emplace_back(std::vector<std::string>{node_name, cur->arc_name});
             if (!vis.count(cur->arc_name) && nodes.count(cur->arc_name)) {
                 vis.insert(cur->arc_name);
                 q.push(cur->arc_name);
@@ -148,7 +154,7 @@ std::vector<std::string> DepHandler::get_pre_dependencies(const std::string &nam
     while (!q.empty()) {
         auto &node = q.front();
         q.pop();
-        res.emplace_back(node->name);
+        res.emplace_back(node->instance->get_name());
         for (auto arc_node = node->head->next; arc_node != nullptr; arc_node = arc_node->next) {
             if (!vis.count(arc_node->arc_name)) {
                 vis.insert(arc_node->arc_name);

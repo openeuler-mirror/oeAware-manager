@@ -23,10 +23,7 @@ void LoadHandler::check(const std::string &type) {
 
 void LoadHandler::handler(Msg &msg) {
     std::string arg = ArgParse::get_arg();
-    std::string type = ArgParse::get_type();
-    check(type);
     msg.add_payload(arg);
-    msg.add_payload(type);
     msg.set_opt(Opt::LOAD);
 }
 
@@ -109,10 +106,10 @@ void write_to_file(const std::string &file_name, const std::string &text) {
 void QueryTopHandler::handler(Msg &msg) {
     std::string arg = ArgParse::get_arg();
     if (arg.empty()) { 
-        msg.set_opt(Opt::QUERY_ALL_TOP);
+        msg.set_opt(Opt::QUERY_ALL_DEPS);
     } else {
         msg.add_payload(arg);
-        msg.set_opt(Opt::QUERY_TOP);
+        msg.set_opt(Opt::QUERY_DEP);
     }
 }
 

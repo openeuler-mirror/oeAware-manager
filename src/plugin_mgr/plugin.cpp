@@ -33,7 +33,7 @@ std::string Instance::get_info() const {
 
 std::vector<std::string> Instance::get_deps() {
     std::vector<std::string> vec;
-    if (get_interface()->get_dep == nullptr) {
+    if (get_interface()->get_dep == nullptr || get_interface()->get_dep() == nullptr) {
         return vec;
     }
     std::string deps = get_interface()->get_dep();

@@ -11,7 +11,6 @@
  ******************************************************************************/
 #include "logger.h"
 #include <sys/stat.h>
-#include <unistd.h>
 
 Logger::Logger() {
     logger = log4cplus::Logger::getInstance("oeAware");

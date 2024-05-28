@@ -13,7 +13,6 @@
 #define PLUGIN_MGR_CONFIG_H
 
 #include "plugin.h"
-#include <string>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
 #include <sys/stat.h>
@@ -52,7 +51,7 @@ namespace std {
 
 class EnableItem {
 public:
-    EnableItem(const std::string &name) : name(name), enabled(false) { }
+    explicit EnableItem(const std::string &name) : name(name), enabled(false) { }
     void set_enabled(bool enabled) {
         this->enabled = enabled;
     }
@@ -86,9 +85,6 @@ public:
     int get_log_level() const {
         return this->log_level;
     }
-    int get_schedule_cycle() const {
-        return this->schedule_cycle;
-    }
     std::string get_log_type() const {
         return this->log_type;
     }
@@ -115,7 +111,6 @@ public:
     }
 private:
     int log_level;
-    int schedule_cycle;
     std::string log_path;
     std::string log_type;
     std::unordered_map<std::string, PluginInfo> plugin_list;

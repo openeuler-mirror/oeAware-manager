@@ -11,21 +11,13 @@
  ******************************************************************************/
 #include "plugin_manager.h"
 #include "default_path.h"
-#include "utils.h"
-#include <iostream>
-#include <unordered_set>
 #include <dirent.h>
-#include <sys/stat.h>
 
-const std::string PluginManager::COLLECTOR_TEXT = "collector";
-const std::string PluginManager::SCENARIO_TEXT = "scenario";
-const std::string PluginManager::TUNE_TEXT = "tune";
 const static int ST_MODE_MASK = 0777;
 
 void PluginManager::init() {
-    plugin_types[COLLECTOR_TEXT] = PluginType::COLLECTOR;
-    plugin_types[SCENARIO_TEXT] = PluginType::SCENARIO;
-    plugin_types[TUNE_TEXT] = PluginType::TUNE;
+    instance_run_handler.reset(new InstanceRunHandler(memory_store));
+    pre_load();
 }
 
 ErrorCode PluginManager::remove(const std::string &name) {
@@ -40,19 +32,18 @@ ErrorCode PluginManager::remove(const std::string &name) {
         if (instance->get_enabled()) {
             return ErrorCode::REMOVE_INSTANCE_IS_RUNNING;
         }
-        if (dep_handler.have_dep(iname)) {
+        if (memory_store.have_dep(iname)) {
             return ErrorCode::REMOVE_INSTANCE_HAVE_DEP;
         }
         instance_names.emplace_back(iname);
     }
     for(auto &iname : instance_names) {
         memory_store.delete_instance(iname);
-        dep_handler.del_node(iname);
     }
     memory_store.delete_plugin(name);
-    update_instance_state();
     return ErrorCode::OK;
 }
+
 ErrorCode PluginManager::query_all_plugins(std::string &res) {
     std::vector<std::shared_ptr<Plugin>> all_plugins = memory_store.get_all_plugins();
     for (auto &p : all_plugins) {
@@ -99,10 +90,8 @@ void PluginManager::save_instance(std::shared_ptr<Plugin> plugin, Interface *int
         instance->set_name(name);
         instance->set_plugin_name(plugin->get_name());
         instance->set_enabled(false);
-        dep_handler.add_node(name, instance->get_deps());
-        instance->set_state(dep_handler.get_node_state(name));
         DEBUG("[PluginManager] Instance: " << name.c_str());
-        memory_store.add_instance(name, instance);
+        memory_store.add_instance(instance);
         plugin->add_instance(instance);
     }
 }
@@ -116,19 +105,7 @@ bool PluginManager::load_instance(std::shared_ptr<Plugin> plugin) {
         return false;
     }
     save_instance(plugin, interface_list, len);
-    update_instance_state();
     return true;
-}
-
-void PluginManager::update_instance_state() {
-    std::vector<std::shared_ptr<Instance>> all_instances = memory_store.get_all_instances();
-    for (auto &instance : all_instances) {
-        if (dep_handler.get_node_state(instance->get_name())) {
-            instance->set_state(true);
-        } else {
-            instance->set_state(false);
-        }
-    }
 }
 
 ErrorCode PluginManager::load_plugin(const std::string &name) {
@@ -160,6 +137,8 @@ ErrorCode PluginManager::load_plugin(const std::string &name) {
 std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vector<std::string>> &query) {
     std::string res;
     res += "digraph G {\n";
+    res += "    rankdir = TB\n";
+    res += "    ranksep = 1\n";
     std::unordered_map<std::string, std::unordered_set<std::string>> sub_graph;
     for (auto &vec : query) {
         std::shared_ptr<Instance> instance = memory_store.get_instance(vec[0]);
@@ -171,45 +150,45 @@ std::string generate_dot(MemoryStore &memory_store, const std::vector<std::vecto
             instance = memory_store.get_instance(vec[1]);
             sub_graph[instance->get_plugin_name()].insert(vec[1]);
         } else {
-            res += vec[1] + "[label=\"(missing)\\n" + vec[1] + "\", fontcolor=red];\n";
+            res += "    " + vec[1] + "[label=\"(missing)\\n" + vec[1] + "\", fontcolor=red];\n";
         }
-        res += vec[0] + "->"  + vec[1] + ";\n";
+        res += "    " + vec[0] + "->"  + vec[1] + ";\n";
     }
     int id = 0;
     for (auto &p : sub_graph) {
-        res += "subgraph cluster_" + std::to_string(id) + " {\n";
-        res += "node [style=filled];\n";
-        res += "label = \"" + p.first + "\";\n";
+        res += "    subgraph cluster_" + std::to_string(id) + " {\n";
+        res += "        node [style=filled];\n";
+        res += "        label = \"" + p.first + "\";\n";
         for (auto &i_name : p.second) {
-            res += i_name + ";\n";
+            res += "        " + i_name + ";\n";
         }
-        res += "}\n";
+        res += "    }\n";
         id++;
     }
     res += "}";
     return res;
 }
 
-ErrorCode PluginManager::query_top(const std::string &name, std::string &res) {
+ErrorCode PluginManager::query_dependency(const std::string &name, std::string &res) {
     if (!memory_store.is_instance_exist(name)) {
         return ErrorCode::QUERY_DEP_NOT_EXIST;
     }
     DEBUG("[PluginManager] query top : " << name);
     std::vector<std::vector<std::string>> query;
-    dep_handler.query_node(name, query);
+    memory_store.query_node_dependency(name, query);
     res = generate_dot(memory_store, query);
     return ErrorCode::OK;
 }
 
-ErrorCode PluginManager::query_all_tops(std::string &res) {
+ErrorCode PluginManager::query_all_dependencies(std::string &res) {
     std::vector<std::vector<std::string>> query;
-    dep_handler.query_all_top(query);  
+    memory_store.query_all_dependencies(query);  
     DEBUG("[PluginManager] query size:" << query.size());
     res = generate_dot(memory_store, query);
     return ErrorCode::OK;
 }
 
-ErrorCode PluginManager::instance_enabled(std::string name) {
+ErrorCode PluginManager::instance_enabled(const std::string &name) {
     if (!memory_store.is_instance_exist(name)) {
         return ErrorCode::ENABLE_INSTANCE_NOT_LOAD;
     }
@@ -220,7 +199,7 @@ ErrorCode PluginManager::instance_enabled(std::string name) {
     if (instance->get_enabled()) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
-    std::vector<std::string> pre_dependencies = dep_handler.get_pre_dependencies(name);
+    std::vector<std::string> pre_dependencies = memory_store.get_pre_dependencies(name);
     std::vector<std::shared_ptr<Instance>> new_enabled;
     bool enabled = true;
     for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
@@ -252,7 +231,7 @@ ErrorCode PluginManager::instance_enabled(std::string name) {
     }
 }
 
-ErrorCode PluginManager::instance_disabled(std::string name) {
+ErrorCode PluginManager::instance_disabled(const std::string &name) {
     if (!memory_store.is_instance_exist(name)) {
         return ErrorCode::DISABLE_INSTANCE_NOT_LOAD;
     }
@@ -364,7 +343,7 @@ void PluginManager::pre_load() {
     pre_enable();
 }
 
-const void* PluginManager::get_data_buffer(std::string name) {
+const void* PluginManager::get_data_buffer(const std::string &name) {
     std::shared_ptr<Instance> instance = memory_store.get_instance(name);
     return instance->get_interface()->get_ring_buf();
 }
@@ -375,7 +354,7 @@ std::string PluginManager::instance_dep_check(const std::string &name) {
     for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
         std::string instance_name = plugin->get_instance(i)->get_name();
         std::vector<std::vector<std::string>> query;
-        dep_handler.query_node(instance_name, query);
+        memory_store.query_node_dependency(instance_name, query);
         std::vector<std::string> lack;
         for (auto &item : query) {
             if (item.size() < 2) continue;
@@ -478,10 +457,10 @@ int PluginManager::run() {
                 }
                 break;
             }
-            case Opt::QUERY_TOP: {
+            case Opt::QUERY_DEP: {
                 std::string res_text;
                 std::string name = msg.get_payload(0);
-                ErrorCode ret_code = query_top(name , res_text);
+                ErrorCode ret_code = query_dependency(name , res_text);
                 if (ret_code == ErrorCode::OK) {
                     INFO("[PluginManager] query " << name << " instance dependencies.");
                     res.set_opt(Opt::RESPONSE_OK);
@@ -494,9 +473,9 @@ int PluginManager::run() {
                 }
                 break;
             }
-            case Opt::QUERY_ALL_TOP: {
+            case Opt::QUERY_ALL_DEPS: {
                 std::string res_text;
-                ErrorCode ret_code = query_all_tops(res_text);
+                ErrorCode ret_code = query_all_dependencies(res_text);
                 if (ret_code == ErrorCode::OK) {
                     INFO("[PluginManager] query all instances dependencies.");
                     res.set_opt(Opt::RESPONSE_OK);

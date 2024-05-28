@@ -68,7 +68,7 @@ private:
 
 class Plugin {
 public:
-    Plugin(const std::string &name) : name(name), handler(nullptr) { }
+    explicit Plugin(const std::string &name) : name(name), handler(nullptr) { }
     ~Plugin() {   
         if (handler != nullptr) {
             dlclose(handler);

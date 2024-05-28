@@ -53,7 +53,6 @@ int main(int argc, char **argv) {
     INFO("[PluginManager] Start plugin manager!");
     PluginManager plugin_manager(config, handler_msg, res_msg);
     plugin_manager.init();
-    plugin_manager.pre_load();
     plugin_manager.run();
     return 0;
 }

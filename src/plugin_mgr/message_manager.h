@@ -61,34 +61,38 @@ private:
 
 class TcpSocket {
 public:
-    TcpSocket() {}
+    TcpSocket() : sock(-1), epfd(-1) { }
     ~TcpSocket() {
         close(sock);
     }
     bool init();
-    void serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg);    
+    void serve_accept(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg);    
 private:
     int domain_listen(const char *name);
-    
+private:    
     int sock;
     int epfd;
 };
 
 class MessageManager {
 public:
-    MessageManager(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg) {
-        this->handler_msg = handler_msg;
-        this->res_msg = res_msg;
-        this->tcp_socket = nullptr;
+    MessageManager(const MessageManager&) = delete;
+    MessageManager& operator=(const MessageManager&) = delete;
+    static MessageManager& get_instance() {
+        static MessageManager message_manager;
+        return message_manager;
     }
-    void init(){
-       this->tcp_socket = new TcpSocket();
-    }
+    void init(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg);
+    void tcp_start();
     void run();
-
-    SafeQueue<Message> *handler_msg;
-    SafeQueue<Message> *res_msg;
-    TcpSocket *tcp_socket;
+private:
+    MessageManager() { }
+private:
+    /* Message queue stores messages from the client and is consumed by PluginManager. */
+    std::shared_ptr<SafeQueue<Message>> handler_msg;
+    /* Message queue stores messages from PluginManager and is consumed by TcpSocket. */
+    std::shared_ptr<SafeQueue<Message>> res_msg;
+    TcpSocket tcp_socket;
 };
 
 #endif // !PLUGIN_MGR_MESSAGE_MANAGER_H

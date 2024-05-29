@@ -15,7 +15,12 @@
 
 const static int ST_MODE_MASK = 0777;
 
-void PluginManager::init() {
+
+void PluginManager::init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Message>> handler_msg,
+    std::shared_ptr<SafeQueue<Message>> res_msg) {
+    this->config = config;
+    this->handler_msg = handler_msg;
+    this->res_msg = res_msg;
     instance_run_handler.reset(new InstanceRunHandler(memory_store));
     pre_load();
 }
@@ -220,12 +225,13 @@ ErrorCode PluginManager::instance_enabled(const std::string &name) {
             if (instance->get_enabled()) {
                 continue;
             }
+            instance->set_enabled(true);
             instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
         }
         return ErrorCode::OK;
     } else {
-        for (auto instance : new_enabled) {
-            instance->get_interface()->disable();
+        for (auto ins : new_enabled) {
+            ins->get_interface()->disable();
         }
         return ErrorCode::ENABLE_INSTANCE_ENV;
     }
@@ -275,7 +281,7 @@ std::string PluginManager::get_plugin_in_dir(const std::string &path) {
 }
 
 ErrorCode PluginManager::add_list(std::string &res) {
-    auto plugin_list = config.get_plugin_list();
+    auto plugin_list = config->get_plugin_list();
     res += "Supported Packages:\n";
     for (auto &p : plugin_list) {
         res += p.first + "\n";
@@ -286,16 +292,16 @@ ErrorCode PluginManager::add_list(std::string &res) {
 }
 
 ErrorCode PluginManager::download(const std::string &name, std::string &res) {          
-    if (!config.is_plugin_info_exist(name)) {
+    if (!config->is_plugin_info_exist(name)) {
         return ErrorCode::DOWNLOAD_NOT_FOUND;
     }
-    res += config.get_plugin_info(name).get_url();
+    res += config->get_plugin_info(name).get_url();
     return ErrorCode::OK;
 }
 
 void PluginManager::pre_enable() {
-    for (size_t i = 0; i < config.get_enable_list_size(); ++i) {
-        EnableItem item = config.get_enable_list(i);
+    for (size_t i = 0; i < config->get_enable_list_size(); ++i) {
+        EnableItem item = config->get_enable_list(i);
         if (item.get_enabled()) {
             std::string name = item.get_name();
             if (!memory_store.is_plugin_exist(name)) {
@@ -394,7 +400,7 @@ int PluginManager::run() {
     while (true) {
         Message msg;
         Message res;
-        this->handler_msg.wait_and_pop(msg);
+        this->handler_msg->wait_and_pop(msg);
         if (msg.get_opt() == Opt::SHUTDOWN) break;
         switch (msg.get_opt()) {
             case Opt::LOAD: {
@@ -557,7 +563,7 @@ int PluginManager::run() {
                 break;
         }
         if (msg.get_type() == MessageType::EXTERNAL)
-            res_msg.push(res);
+            res_msg->push(res);
     }
     return 0;
 }

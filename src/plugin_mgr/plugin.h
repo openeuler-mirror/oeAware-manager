@@ -81,7 +81,7 @@ public:
     void add_instance(std::shared_ptr<Instance> ins) {
         instances.emplace_back(ins);
     }
-    std::shared_ptr<Instance> get_instance(int i) const {
+    std::shared_ptr<Instance> get_instance(size_t i) const {
         return instances[i];
     }
     size_t get_instance_len() const {

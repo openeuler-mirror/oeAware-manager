@@ -13,6 +13,7 @@
 #define PLUGIN_MGR_LOGGER_H
 
 #include "config.h"
+#include <memory>
 #include <log4cplus/log4cplus.h>
 
 #define INFO(fmt) LOG4CPLUS_INFO(logger.get(), fmt)
@@ -24,7 +25,7 @@
 class Logger {
 public:
     Logger();    
-    void init(Config *config);
+    void init(std::shared_ptr<Config> config);
     log4cplus::Logger get() {
         return logger;
     }

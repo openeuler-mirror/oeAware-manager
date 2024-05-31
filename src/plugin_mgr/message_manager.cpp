@@ -57,7 +57,7 @@ bool TcpSocket::init() {
     return true;
 
 }
-static void send_msg(Msg &msg, SafeQueue<Message> *handler_msg) {
+static void send_msg(Msg &msg, std::shared_ptr<SafeQueue<Message>> handler_msg) {
     Message message;
     message.set_opt(msg.opt());
     message.set_type(MessageType::EXTERNAL);
@@ -66,7 +66,7 @@ static void send_msg(Msg &msg, SafeQueue<Message> *handler_msg) {
     }
     handler_msg->push(message);
 }
-static void recv_msg(Msg &msg, SafeQueue<Message> *res_msg) {
+static void recv_msg(Msg &msg, std::shared_ptr<SafeQueue<Message>> res_msg) {
     Message res;
     res_msg->wait_and_pop(res);
     msg.set_opt(res.get_opt());
@@ -75,7 +75,7 @@ static void recv_msg(Msg &msg, SafeQueue<Message> *res_msg) {
     }
 }
 
-void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message> *res_msg){
+void TcpSocket::serve_accept(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg){
     struct epoll_event evs[MAX_EVENT_SIZE];
     int sz = sizeof(evs) / sizeof(struct epoll_event);
     while (true) {
@@ -112,12 +112,20 @@ void TcpSocket::serve_accept(SafeQueue<Message> *handler_msg, SafeQueue<Message>
     }
 }
 
-void handler(MessageManager *mgr) {
-    TcpSocket* tcp_socket = mgr->tcp_socket;
-    if (!tcp_socket->init()) {
+void MessageManager::tcp_start() {
+    if (!tcp_socket.init()) {
         return;
     }
-    tcp_socket->serve_accept(mgr->handler_msg, mgr->res_msg);
+    tcp_socket.serve_accept(handler_msg, res_msg);
+}
+
+static void handler(MessageManager *mgr) {
+    mgr->tcp_start();
+}
+
+void MessageManager::init(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg) {
+    this->handler_msg = handler_msg;
+    this->res_msg = res_msg;
 }
 
 void MessageManager::run() {

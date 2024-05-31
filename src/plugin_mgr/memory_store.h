@@ -42,7 +42,7 @@ public:
     bool is_instance_exist(const std::string &name) {
         return dep_handler.is_instance_exist(name);
     }
-    std::vector<std::shared_ptr<Plugin>> get_all_plugins() {
+    const std::vector<std::shared_ptr<Plugin>> get_all_plugins() {
         std::vector<std::shared_ptr<Plugin>> res;
         for (auto &p : plugins) {
             res.emplace_back(p.second);

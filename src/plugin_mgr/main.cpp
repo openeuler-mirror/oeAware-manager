@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "plugin_manager.h"
+#include <csignal>
 
 Logger logger;
 
@@ -20,8 +21,26 @@ void print_help() {
            "    ./oeaware /etc/oeAware/config.yaml\n");
 }
 
+void signal_handler(int signum) {
+    auto &plugin_manager = PluginManager::get_instance();
+    auto memory_store = plugin_manager.get_memory_store();
+    auto all_plugins = memory_store.get_all_plugins();
+    for (auto plugin : all_plugins) {
+        for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
+            auto instance = plugin->get_instance(i);
+            if (!instance->get_enabled()) {
+                continue;
+            }
+            instance->get_interface()->disable();
+            INFO("[PluginManager] " << instance->get_name() << " instance disabled.");
+        }
+    }
+    exit(signum);
+}
+
 int main(int argc, char **argv) {
-    Config config;
+    signal(SIGINT, signal_handler);
+    std::shared_ptr<Config> config = std::make_shared<Config>();
     if (argc < 2) {
         ERROR("System need a argument!");
         exit(EXIT_FAILURE);
@@ -39,20 +58,20 @@ int main(int argc, char **argv) {
         ERROR("Insufficient permission on " << config_path);
         exit(EXIT_FAILURE);
     }
-    if (!config.load(config_path)) {
+    if (!config->load(config_path)) {
         ERROR("Config load error!");
         exit(EXIT_FAILURE);
     }
-    logger.init(&config);
-    SafeQueue<Message> handler_msg;
-    SafeQueue<Message> res_msg;
+    logger.init(config);
+    std::shared_ptr<SafeQueue<Message>> handler_msg = std::make_shared<SafeQueue<Message>>();
+    std::shared_ptr<SafeQueue<Message>> res_msg = std::make_shared<SafeQueue<Message>>();
     INFO("[MessageManager] Start message manager!");
-    MessageManager message_manager(&handler_msg, &res_msg);
-    message_manager.init();
+    MessageManager &message_manager = MessageManager::get_instance();
+    message_manager.init(handler_msg, res_msg);
     message_manager.run();
     INFO("[PluginManager] Start plugin manager!");
-    PluginManager plugin_manager(config, handler_msg, res_msg);
-    plugin_manager.init();
+    PluginManager& plugin_manager = PluginManager::get_instance();
+    plugin_manager.init(config, handler_msg, res_msg);
     plugin_manager.run();
     return 0;
 }

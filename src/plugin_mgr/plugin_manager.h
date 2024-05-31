@@ -20,12 +20,21 @@
 
 class PluginManager {
 public:
-    PluginManager(Config &config, SafeQueue<Message> &handler_msg, SafeQueue<Message> &res_msg) : 
-    config(config), handler_msg(handler_msg), res_msg(res_msg) { }
+    PluginManager(const PluginManager&) = delete;
+    PluginManager& operator=(const PluginManager&) = delete;
+    static PluginManager& get_instance() {
+        static PluginManager plugin_manager;
+        return plugin_manager;
+    }
     int run();
-    void init();
+    void init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Message>> handler_msg,
+    std::shared_ptr<SafeQueue<Message>> res_msg);
+    const MemoryStore& get_memory_store() {
+        return this->memory_store;
+    }
     const void* get_data_buffer(const std::string &name);
 private:
+    PluginManager() { }
     void pre_load();
     void pre_enable();
     void pre_load_plugin(); 
@@ -50,9 +59,9 @@ private:
     std::string get_plugin_in_dir(const std::string &path);
 private:
     std::unique_ptr<InstanceRunHandler> instance_run_handler;
-    Config &config;
-    SafeQueue<Message> &handler_msg;
-    SafeQueue<Message> &res_msg;
+    std::shared_ptr<Config> config;
+    std::shared_ptr<SafeQueue<Message>> handler_msg;
+    std::shared_ptr<SafeQueue<Message>> res_msg;
     MemoryStore memory_store;
 };
 

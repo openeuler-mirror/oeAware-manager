@@ -58,8 +58,14 @@ public:
     bool have_dep(const std::string &name) {
         return dep_handler.have_dep(name);
     }
-    std::vector<std::string> get_pre_dependencies(const std::string &name) {
-        return dep_handler.get_pre_dependencies(name);
+    const DepHandler& get_dep_handler() const {
+        return dep_handler;
+    }
+    void add_edge(const std::string &from, const std::string &to) {
+        dep_handler.add_edge(from, to);
+    }
+    void delete_edge(const std::string &from, const std::string &to) {
+        dep_handler.delete_edge(from, to);
     }
 private:
     /* instance are stored in the form of DAG. 

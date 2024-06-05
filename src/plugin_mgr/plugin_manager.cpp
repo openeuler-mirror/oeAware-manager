@@ -22,7 +22,6 @@ void PluginManager::init(std::shared_ptr<Config> config, std::shared_ptr<SafeQue
     this->handler_msg = handler_msg;
     this->res_msg = res_msg;
     instance_run_handler.reset(new InstanceRunHandler(memory_store));
-    pre_load();
 }
 
 ErrorCode PluginManager::remove(const std::string &name) {
@@ -204,35 +203,14 @@ ErrorCode PluginManager::instance_enabled(const std::string &name) {
     if (instance->get_enabled()) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
-    std::vector<std::string> pre_dependencies = memory_store.get_pre_dependencies(name);
-    std::vector<std::shared_ptr<Instance>> new_enabled;
-    bool enabled = true;
-    for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
-        instance = memory_store.get_instance(pre_dependencies[i]);
-        if (instance->get_enabled()) {
-            continue;
-        }
-        new_enabled.emplace_back(instance);
-        if (!instance->get_interface()->enable()) {
-            enabled = false;
-            WARN("[PluginManager] " << instance->get_name() << " instance enabled failed, because instance init environment failed.");
-            break;
-        }
-    }
-    if (enabled) {
-        for (int i = pre_dependencies.size() - 1; i >= 0; --i) {
-            instance = memory_store.get_instance(pre_dependencies[i]);
-            if (instance->get_enabled()) {
-                continue;
-            }
-            instance->set_enabled(true);
-            instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::ENABLED, instance));
-        }
-        return ErrorCode::OK;
+    std::shared_ptr<InstanceRunMessage> msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, instance);
+    /* Send message to InstanceRunHandler. */
+    instance_run_handler->recv_queue_push(msg);
+    /* Wait for InstanceRunHandler to finsh this task. */
+    msg->wait();
+    if (msg->get_instance()->get_enabled()) {
+        return ErrorCode::OK; 
     } else {
-        for (auto ins : new_enabled) {
-            ins->get_interface()->disable();
-        }
         return ErrorCode::ENABLE_INSTANCE_ENV;
     }
 }
@@ -248,7 +226,9 @@ ErrorCode PluginManager::instance_disabled(const std::string &name) {
     if (!instance->get_enabled()) {
         return ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED;
     }
-    instance_run_handler->recv_queue_push(InstanceRunMessage(RunType::DISABLED, instance));
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::DISABLED, instance);
+    instance_run_handler->recv_queue_push(msg);
+    msg->wait();
     return ErrorCode::OK;
 }
 
@@ -397,6 +377,7 @@ bool file_exist(const std::string &file_name) {
 
 int PluginManager::run() {
     instance_run_handler->run();
+    pre_load();
     while (true) {
         Message msg;
         Message res;

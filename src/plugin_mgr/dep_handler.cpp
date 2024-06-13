@@ -28,22 +28,26 @@ void DepHandler::add_arc_node(std::shared_ptr<Node> node, const std::vector<std:
     std::shared_ptr<ArcNode> arc_head = node->head;
     node->cnt = dep_nodes.size();
     int real_cnt = 0;
+    bool state = true;
     for (auto name : dep_nodes) {
         std::string from = node->instance->get_name();
         std::shared_ptr<ArcNode> tmp = std::make_shared<ArcNode>(from, name);
         tmp->next = arc_head->next;
         arc_head->next = tmp;
-        
+        tmp->init = true;
         if (nodes.count(name)) {
             tmp->is_exist = true;
-            tmp->init = true;
             real_cnt++;
+            if (!nodes[name]->instance->get_state()) {
+                state = false;
+            }
         }
         in_edges[name].insert(from);
         arc_nodes[std::make_pair(from, name)] = tmp;
     }
+    /* node->instance->state = true, only all dependencies meet the conditions. */
     if (real_cnt == node->cnt) {
-        node->instance->set_state(true);
+        node->instance->set_state(state);
     }
     node->real_cnt = real_cnt;
 } 
@@ -115,18 +119,17 @@ void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
 }
 
 void DepHandler::update_instance_state(const std::string &name) {
-    if (!nodes[name]->instance->get_state() || !in_edges.count(name)) return;
+    if (!in_edges.count(name)) return;
     std::unordered_set<std::string> &arcs = in_edges[name];
     for (auto &from : arcs) {
         auto arc_node = arc_nodes[std::make_pair(from, name)];
         if (nodes.count(from)) {
             auto tmp = nodes[from];
             tmp->real_cnt++;
-            if (tmp->real_cnt == tmp->cnt) {
+            if (tmp->real_cnt == tmp->cnt && nodes[name]->instance->get_state()) {
                 tmp->instance->set_state(true);
             }
             arc_node->is_exist = true;
-            arc_node->init = true;
             update_instance_state(tmp->instance->get_name());
         }
     }
@@ -144,8 +147,9 @@ void DepHandler::query_node_top(const std::string &name, std::vector<std::vector
         query.emplace_back(std::vector<std::string>{name});
         return;
     }
-    while (arc_node->next != nullptr) {       
-        if (arc_node->next->is_exist) {
+    while (arc_node->next != nullptr) { 
+        /* Display the edges that exist and the points that do not. */      
+        if (arc_node->next->is_exist || !nodes.count(arc_node->next->to)) {
             query.emplace_back(std::vector<std::string>{name, arc_node->next->to});
         }
         arc_node = arc_node->next;
@@ -164,7 +168,7 @@ void DepHandler::query_node_dependency(const std::string &name, std::vector<std:
         std::string node_name = node->instance->get_name();
         query.emplace_back(std::vector<std::string>{node_name});
         for (auto cur = node->head->next; cur != nullptr; cur = cur->next) {
-            if (cur->is_exist) {
+            if (cur->is_exist || !nodes.count(cur->to)) {
                 query.emplace_back(std::vector<std::string>{node_name, cur->to});
             }
             if (!vis.count(cur->to) && nodes.count(cur->to)) {

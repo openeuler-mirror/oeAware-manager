@@ -290,16 +290,23 @@ void PluginManager::pre_enable() {
         if (item.get_enabled()) {
             std::shared_ptr<Plugin> plugin = memory_store.get_plugin(plugin_name);
             for (size_t j = 0; j < plugin->get_instance_len(); ++j) {
-                instance_enabled(plugin->get_instance(j)->get_name());
+                std::string name = plugin->get_instance(j)->get_name();
+                auto ret = instance_enabled(name);
+                if (ret != ErrorCode::OK) {
+                    WARN("[PluginManager] " << name << " instance pre-enabled failed, because " << ErrorText::get_error_text(ret) << ".");
+                } else {
+                    INFO("[PluginManager] " << name << " instance pre-enabled.");
+                }
             }
         } else {
             for (size_t j = 0; j < item.get_instance_size(); ++j) {
                 std::string name = item.get_instance_name(j);
-                if (!memory_store.is_instance_exist(name)) {
-                    WARN("[PluginManager] instance " << name << " cannot be enabled, because it does not exist.");
-                    continue;
+                auto ret = instance_enabled(name);
+                if (ret != ErrorCode::OK) {
+                    WARN("[PluginManager] " << name << " instance pre-enabled failed, because " << ErrorText::get_error_text(ret) << ".");
+                } else {
+                    INFO("[PluginManager] " << name << " instance pre-enabled.");
                 }
-                instance_enabled(name);
             }
         }
     }

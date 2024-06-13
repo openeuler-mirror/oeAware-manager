@@ -282,13 +282,13 @@ ErrorCode PluginManager::download(const std::string &name, std::string &res) {
 void PluginManager::pre_enable() {
     for (size_t i = 0; i < config->get_enable_list_size(); ++i) {
         EnableItem item = config->get_enable_list(i);
+        std::string plugin_name = item.get_name();
+        if (!memory_store.is_plugin_exist(plugin_name)) {
+            WARN("[PluginManager] plugin " << plugin_name << " cannot be enabled, because it does not exist.");
+            continue;
+        }
         if (item.get_enabled()) {
-            std::string name = item.get_name();
-            if (!memory_store.is_plugin_exist(name)) {
-                WARN("[PluginManager] plugin " << name << " cannot be enabled, because it does not exist.");
-                continue;
-            }
-            std::shared_ptr<Plugin> plugin = memory_store.get_plugin(name);
+            std::shared_ptr<Plugin> plugin = memory_store.get_plugin(plugin_name);
             for (size_t j = 0; j < plugin->get_instance_len(); ++j) {
                 instance_enabled(plugin->get_instance(j)->get_name());
             }

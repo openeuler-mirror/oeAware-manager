@@ -79,10 +79,11 @@ void InstanceRunHandler::enable_instance(const std::string &name) {
     }
 }
 
-void InstanceRunHandler::disable_instance(const std::string &name) {
-    if (in_degree[name] != 0) {
+void InstanceRunHandler::disable_instance(const std::string &name, RunType type) {
+    if (type == RunType::INTERNAL_DISABLED && in_degree[name] != 0) {
         return;
     }
+    in_degree[name] = 0;
     std::queue<std::shared_ptr<Node>> instance_node_queue;
     auto dep_handler = memory_store.get_dep_handler();
     instance_node_queue.push(dep_handler.get_node(name));
@@ -111,12 +112,14 @@ void InstanceRunHandler::handle_instance() {
     while(this->recv_queue_try_pop(msg)){
         std::shared_ptr<Instance> instance = msg->get_instance();
         switch (msg->get_type()){
-            case RunType::ENABLED: {
+            case RunType::ENABLED:
+            case RunType::INTERNAL_ENABLED: {
                 enable_instance(instance->get_name());
                 break;
             }
-            case RunType::DISABLED: {
-                disable_instance(instance->get_name());
+            case RunType::DISABLED: 
+            case RunType::INTERNAL_DISABLED: {
+                disable_instance(instance->get_name(), msg->get_type());
                 break;
             }
         }
@@ -139,7 +142,7 @@ void InstanceRunHandler::change_instance_state(const std::string &name, std::vec
         if (instance->get_enabled()) {
             memory_store.delete_edge(name, instance->get_name());
             in_degree[instance->get_name()]--;
-            auto msg = std::make_shared<InstanceRunMessage>(RunType::DISABLED, instance);
+            auto msg = std::make_shared<InstanceRunMessage>(RunType::INTERNAL_DISABLED, instance);
             recv_queue_push(std::move(msg));
         }  
     }
@@ -156,7 +159,7 @@ void InstanceRunHandler::change_instance_state(const std::string &name, std::vec
         if (!instance->get_enabled()) {
             in_degree[instance->get_name()]++;
             memory_store.add_edge(name, instance->get_name());
-            auto msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, instance);
+            auto msg = std::make_shared<InstanceRunMessage>(RunType::INTERNAL_ENABLED, instance);
             recv_queue_push(std::move(msg));
         }
     }    

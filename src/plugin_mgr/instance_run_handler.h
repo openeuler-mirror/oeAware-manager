@@ -19,8 +19,10 @@
 #include <queue>
 
 enum class RunType {
+    /* Message from PluginManager. */
     ENABLED,
     DISABLED,
+    /* Message from internal. */
     INTERNAL_ENABLED,
     INTERNAL_DISABLED,
  };

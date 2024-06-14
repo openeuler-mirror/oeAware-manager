@@ -21,6 +21,8 @@
 enum class RunType {
     ENABLED,
     DISABLED,
+    INTERNAL_ENABLED,
+    INTERNAL_DISABLED,
  };
 
 /* Message for communication between plugin manager and instance scheduling */
@@ -89,7 +91,7 @@ private:
     void run_instance(std::vector<std::string> &deps, InstanceRun run);
     void change_instance_state(const std::string &name, std::vector<std::string> &deps, std::vector<std::string> &after_deps);
     void enable_instance(const std::string &name);
-    void disable_instance(const std::string &name);
+    void disable_instance(const std::string &name, RunType type);
 private:
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> schedule_queue;

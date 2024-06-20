@@ -108,6 +108,7 @@ void DepHandler::del_node_and_arc_nodes(std::shared_ptr<Node> node) {
         std::shared_ptr<ArcNode> tmp = arc->next;
         if (arc != node->head){
             std::string name = arc->to;
+            node->real_cnt--;
             in_edges[name].erase(arc->from);
             arc_nodes.erase(std::make_pair(arc->from, arc->to));
             if (in_edges[name].empty()) {
@@ -125,7 +126,9 @@ void DepHandler::update_instance_state(const std::string &name) {
         auto arc_node = arc_nodes[std::make_pair(from, name)];
         if (nodes.count(from)) {
             auto tmp = nodes[from];
-            tmp->real_cnt++;
+            if (!arc_node->is_exist) {
+                tmp->real_cnt++;
+            }
             if (tmp->real_cnt == tmp->cnt && nodes[name]->instance->get_state()) {
                 tmp->instance->set_state(true);
             }

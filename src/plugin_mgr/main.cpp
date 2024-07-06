@@ -39,7 +39,8 @@ void signal_handler(int signum) {
 }
 
 int main(int argc, char **argv) {
-    signal(SIGINT, signal_handler);
+    signal(SIGINT, signal_handler);  // ctrl + c
+    signal(SIGTERM, signal_handler);  // systemctl stop
     std::shared_ptr<Config> config = std::make_shared<Config>();
     if (argc < 2) {
         ERROR("System need a argument!");

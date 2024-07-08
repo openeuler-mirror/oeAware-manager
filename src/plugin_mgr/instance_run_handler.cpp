@@ -107,8 +107,9 @@ void InstanceRunHandler::disable_instance(const std::string &name, bool force) {
     }
 }
 
-void InstanceRunHandler::handle_instance() {
+bool InstanceRunHandler::handle_message() {
     std::shared_ptr<InstanceRunMessage> msg;
+    bool shutdown = false;
     while(this->recv_queue_try_pop(msg)){
         std::shared_ptr<Instance> instance = msg->get_instance();
         switch (msg->get_type()){
@@ -120,9 +121,17 @@ void InstanceRunHandler::handle_instance() {
                 disable_instance(instance->get_name(), true);
                 break;
             }
+            case RunType::SHUTDOWN: {
+                shutdown = true;
+                break;
+            }
         }
         msg->notify_one();
+        if (shutdown) {
+            return false;
+        }
     }
+    return true;
 }
 
 void InstanceRunHandler::change_instance_state(const std::string &name, std::vector<std::string> &deps, 
@@ -183,9 +192,12 @@ void InstanceRunHandler::schedule() {
 }
 
 void start(InstanceRunHandler *instance_run_handler) {
-    INFO("[PluginManager] instance schedule started!");
+    INFO("[InstanceRunHandler] instance schedule started!");
     while(true) {
-        instance_run_handler->handle_instance();
+        if (!instance_run_handler->handle_message()) {
+            INFO("[InstanceRunHandler] instance schedule shutdown!");
+            break;
+        }
         instance_run_handler->schedule();
         usleep(instance_run_handler->get_cycle() * 1000);
         instance_run_handler->add_time(instance_run_handler->get_cycle());

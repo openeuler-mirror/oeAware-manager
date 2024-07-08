@@ -336,6 +336,23 @@ void PluginManager::pre_load() {
     pre_enable();
 }
 
+void PluginManager::exit() {
+    auto all_plugins = memory_store.get_all_plugins();
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::SHUTDOWN, nullptr);
+    send_msg_to_instance_run_handler(msg);
+    msg->wait();
+    for (auto plugin : all_plugins) {
+        for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
+            auto instance = plugin->get_instance(i);
+            if (!instance->get_enabled()) {
+                continue;
+            }
+            instance->get_interface()->disable();
+            INFO("[PluginManager] " << instance->get_name() << " instance disabled.");
+        }
+    }
+}
+
 const void* PluginManager::get_data_buffer(const std::string &name) {
     std::shared_ptr<Instance> instance = memory_store.get_instance(name);
     return instance->get_interface()->get_ring_buf();
@@ -553,5 +570,6 @@ int PluginManager::run() {
         if (msg.get_type() == MessageType::EXTERNAL)
             res_msg->push(res);
     }
+    exit();
     return 0;
 }

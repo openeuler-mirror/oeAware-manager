@@ -32,6 +32,10 @@ public:
     const MemoryStore& get_memory_store() {
         return this->memory_store;
     }
+    void exit();
+    void send_msg(const Message &msg) {
+        handler_msg->push(msg);
+    }
     const void* get_data_buffer(const std::string &name);
 private:
     PluginManager() { }
@@ -57,6 +61,9 @@ private:
     void update_instance_state();
     bool end_with(const std::string &s, const std::string &ending);
     std::string get_plugin_in_dir(const std::string &path);
+    void send_msg_to_instance_run_handler(std::shared_ptr<InstanceRunMessage> msg) {
+        instance_run_handler->recv_queue_push(msg);
+    }
 private:
     std::unique_ptr<InstanceRunHandler> instance_run_handler;
     std::shared_ptr<Config> config;

@@ -22,20 +22,12 @@ void print_help() {
 }
 
 void signal_handler(int signum) {
-    auto &plugin_manager = PluginManager::get_instance();
-    auto memory_store = plugin_manager.get_memory_store();
-    auto all_plugins = memory_store.get_all_plugins();
-    for (auto plugin : all_plugins) {
-        for (size_t i = 0; i < plugin->get_instance_len(); ++i) {
-            auto instance = plugin->get_instance(i);
-            if (!instance->get_enabled()) {
-                continue;
-            }
-            instance->get_interface()->disable();
-            INFO("[PluginManager] " << instance->get_name() << " instance disabled.");
-        }
+    if (signum != SIGINT && signum != SIGTERM) {
+        ERROR("Unknown signal: " << signum);
+        exit(signum);
     }
-    exit(signum);
+    auto &plugin_manager = PluginManager::get_instance();
+    plugin_manager.send_msg(Message(Opt::SHUTDOWN, MessageType::INTERNAL));
 }
 
 int main(int argc, char **argv) {

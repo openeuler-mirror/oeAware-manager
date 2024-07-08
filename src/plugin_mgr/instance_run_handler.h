@@ -22,6 +22,7 @@ enum class RunType {
     /* Message from PluginManager. */
     ENABLED,
     DISABLED,
+    SHUTDOWN,
  };
 
 /* Message for communication between plugin manager and instance scheduling */
@@ -70,7 +71,7 @@ public:
     explicit InstanceRunHandler(MemoryStore &memory_store) : memory_store(memory_store), time(0), cycle(DEFAULT_CYCLE_SIZE) { }
     void run();
     void schedule();
-    void handle_instance();
+    bool handle_message();
     void set_cycle(int cycle) {
         this->cycle = cycle;
     }

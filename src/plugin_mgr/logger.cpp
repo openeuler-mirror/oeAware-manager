@@ -27,7 +27,7 @@ Logger::Logger() {
 }
 
 void Logger::init(std::shared_ptr<Config> config) {   
-    log4cplus::SharedAppenderPtr appender(new log4cplus::FileAppender(config->get_log_path() + "/server.log"));
+    log4cplus::SharedAppenderPtr appender(new log4cplus::FileAppender(config->get_log_path() + "/server.log", std::ios_base::app));
     appender->setName("file");
     log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m"
 #ifdef OEAWARE_DEBUG 

@@ -47,7 +47,7 @@ class Msg {
 private:
     friend class boost::serialization::access;
     template <typename Archive>
-    void serialize(Archive &ar, const unsigned int version) {
+    void serialize(Archive &ar, const unsigned int /*version*/) {
         ar & _opt;
         ar & _payload;
     }
@@ -83,7 +83,7 @@ class MessageHeader {
 private:
     friend class boost::serialization::access;
     template <typename Archive>
-    void serialize(Archive &ar, const unsigned int version) {
+    void serialize(Archive &ar, const unsigned int /*version*/) {
         ar & code;
     }
 public:

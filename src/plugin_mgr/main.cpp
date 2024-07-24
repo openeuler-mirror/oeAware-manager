@@ -35,7 +35,8 @@ int main(int argc, char **argv) {
     signal(SIGTERM, signal_handler);  // systemctl stop
     std::shared_ptr<Config> config = std::make_shared<Config>();
     if (argc < 2) {
-        ERROR("System need a argument!");
+        ERROR("System need an argument!");
+        print_help();
         exit(EXIT_FAILURE);
     }
     if (std::string(argv[1]) == "--help") {

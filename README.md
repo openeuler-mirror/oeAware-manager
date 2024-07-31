@@ -17,6 +17,10 @@ yum install oeAware-manager
 systemctl status oeaware
 ```
 ##### 源码编译运行
+依赖安装
+```sh
+yum-builddep oeAware.spec
+```
 编译
 ```sh
 mkdir build

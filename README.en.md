@@ -1,36 +1,39 @@
 # oeAware-manager
 
-#### Description
-Implement a plugin framework to manage collection,awareness,and tune plugins.
+#### Introduction
+oeAware is a framework for low load acquisition, sensing, and tuning on openEuler, with the goal of dynamically sensing the behavior of the system and then intelligently enabling the tuning characteristics of the system.
 
 #### Software Architecture
-Software architecture description
+Software Architecture
 
-#### Installation
+Support arm and X86
+#### Installation Tutorial
+##### yum install
+```sh
+yum install oeAware-manager
+```
+After the installation is complete, check if the installation was successful by using the following command.
+```sh
+systemctl status oeaware
+```
+##### source compile and run
+Dependent installation
+```sh
+yum-builddep oeAware.spec
+```
+Compile
+```sh
+mkdir build
+cd build
+cmake ...
+make 
+```
+Run
+```sh
+chmod 640 config.yaml
+. /build/src/plugin_mgr/oeaware config.yaml
+```
+#### Usage Notes
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+[oeAware User's Guide](docs/oeAware用户指南.md)
 
-#### Instructions
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Contribution
-
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
-
-
-#### Gitee Feature
-
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)

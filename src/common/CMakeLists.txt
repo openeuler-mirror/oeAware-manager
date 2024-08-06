@@ -12,7 +12,7 @@ include_directories(/usr/include/curl)
 
 link_directories(/usr/lib64)
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
             ${SOURCE}
 )
 target_link_libraries(${PROJECT_NAME} log4cplus)

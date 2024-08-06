@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.22)
+cmake_minimum_required (VERSION 3.16)
 project(oeAware-server)
 
 SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now -Wall -Wextra -O2")
@@ -16,3 +16,6 @@ add_executable (oeaware
                 ${SOURCE}
                 ) 
 target_link_libraries(oeaware common)
+if (${CMAKE_CXX_COMPILER_VERSION} LESS "10.3.1")
+    target_link_libraries(oeaware -lpthread -ldl)
+endif()

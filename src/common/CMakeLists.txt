@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.22)
+cmake_minimum_required (VERSION 3.16)
 project(common)
 
 aux_source_directory(. SOURCE)
@@ -12,7 +12,7 @@ include_directories(/usr/include/curl)
 
 link_directories(/usr/lib64)
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
             ${SOURCE}
 )
 target_link_libraries(${PROJECT_NAME} log4cplus)

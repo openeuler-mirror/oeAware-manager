@@ -30,7 +30,7 @@ systemctl start oeaware
 
 ```yaml
 log_path: /var/log/oeAware #日志存储路径
-log_level: 1 #日志等级 1:DUBUG 2:INFO 3:WARN 4:ERROR
+log_level: 1 #日志等级 1:DEBUG 2:INFO 3:WARN 4:ERROR
 enable_list: #默认使能插件
 	- name: libtest.so #只配置插件，使能本插件的所有实例
 	- name: libtest1.so #配置插件实例，使能配置的插件实例

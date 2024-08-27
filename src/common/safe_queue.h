@@ -11,35 +11,39 @@
  ******************************************************************************/
 #ifndef COMMON_SAFE_QUEUE_H
 #define COMMON_SAFE_QUEUE_H
-
 #include <deque>
 #include <mutex>
 #include <condition_variable>
 
+namespace oeaware {
 template<typename T>
 class SafeQueue {
 public:
-    SafeQueue() {}
+    SafeQueue() { }
 
-    void push(T value) {
+    void Push(T value)
+    {
         std::unique_lock<std::mutex> lock(mutex);
         queue.push_back(value);
         cond.notify_one();
     }
-    bool try_pop(T &value) {
+    bool TryPop(T &value)
+    {
         std::unique_lock<std::mutex> lock(mutex);
         if (queue.empty()) return false;
         value = std::move(queue.front());
         queue.pop_front();
         return true;
     }
-    void wait_and_pop(T &value) {
+    void WaitAndPop(T &value)
+    {
         std::unique_lock<std::mutex> lock(mutex);
-        cond.wait(lock, [this]{ return !queue.empty(); });
+        cond.wait(lock, [this] { return !queue.empty(); });
         value = queue.front();
         queue.pop_front();
     }
-    bool empty() {
+    bool Empty()
+    {
         std::lock_guard<std::mutex> lock(mutex);
         return queue.empty();
     }
@@ -48,5 +52,6 @@ private:
     std::deque<T> queue;
     std::condition_variable cond;
 };
+}
 
 #endif // !COMMON_QUEUE_H

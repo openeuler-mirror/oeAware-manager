@@ -11,9 +11,12 @@
  ******************************************************************************/
 #ifndef COMMON_UTILS_H
 #define COMMON_UTILS_H
-
 #include <string>
 
-bool download(const std::string &url, const std::string &path);
+namespace oeaware {
+bool Download(const std::string &url, const std::string &path);
+bool CheckPermission(const std::string &path, int mode);
+bool FileExist(const std::string &fileName);
+}
 
 #endif // !COMMON_UTILS_H

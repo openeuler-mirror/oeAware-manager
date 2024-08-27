@@ -11,28 +11,31 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_CONFIG_H
 #define PLUGIN_MGR_CONFIG_H
-
-#include "plugin.h"
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
+#include <log4cplus/log4cplus.h>
 #include <sys/stat.h>
+#include "plugin.h"
 
-static int log_levels[] = {0, 10000, 20000, 30000, 40000, 50000, 60000};
-
+namespace oeaware {
 class PluginInfo {
 public:
     PluginInfo(const std::string &name, const std::string &description, const std::string &url) : name(name), description(description), url(url) { }
-    std::string get_name() const {
+    std::string GetName() const
+    {
         return this->name;
     }
-    std::string get_description() const {
+    std::string GetDescription() const
+    {
         return this->description;
     }
-    std::string get_url() const {
+    std::string GetUrl() const
+    {
         return this->url;
     }
-    bool operator ==(const PluginInfo &other) const {
-        return name == other.get_name();
+    bool operator ==(const PluginInfo &other) const
+    {
+        return name == other.GetName();
     }
 private:
     std::string name;
@@ -40,34 +43,31 @@ private:
     std::string url;
 };
 
-namespace std {
-    template <>
-    struct hash<PluginInfo> {
-        size_t operator ()(const PluginInfo &obj) const {
-            return hash<std::string>()(obj.get_name());
-        }
-    };
-}
-
 class EnableItem {
 public:
     explicit EnableItem(const std::string &name) : name(name), enabled(false) { }
-    void set_enabled(bool enabled) {
-        this->enabled = enabled;
+    void SetEnabled(bool newEnabled)
+    {
+        this->enabled = newEnabled;
     }
-    bool get_enabled() const {
+    bool GetEnabled() const
+    {
         return this->enabled;
     }
-    void add_instance(std::string text) {
+    void AddInstance(std::string text)
+    {
         this->instance.emplace_back(text);
     }
-    size_t get_instance_size() const {
+    size_t GetInstanceSize() const
+    {
         return this->instance.size();
     }
-    std::string get_instance_name(int i) {
+    std::string GetInstanceName(int i) const
+    {
         return this->instance[i];
     }
-    std::string get_name() const {
+    std::string GetName() const
+    {
         return this->name;
     }
 private:
@@ -78,46 +78,61 @@ private:
 
 class Config {
 public:
-    Config() {
-        this->log_level = log_levels[2];
+    Config()
+    {
+        logLevel = log4cplus::INFO_LOG_LEVEL;
     }
-    bool load(const std::string &path);
-    int get_log_level() const {
-        return this->log_level;
+    bool Load(const std::string &path);
+    int GetLogLevel() const
+    {
+        return this->logLevel;
     }
-    std::string get_log_type() const {
-        return this->log_type;
+    std::string GetLogType() const
+    {
+        return this->logType;
     }
-    std::string get_log_path() const {
-        return this->log_path;
+    std::string GetLogPath() const
+    {
+        return this->logPath;
     }
-    PluginInfo get_plugin_info(const std::string &name) const {
-        return this->plugin_list.at(name);
+    PluginInfo GetPluginInfo(const std::string &name) const
+    {
+        return this->pluginList.at(name);
     }
-    std::unordered_map<std::string, PluginInfo> get_plugin_list() const {
-        return this->plugin_list;
+    std::unordered_map<std::string, PluginInfo> GetPluginList() const
+    {
+        return this->pluginList;
     }
-    size_t get_plugin_list_size() const {
-        return this->plugin_list.size();
+    size_t GetPluginListSize() const
+    {
+        return this->pluginList.size();
     }
-    bool is_plugin_info_exist(const std::string &name) {
-        return this->plugin_list.count(name);
+    bool IsPluginInfoExist(const std::string &name)
+    {
+        return this->pluginList.count(name);
     }
-    EnableItem get_enable_list(int i) const {
-        return this->enable_list[i];
+    EnableItem GetEnableList(int i) const
+    {
+        return this->enableList[i];
     }
-    size_t get_enable_list_size() const {
-        return this->enable_list.size();
+    size_t GetEnableListSize() const
+    {
+        return this->enableList.size();
     }
+    void SetPluginList(const YAML::Node &node);
+    void SetEnableList(const YAML::Node &node);
 private:
-    int log_level;
-    std::string log_path;
-    std::string log_type;
-    std::unordered_map<std::string, PluginInfo> plugin_list;
-    std::vector<EnableItem> enable_list;
+    int logLevel;
+    std::string logPath;
+    std::string logType;
+    std::unordered_map<std::string, PluginInfo> pluginList;
+    std::vector<EnableItem> enableList;
+    const std::vector<int>logLevels{log4cplus::TRACE_LOG_LEVEL, log4cplus::DEBUG_LOG_LEVEL, log4cplus::INFO_LOG_LEVEL,
+        log4cplus::WARN_LOG_LEVEL, log4cplus::ERROR_LOG_LEVEL, log4cplus::FATAL_LOG_LEVEL, log4cplus::OFF_LOG_LEVEL};
 };
 
-std::string get_path();
-bool create_dir(const std::string &path);
+std::string GetPath();
+bool CreateDir(const std::string &path);
+}
 
 #endif

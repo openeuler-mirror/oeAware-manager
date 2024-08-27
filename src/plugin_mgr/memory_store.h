@@ -11,68 +11,85 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MEMORY_STORE_H
 #define PLUGIN_MGR_MEMORY_STORE_H
+#include <unordered_map>
 #include "logger.h"
 #include "dep_handler.h"
-#include <unordered_map>
 
+namespace oeaware {
 /* OeAware memory storage, which is used to store plugins and instances in the memory. */
 class MemoryStore {
 public:
-    void add_plugin(const std::string &name, std::shared_ptr<Plugin> plugin) {
+    void AddPlugin(const std::string &name, std::shared_ptr<Plugin> plugin)
+    {
         this->plugins.insert(std::make_pair(name, plugin));
     }
-    void add_instance(std::shared_ptr<Instance> instance) {
-        dep_handler.add_instance(instance);
+    void AddInstance(std::shared_ptr<Instance> instance)
+    {
+        depHandler.AddInstance(instance);
     }
-    std::shared_ptr<Plugin> get_plugin(const std::string &name) const {
+    std::shared_ptr<Plugin> GetPlugin(const std::string &name) const
+    {
         return this->plugins.at(name);
     }
-    std::shared_ptr<Instance> get_instance(const std::string &name) const {
-        return dep_handler.get_instance(name);
+    std::shared_ptr<Instance> GetInstance(const std::string &name) const
+    {
+        return depHandler.GetInstance(name);
     }
-    void delete_plugin(const std::string &name) {
+    void DeletePlugin(const std::string &name)
+    {
         this->plugins.erase(name);
     }
-    void delete_instance(const std::string &name) {
-        dep_handler.delete_instance(name);
+    void DeleteInstance(const std::string &name)
+    {
+        depHandler.DeleteInstance(name);
     }
-    bool is_plugin_exist(const std::string &name) const {
+    bool IsPluginExist(const std::string &name) const
+    {
         return this->plugins.count(name);
     }
-    bool is_instance_exist(const std::string &name) {
-        return dep_handler.is_instance_exist(name);
+    bool IsInstanceExist(const std::string &name)
+    {
+        return depHandler.IsInstanceExist(name);
     }
-    const std::vector<std::shared_ptr<Plugin>> get_all_plugins() {
+    const std::vector<std::shared_ptr<Plugin>> GetAllPlugins()
+    {
         std::vector<std::shared_ptr<Plugin>> res;
         for (auto &p : plugins) {
             res.emplace_back(p.second);
         }
         return res;
     }
-    void query_node_dependency(const std::string &name, std::vector<std::vector<std::string>> &query) {
-        return dep_handler.query_node_dependency(name, query);
+    void QueryNodeDependency(const std::string &name, std::vector<std::vector<std::string>> &query)
+    {
+        return depHandler.QueryNodeDependency(name, query);
     }
-    void query_all_dependencies(std::vector<std::vector<std::string>> &query) {
-        return dep_handler.query_all_dependencies(query);
+    void QueryAllDependencies(std::vector<std::vector<std::string>> &query)
+    {
+        return depHandler.QueryAllDependencies(query);
     }
-    bool have_dep(const std::string &name) {
-        return dep_handler.have_dep(name);
+    bool HaveDep(const std::string &name)
+    {
+        return depHandler.HaveDep(name);
     }
-    const DepHandler& get_dep_handler() const {
-        return dep_handler;
+    const DepHandler& GetDepHandler() const
+    {
+        return depHandler;
     }
-    void add_edge(const std::string &from, const std::string &to) {
-        dep_handler.add_edge(from, to);
+    void AddEdge(const std::string &from, const std::string &to)
+    {
+        depHandler.AddEdge(from, to);
     }
-    void delete_edge(const std::string &from, const std::string &to) {
-        dep_handler.delete_edge(from, to);
+    void DeleteEdge(const std::string &from, const std::string &to)
+    {
+        depHandler.DeleteEdge(from, to);
     }
 private:
-    /* instance are stored in the form of DAG. 
+    /* instance are stored in the form of DAG.
      * DepHandler stores instances and manages dependencies.
      */
-    DepHandler dep_handler;
-    std::unordered_map<std::string, std::shared_ptr<Plugin>> plugins; 
+    DepHandler depHandler;
+    std::unordered_map<std::string, std::shared_ptr<Plugin>> plugins;
 };
+}
 
 #endif // !PLUGIN_MGR_MEMORY_STORE_H

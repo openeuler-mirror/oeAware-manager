@@ -13,18 +13,18 @@
 #include <thread>
 #include <unistd.h>
 
-static const DataRingBuf* get_ring_buf(std::shared_ptr<Instance> instance) {
-    if (instance == nullptr) {
-        return nullptr;
-    }
-    return instance->get_interface()->get_ring_buf();
-}
+namespace oeaware {
 
-void InstanceRunHandler::run_instance(std::vector<std::string> &deps, InstanceRun run) {
+void InstanceRunHandler::RunInstance(std::vector<std::string> &deps, InstanceRun run)
+{
     std::vector<const DataRingBuf*> input_data;
     for (size_t i = 0; i < deps.size(); ++i) {
-        std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
-        input_data.emplace_back(get_ring_buf(ins));
+        std::shared_ptr<Instance> ins = memoryStore.GetInstance(deps[i]);
+        if (ins == nullptr) {
+            continue;
+        }
+        auto buf = ins->GetInterface()->get_ring_buf();
+        input_data.emplace_back(buf);
     }
     Param param;
     param.ring_bufs = input_data.data();
@@ -32,74 +32,76 @@ void InstanceRunHandler::run_instance(std::vector<std::string> &deps, InstanceRu
     run(&param);
 }
 
-void InstanceRunHandler::enable_instance(const std::string &name) {
+void InstanceRunHandler::EnableInstance(const std::string &name)
+{
     std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memory_store.get_dep_handler();
-    instance_node_queue.push(dep_handler.get_node(name));
+    auto dep_handler = memoryStore.GetDepHandler();
+    instance_node_queue.push(dep_handler.GetNode(name));
     std::vector<std::string> new_enabled;
     bool enabled = true;
     while (!instance_node_queue.empty()) {
         auto node = instance_node_queue.front();
         instance_node_queue.pop();
-        if (node->instance->get_enabled()) {
+        if (node->instance->GetEnabled()) {
             continue;
         }
-        auto cur_name = node->instance->get_name();
-        node->instance->set_enabled(true);
+        auto cur_name = node->instance->GetName();
+        node->instance->SetEnabled(true);
         new_enabled.emplace_back(cur_name);
-        if (!node->instance->get_interface()->enable()) {
+        if (!node->instance->GetInterface()->enable()) {
             enabled = false;
             break;
         }
         for (auto arc = node->head->next; arc != nullptr; arc = arc->next) {
-            if (!arc->is_exist) {
+            if (!arc->isExist) {
                 continue;
             }
-            auto cur_node = dep_handler.get_node(arc->to);
-            in_degree[arc->to]++;
+            auto cur_node = dep_handler.GetNode(arc->to);
+            inDegree[arc->to]++;
             instance_node_queue.push(cur_node);
         }
     }
     if (!enabled) {
         for (auto &enabled_name : new_enabled) {
-            auto instance = dep_handler.get_instance(enabled_name);
-            instance->get_interface()->disable();
-            instance->set_enabled(false);
+            auto instance = dep_handler.GetInstance(enabled_name);
+            instance->GetInterface()->disable();
+            instance->SetEnabled(false);
             if (enabled_name == name) {
                 continue;
             }
-            in_degree[enabled_name]--;
+            inDegree[enabled_name]--;
         }
     } else {
         for (auto &enabled_name : new_enabled) {
-            auto instance = dep_handler.get_instance(enabled_name);
-            schedule_queue.push(ScheduleInstance{instance, time});
+            auto instance = dep_handler.GetInstance(enabled_name);
+            scheduleQueue.push(ScheduleInstance{instance, time});
             INFO("[InstanceRunHandler] " << enabled_name << " instance insert into schedule queue at time " << time);
         }
     }
 }
 
-void InstanceRunHandler::disable_instance(const std::string &name, bool force) {
-    if (!force && in_degree[name] != 0) {
+void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
+{
+    if (!force && inDegree[name] != 0) {
         return;
     }
-    in_degree[name] = 0;
+    inDegree[name] = 0;
     std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memory_store.get_dep_handler();
-    instance_node_queue.push(dep_handler.get_node(name));
+    auto dep_handler = memoryStore.GetDepHandler();
+    instance_node_queue.push(dep_handler.GetNode(name));
     while (!instance_node_queue.empty()) {
         auto node = instance_node_queue.front();
         auto &instance = node->instance;
         instance_node_queue.pop();
-        auto cur_name = instance->get_name();
-        instance->set_enabled(false);
-        instance->get_interface()->disable();
+        auto cur_name = instance->GetName();
+        instance->SetEnabled(false);
+        instance->GetInterface()->disable();
         INFO("[InstanceRunHandler] " << cur_name << " instance disabled at time " << time);
         for (auto arc = node->head->next; arc != nullptr; arc = arc->next) {
-            auto cur_node = dep_handler.get_node(arc->to);
-            arc->is_exist = arc->init;
+            auto cur_node = dep_handler.GetNode(arc->to);
+            arc->isExist = arc->init;
             /* The instance can be closed only when the indegree is 0.  */
-            if (in_degree[arc->to] <= 0 || --in_degree[arc->to] != 0) {
+            if (inDegree[arc->to] <= 0 || --inDegree[arc->to] != 0) {
                 continue;
             }
             instance_node_queue.push(cur_node);
@@ -107,18 +109,19 @@ void InstanceRunHandler::disable_instance(const std::string &name, bool force) {
     }
 }
 
-bool InstanceRunHandler::handle_message() {
+bool InstanceRunHandler::HandleMessage()
+{
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
-    while(this->recv_queue_try_pop(msg)){
-        std::shared_ptr<Instance> instance = msg->get_instance();
-        switch (msg->get_type()){
+    while (this->RecvQueueTryPop(msg)) {
+        std::shared_ptr<Instance> instance = msg->GetInstance();
+        switch (msg->GetType()) {
             case RunType::ENABLED: {
-                enable_instance(instance->get_name());
+                EnableInstance(instance->GetName());
                 break;
             }
             case RunType::DISABLED: {
-                disable_instance(instance->get_name(), true);
+                DisableInstance(instance->GetName(), true);
                 break;
             }
             case RunType::SHUTDOWN: {
@@ -126,7 +129,7 @@ bool InstanceRunHandler::handle_message() {
                 break;
             }
         }
-        msg->notify_one();
+        msg->NotifyOne();
         if (shutdown) {
             return false;
         }
@@ -134,77 +137,83 @@ bool InstanceRunHandler::handle_message() {
     return true;
 }
 
-void InstanceRunHandler::change_instance_state(const std::string &name, std::vector<std::string> &deps, 
-                                               std::vector<std::string> &after_deps) {
+void InstanceRunHandler::ChangeInstanceState(const std::string &name, std::vector<std::string> &deps,
+    std::vector<std::string> &after_deps)
+{
     for (auto &dep : deps) {
         if (std::find(after_deps.begin(), after_deps.end(), dep) != after_deps.end()) {
             continue;
         }
-        auto instance = memory_store.get_instance(dep);
+        auto instance = memoryStore.GetInstance(dep);
         if (instance == nullptr) {
             ERROR("[InstanceRunHandler] ilegal dependency: " << dep);
             continue;
         }
-        memory_store.delete_edge(name, instance->get_name());
-        in_degree[instance->get_name()]--;
+        memoryStore.DeleteEdge(name, instance->GetName());
+        inDegree[instance->GetName()]--;
         /* Disable the instance that is not required.  */
-        if (instance->get_enabled()) {
-            disable_instance(instance->get_name(), false);
-        }  
+        if (instance->GetEnabled()) {
+            DisableInstance(instance->GetName(), false);
+        }
     }
     for (auto &after_dep : after_deps) {
         if (std::find(deps.begin(), deps.end(), after_dep) != deps.end()) {
             continue;
         }
-        auto instance = memory_store.get_instance(after_dep);
+        auto instance = memoryStore.GetInstance(after_dep);
         if (instance == nullptr) {
             ERROR("[InstanceRunHandler] ilegal dependency: " << after_dep);
             continue;
         }
-        in_degree[instance->get_name()]++;
-        memory_store.add_edge(name, instance->get_name());
+        inDegree[instance->GetName()]++;
+        memoryStore.AddEdge(name, instance->GetName());
         /* Enable the instance that is required. */
-        if (!instance->get_enabled()) {
-            enable_instance(instance->get_name());
+        if (!instance->GetEnabled()) {
+            EnableInstance(instance->GetName());
         }
-    }    
+    }
 }
 
-void InstanceRunHandler::schedule() {
-    while (!schedule_queue.empty()) {
-        auto schedule_instance = schedule_queue.top();
+void InstanceRunHandler::Schedule()
+{
+    while (!scheduleQueue.empty()) {
+        auto schedule_instance = scheduleQueue.top();
         auto &instance = schedule_instance.instance;
         if (schedule_instance.time != time) {
             break;
         }
-        schedule_queue.pop();
-        if (!instance->get_enabled()) {
+        scheduleQueue.pop();
+        if (!instance->GetEnabled()) {
             continue;
         }
-        std::vector<std::string> deps = instance->get_deps();
-        run_instance(deps, instance->get_interface()->run);
-        schedule_instance.time += instance->get_interface()->get_period();
-        schedule_queue.push(schedule_instance);
+        std::vector<std::string> deps = instance->GetDeps();
+        RunInstance(deps, instance->GetInterface()->run);
+        schedule_instance.time += instance->GetInterface()->get_period();
+        scheduleQueue.push(schedule_instance);
         /* Dynamically change dependencies. */
-        std::vector<std::string> after_deps = instance->get_deps();
-        change_instance_state(instance->get_name(), deps, after_deps);
+        std::vector<std::string> after_deps = instance->GetDeps();
+        ChangeInstanceState(instance->GetName(), deps, after_deps);
     }
 }
 
-void start(InstanceRunHandler *instance_run_handler) {
+void start(InstanceRunHandler *instance_run_handler)
+{
     INFO("[InstanceRunHandler] instance schedule started!");
-    while(true) {
-        if (!instance_run_handler->handle_message()) {
+    const static uint64_t millisecond = 1000;
+    while (true) {
+        if (!instance_run_handler->HandleMessage()) {
             INFO("[InstanceRunHandler] instance schedule shutdown!");
             break;
         }
-        instance_run_handler->schedule();
-        usleep(instance_run_handler->get_cycle() * 1000);
-        instance_run_handler->add_time(instance_run_handler->get_cycle());
+        instance_run_handler->Schedule();
+        usleep(instance_run_handler->GetCycle() * millisecond);
+        instance_run_handler->AddTime(instance_run_handler->GetCycle());
     }
 }
 
-void InstanceRunHandler::run() {
+void InstanceRunHandler::Run()
+{
     std::thread t(start, this);
     t.detach();
+}
 }

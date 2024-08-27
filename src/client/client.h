@@ -11,24 +11,26 @@
  ******************************************************************************/
 #ifndef CLIENT_H
 #define CLIENT_H
-#include "tcp_socket.h"
-#include "cmd_handler.h"
 #include <unordered_map>
 #include <memory>
+#include "tcp_socket.h"
+#include "cmd_handler.h"
 
+namespace oeaware {
 class Client {
 public:
-    Client() : cmd_handler(nullptr) { }
-    bool init(int argc, char *argv[]);
-    void run_cmd();
-    void close();
+    Client() : cmdHandler(nullptr) { }
+    bool Init(int argc, char *argv[]);
+    void RunCmd();
+    void Close();
 private:
-    void cmd_groups_init();
+    void CmdGroupsInit();
     
     int cmd;
-    TcpSocket tcp_socket;
-    std::shared_ptr<CmdHandler> cmd_handler;
-    std::unordered_map<int, std::shared_ptr<CmdHandler>> cmd_handler_groups;
+    TcpSocket tcpSocket;
+    std::shared_ptr<CmdHandler> cmdHandler;
+    std::unordered_map<int, std::shared_ptr<CmdHandler>> cmdHandlerGroups;
 };
+}
 
 #endif // !CLIENT_H

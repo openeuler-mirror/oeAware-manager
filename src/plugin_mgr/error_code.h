@@ -14,7 +14,8 @@
 #include <unordered_map>
 #include <string>
 
-enum class ErrorCode { 
+namespace oeaware {
+enum class ErrorCode {
     ENABLE_INSTANCE_NOT_LOAD,
     ENABLE_INSTANCE_UNAVAILABLE,
     ENABLE_INSTANCE_ALREADY_ENABLED,
@@ -39,8 +40,9 @@ enum class ErrorCode {
 
 class ErrorText {
 public:
-    static std::string get_error_text(ErrorCode code);
-    static const std::unordered_map<ErrorCode, std::string> error_codes;
+    static std::string GetErrorText(ErrorCode code);
+    static const std::unordered_map<ErrorCode, std::string> errorCodes;
 };
+}
 
 #endif // !PLUGIN_MGR_ERROR_CODE_H

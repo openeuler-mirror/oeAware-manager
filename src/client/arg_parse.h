@@ -13,24 +13,38 @@
 #define CLIENT_ARG_PARSE_H
 #include <string>
 #include <unordered_set>
+#include <vector>
+#include <getopt.h>
 
+namespace oeaware {
 class ArgParse {
 public:
-    static void arg_error(const std::string &msg);
-    static void print_help();
-    static int init(int argc, char *argv[]);
-    static void init_opts();
-    static void set_type(char* _type);
-    static void set_arg(char* _arg);
-    static std::string get_arg() {
+    using Option = struct option;
+    ArgParse(const ArgParse&) = delete;
+    ArgParse& operator=(const ArgParse&) = delete;
+    static ArgParse& GetInstance()
+    {
+        static ArgParse argParse;
+        return argParse;
+    }
+    void ArgError(const std::string &msg);
+    void PrintHelp();
+    int Init(int argc, char *argv[]);
+    std::string GetArg()
+    {
         return arg;
     }
 private:
-    static std::string arg;
-    static std::unordered_set<char> opts;
-    static const std::string OPT_STRING;
-    static const int MAX_OPT_SIZE = 20;
-    static const struct option long_options[MAX_OPT_SIZE];
+    ArgParse() { }
+    void InitOpts();
+    int InitCmd(int &cmd, int opt);
+    void SetArg(const std::string &newArg);
+private:
+    std::string arg;
+    std::unordered_set<char> opts;
+    static const std::string optString;
+    std::vector<Option> longOptions;
 };
+}
 
 #endif // !CLIENT_ARG_PARSE_H

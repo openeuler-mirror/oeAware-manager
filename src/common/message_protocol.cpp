@@ -10,67 +10,68 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "message_protocol.h"
+#include <securec.h>
 
-template <typename T>
-inline ssize_t handle_error(T fn) {
-    ssize_t res = 0;
-    while (true) {
-        res = fn();
-        if (res < 0 && errno == EINTR) {
-            continue;
-        }
-        break;
-    }
-    return res;
+namespace oeaware {
+inline ssize_t ReadSocket(int sock, char buf[], size_t size, int flags)
+{
+    return recv(sock, buf, size, flags);
 }
 
-inline ssize_t read_socket(int sock, void *buf, size_t size, int flags) {
-    return handle_error([&]() {
-        return recv(sock, buf, size, flags);
-    });
+inline ssize_t SendSocket(int sock, const char buf[], size_t size, int flags)
+{
+    return send(sock, buf, size, flags);
 }
 
-inline ssize_t send_socket(int sock, const void *buf, size_t size, int flags) {
-    return handle_error([&]() {
-        return send(sock, buf, size, flags);
-    });
-}
-
-ssize_t SocketStream::read(char *buf, size_t size) {
-    if (read_buff_off < read_buff_content_size) {
-        auto remaining_size = read_buff_content_size - read_buff_off;
-        if (size <= remaining_size) {
-            memcpy(buf, read_buff.data() + read_buff_off, size);
-            read_buff_off += size;
+ssize_t SocketStream::Read(char buf[], size_t size)
+{
+    if (readBuffOff < readBuffContentSize) {
+        auto remainingSize = readBuffContentSize - readBuffOff;
+        if (size <= remainingSize) {
+            auto ret = memcpy_s(buf, MAX_RECV_BUFF_SIZE, readBuff.data() + readBuffOff, size);
+            if (ret != EOK) {
+                return -1;
+            }
+            readBuffOff += size;
             return size;
         } else {
-            memcpy(buf, read_buff.data() + read_buff_off, remaining_size);
-            read_buff_off += remaining_size;
-            return remaining_size;
+            auto ret = memcpy_s(buf, MAX_RECV_BUFF_SIZE, readBuff.data() + readBuffOff, remainingSize);
+            if (ret != EOK) {
+                return -1;
+            }
+            readBuffOff += remainingSize;
+            return remainingSize;
         }
     }
-    read_buff_off = 0;
-    read_buff_content_size = 0;
-    if (size < MAX_BUFF_SIZE) {
-        auto n = read_socket(sock, read_buff.data(), MAX_BUFF_SIZE, 0);
+    readBuffOff = 0;
+    readBuffContentSize = 0;
+    if (size < maxBuffSize) {
+        auto n = ReadSocket(sock, readBuff.data(), maxBuffSize, 0);
         if (n <= 0) {
             return n;
         } else if (static_cast<size_t>(n) < size) {
-            memcpy(buf, read_buff.data(), n);
+            auto ret = memcpy_s(buf, MAX_RECV_BUFF_SIZE, readBuff.data(), n);
+            if (ret != EOK) {
+                return -1;
+            }
             return n;
         } else {
-            memcpy(buf, read_buff.data(), size);
-            read_buff_off = size;
-            read_buff_content_size = n;
+            auto ret = memcpy_s(buf, MAX_RECV_BUFF_SIZE, readBuff.data(), size);
+            if (ret != EOK) {
+                return -1;
+            }
+            readBuffOff = size;
+            readBuffContentSize = n;
             return size;
         }
     } else {
-        return read_socket(sock, buf, size, 0);
+        return ReadSocket(sock, buf, size, 0);
     }
 }
 
-ssize_t SocketStream::write(const char *buf, size_t size) {
-    return send_socket(sock, buf, size, 0);
+ssize_t SocketStream::Write(const char buf[], size_t size)
+{
+    return SendSocket(sock, buf, size, 0);
 }
 
 static std::string to_hex(size_t x) {
@@ -86,7 +87,8 @@ static std::string to_hex(size_t x) {
     return result;
 }
 
-static size_t from_hex(std::string s) {
+static size_t from_hex(std::string s)
+{
     std::stringstream ss;
     size_t ret;
     ss << std::hex << s;
@@ -94,11 +96,12 @@ static size_t from_hex(std::string s) {
     return ret;
 }
 
-static bool read_buf(int start, int end, char *buf, SocketStream &stream, std::string &msg) {
+static bool ReadBuf(int start, int end, char *buf, SocketStream &stream, std::string &msg)
+{
     while (start < end) {
-        auto read_len = end - start;
-        int n = stream.read(buf, std::min(read_len, MAX_RECV_BUFF_SIZE));
-        if (n <= 0) { 
+        auto readLen = end - start;
+        int n = stream.Read(buf, std::min(readLen, MAX_RECV_BUFF_SIZE));
+        if (n <= 0) {
             return false;
         }
         msg.append(buf, n);
@@ -107,47 +110,50 @@ static bool read_buf(int start, int end, char *buf, SocketStream &stream, std::s
     return true;
 }
 
-bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol) {
+bool HandleRequest(SocketStream &stream, MessageProtocol &msgProtocol)
+{
     char buf[MAX_RECV_BUFF_SIZE];
     // get tot length
-    int ret = stream.read(buf, PROTOCOL_LENGTH_SIZE);
-    if (ret <= 0) { 
-        return false; 
-    }
-    msg_protocol.tot_length = from_hex(buf);
-    ret = stream.read(buf, HEADER_LENGTH_SIZE);
+    int ret = stream.Read(buf, PROTOCOL_LENGTH_SIZE);
     if (ret <= 0) {
         return false;
     }
-    msg_protocol.header_length = from_hex(buf);
-    int header_start = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
-    int header_end = header_start + msg_protocol.header_length;
-    if (!read_buf(header_start, header_end, buf, stream, msg_protocol.header)) {
+    msgProtocol.totLength = from_hex(buf);
+    ret = stream.Read(buf, HEADER_LENGTH_SIZE);
+    if (ret <= 0) {
+        return false;
+    }
+    msgProtocol.headerLength = from_hex(buf);
+    int headerStart = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
+    int headerEnd = headerStart + msgProtocol.headerLength;
+    if (!ReadBuf(headerStart, headerEnd, buf, stream, msgProtocol.header)) {
         return false;
     }
     
-    int body_start = header_end;
-    int body_end = msg_protocol.tot_length;     
-    if (!read_buf(body_start, body_end, buf, stream, msg_protocol.body)) {
+    int bodyStart = headerEnd;
+    int bodyEnd = msgProtocol.totLength;
+    if (!ReadBuf(bodyStart, bodyEnd, buf, stream, msgProtocol.body)) {
         return false;
     }
-    return true;    
+    return true;
 }
 
-bool send_response(SocketStream &stream, const Msg &msg, const MessageHeader &header) {
+bool SendResponse(SocketStream &stream, const Msg &msg, const MessageHeader &header)
+{
     MessageProtocol proto;
-    proto.header = encode(header);
-    proto.body = encode(msg);
+    proto.header = Encode(header);
+    proto.body = Encode(msg);
 
-    proto.tot_length += PROTOCOL_LENGTH_SIZE;
-    proto.tot_length += HEADER_LENGTH_SIZE;
-    proto.tot_length += proto.header.size(); 
-    proto.tot_length += proto.body.size();
-    proto.header_length = proto.header.size();
+    proto.totLength += PROTOCOL_LENGTH_SIZE;
+    proto.totLength += HEADER_LENGTH_SIZE;
+    proto.totLength += proto.header.size();
+    proto.totLength += proto.body.size();
+    proto.headerLength = proto.header.size();
 
-    std::string res = to_hex(proto.tot_length);
-    res += to_hex(proto.header_length);
+    std::string res = to_hex(proto.totLength);
+    res += to_hex(proto.headerLength);
     res += proto.header;
     res += proto.body;
-    return stream.write(res.c_str(), res.size());
+    return stream.Write(res.c_str(), res.size());
+}
 }

@@ -10,4 +10,4 @@ link_directories(/usr/lib64)
 add_executable (oeawarectl
                 ${SOURCE}
                 ) 
-target_link_libraries(oeawarectl common)
+target_link_libraries(oeawarectl common boundscheck)

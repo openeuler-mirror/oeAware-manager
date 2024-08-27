@@ -11,32 +11,35 @@
  ******************************************************************************/
 #include "plugin.h"
 
-const std::string Instance::PLUGIN_ENABLED = "running";
-const std::string Instance::PLUGIN_DISABLED = "close";
-const std::string Instance::PLUGIN_STATE_ON = "available";
-const std::string Instance::PLUGIN_STATE_OFF = "unavailable";
+namespace oeaware {
+const std::string Instance::pluginEnabled = "running";
+const std::string Instance::pluginDisabled = "close";
+const std::string Instance::pluginStateOn = "available";
+const std::string Instance::pluginStateOff = "unavailable";
 
-int Plugin::load(const std::string &dl_path) {
-    void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
+int Plugin::Load(const std::string &dl_path)
+{
+    this->handler = dlopen(dl_path.c_str(), RTLD_LAZY);
     if (handler == nullptr) {
         return -1;
     }
-    this->handler = handler;
     return 0;
 }
 
-std::string Instance::get_info() const {
-    std::string state_text = this->state ? PLUGIN_STATE_ON : PLUGIN_STATE_OFF;
-    std::string run_text = this->enabled ? PLUGIN_ENABLED : PLUGIN_DISABLED;
-    return name + "(" + state_text + ", " + run_text + ")"; 
+std::string Instance::GetInfo() const
+{
+    std::string stateText = this->state ? pluginStateOn : pluginStateOff;
+    std::string runText = this->enabled ? pluginEnabled : pluginDisabled;
+    return name + "(" + stateText + ", " + runText + ")";
 }
 
-std::vector<std::string> Instance::get_deps() {
+std::vector<std::string> Instance::GetDeps()
+{
     std::vector<std::string> vec;
-    if (get_interface()->get_dep == nullptr || get_interface()->get_dep() == nullptr) {
+    if (GetInterface()->get_dep == nullptr || GetInterface()->get_dep() == nullptr) {
         return vec;
     }
-    std::string deps = get_interface()->get_dep();
+    std::string deps = GetInterface()->get_dep();
     std::string dep = "";
     for (size_t i = 0; i < deps.length(); ++i) {
         if (deps[i] != '-') {
@@ -50,4 +53,5 @@ std::vector<std::string> Instance::get_deps() {
         vec.emplace_back(dep);
     }
     return vec;
+}
 }

@@ -74,7 +74,7 @@ public:
 class InstanceRunHandler {
 public:
     using InstanceRun = void (*)(const struct Param*);
-    explicit InstanceRunHandler(MemoryStore &memoryStore) : memoryStore(memoryStore), time(0),
+    explicit InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore) : memoryStore(memoryStore), time(0),
         cycle(defaultCycleSize) { }
     void Run();
     void Schedule();
@@ -100,6 +100,7 @@ public:
         time += period;
     }
 private:
+    void Start();
     void RunInstance(std::vector<std::string> &deps, InstanceRun run);
     void ChangeInstanceState(const std::string &name, std::vector<std::string> &deps,
         std::vector<std::string> &after_deps);
@@ -111,7 +112,7 @@ private:
     /* Receives messages from the PluginManager. */
     SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
     std::unordered_map<std::string, int> inDegree;
-    MemoryStore &memoryStore;
+    std::shared_ptr<MemoryStore> memoryStore;
     uint64_t time;
     uint64_t cycle;
     static const uint64_t defaultCycleSize = 10;

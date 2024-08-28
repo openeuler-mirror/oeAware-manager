@@ -46,15 +46,15 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
     g_logger.Init(config->GetLogPath(), config->GetLogLevel());
-    auto handlerMsg = std::make_shared<oeaware::SafeQueue<oeaware::Message>>();
-    auto resMsg = std::make_shared<oeaware::SafeQueue<oeaware::Message>>();
+    auto recvMessage = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
+    auto sendMessage = std::make_shared<oeaware::SafeQueue<oeaware::EventResult>>();
     INFO("[MessageManager] Start message manager!");
     oeaware::MessageManager &messageManager = oeaware::MessageManager::GetInstance();
-    messageManager.Init(handlerMsg, resMsg);
+    messageManager.Init(recvMessage, sendMessage);
     messageManager.Run();
     INFO("[PluginManager] Start plugin manager!");
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
-    pluginManager.Init(config, handlerMsg, resMsg);
+    pluginManager.Init(config, recvMessage, sendMessage);
     pluginManager.Run();
     return 0;
 }

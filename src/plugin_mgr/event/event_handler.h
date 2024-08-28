@@ -9,31 +9,19 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef PLUGIN_MGR_LOGGER_H
-#define PLUGIN_MGR_LOGGER_H
-#include <memory>
-#include <log4cplus/log4cplus.h>
+#ifndef PLUGIN_MGR_EVENT_EVENT_HANDLER_H
+#define PLUGIN_MGR_EVENT_EVENT_HANDLER_H
+#include "event.h"
+#include "memory_store.h"
+#include "logger.h"
 
 namespace oeaware {
-#define INFO(fmt) LOG4CPLUS_INFO(g_logger.Get(), fmt)
-#define DEBUG(fmt) LOG4CPLUS_DEBUG(g_logger.Get(), fmt)
-#define WARN(fmt) LOG4CPLUS_WARN(g_logger.Get(), fmt)
-#define ERROR(fmt) LOG4CPLUS_ERROR(g_logger.Get(), fmt)
-#define FATAL(fmt) LOG4CPLUS_FATAL(g_logger.Get(), fmt)
-
-class Logger {
+class Handler {
 public:
-    Logger() noexcept;
-    void Init(const std::string &path, const int level);
-    log4cplus::Logger Get()
-    {
-        return logger;
-    }
-private:
-    log4cplus::Logger logger;
-    log4cplus::Initializer initalizer;
+    virtual ~Handler() = default;
+    virtual EventResult Handle(const Event &event) = 0;
+    static std::shared_ptr<MemoryStore> memoryStore;
 };
 }
-extern oeaware::Logger g_logger;
 
 #endif

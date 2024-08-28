@@ -12,10 +12,8 @@
 #ifndef PLUGIN_MGR_PLUGIN_MANAGER_H
 #define PLUGIN_MGR_PLUGIN_MANAGER_H
 #include "instance_run_handler.h"
-#include "config.h"
-#include "memory_store.h"
 #include "message_manager.h"
-#include "error_code.h"
+#include "event/event_handler.h"
 
 namespace oeaware {
 class PluginManager {
@@ -28,38 +26,20 @@ public:
         return pluginManager;
     }
     int Run();
-    void Init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Message>> handlerMsg,
-    std::shared_ptr<SafeQueue<Message>> resMsg);
-    const MemoryStore& GeMemoryStore()
-    {
-        return this->memoryStore;
-    }
+    void Init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Event>> recvMessage,
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage);
     void Exit();
-    void SendMsg(const Message &msg)
+    void SendMsg(const Event &msg)
     {
-        handlerMsg->Push(msg);
+        recvMessage->Push(msg);
     }
 private:
     PluginManager() { }
+    void InitEventHandler();
     void PreLoad();
     void PreEnable();
     void PreLoadPlugin();
-    ErrorCode LoadPlugin(const std::string &path);
-    ErrorCode Remove(const std::string &name);
-    ErrorCode QueryAllPlugins(std::string &res);
-    ErrorCode QueryPlugin(const std::string &name, std::string &res);
-    ErrorCode QueryDependency(const std::string &name, std::string &res);
-    ErrorCode QueryAllDependencies(std::string &res);
-    ErrorCode InstanceEnabled(const std::string &name);
-    ErrorCode InstanceDisabled(const std::string &name);
-    ErrorCode AddList(std::string &res);
-    ErrorCode Download(const std::string &name, std::string &res);
-    std::string InstanceDepCheck(const std::string &name);
-    int LoadDlInstance(std::shared_ptr<Plugin> plugin, Interface **interfaceList);
-    void SaveInstance(std::shared_ptr<Plugin> plugin, Interface *interfaceList, int len);
-    bool LoadInstance(std::shared_ptr<Plugin> plugin);
     void UpdateInstanceState();
-    bool EndWith(const std::string &s, const std::string &ending);
     std::string GetPluginInDir(const std::string &path);
     void SendMsgToInstancRunHandler(std::shared_ptr<InstanceRunMessage> msg)
     {
@@ -67,13 +47,13 @@ private:
     }
     void EnablePlugin(const std::string &name);
     void EnableInstance(const EnableItem &item);
-    void ConstructLackDep(const std::vector<std::vector<std::string>> &query, std::string &res);
 private:
-    std::unique_ptr<InstanceRunHandler> instanceRunHandler;
+    std::shared_ptr<InstanceRunHandler> instanceRunHandler;
     std::shared_ptr<Config> config;
-    std::shared_ptr<SafeQueue<Message>> handlerMsg;
-    std::shared_ptr<SafeQueue<Message>> resMsg;
-    MemoryStore memoryStore;
+    std::shared_ptr<SafeQueue<Event>> recvMessage;
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage;
+    std::unordered_map<Opt, std::shared_ptr<Handler>> eventHandler;
+    std::shared_ptr<MemoryStore> memoryStore;
 };
 
 void PrintHelp();

@@ -19,7 +19,7 @@ void InstanceRunHandler::RunInstance(std::vector<std::string> &deps, InstanceRun
 {
     std::vector<const DataRingBuf*> input_data;
     for (size_t i = 0; i < deps.size(); ++i) {
-        std::shared_ptr<Instance> ins = memoryStore.GetInstance(deps[i]);
+        std::shared_ptr<Instance> ins = memoryStore->GetInstance(deps[i]);
         if (ins == nullptr) {
             continue;
         }
@@ -35,7 +35,7 @@ void InstanceRunHandler::RunInstance(std::vector<std::string> &deps, InstanceRun
 void InstanceRunHandler::EnableInstance(const std::string &name)
 {
     std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memoryStore.GetDepHandler();
+    auto dep_handler = memoryStore->GetDepHandler();
     instance_node_queue.push(dep_handler.GetNode(name));
     std::vector<std::string> new_enabled;
     bool enabled = true;
@@ -87,7 +87,7 @@ void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
     }
     inDegree[name] = 0;
     std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memoryStore.GetDepHandler();
+    auto dep_handler = memoryStore->GetDepHandler();
     instance_node_queue.push(dep_handler.GetNode(name));
     while (!instance_node_queue.empty()) {
         auto node = instance_node_queue.front();
@@ -144,12 +144,12 @@ void InstanceRunHandler::ChangeInstanceState(const std::string &name, std::vecto
         if (std::find(after_deps.begin(), after_deps.end(), dep) != after_deps.end()) {
             continue;
         }
-        auto instance = memoryStore.GetInstance(dep);
+        auto instance = memoryStore->GetInstance(dep);
         if (instance == nullptr) {
             ERROR("[InstanceRunHandler] ilegal dependency: " << dep);
             continue;
         }
-        memoryStore.DeleteEdge(name, instance->GetName());
+        memoryStore->DeleteEdge(name, instance->GetName());
         inDegree[instance->GetName()]--;
         /* Disable the instance that is not required.  */
         if (instance->GetEnabled()) {
@@ -160,13 +160,13 @@ void InstanceRunHandler::ChangeInstanceState(const std::string &name, std::vecto
         if (std::find(deps.begin(), deps.end(), after_dep) != deps.end()) {
             continue;
         }
-        auto instance = memoryStore.GetInstance(after_dep);
+        auto instance = memoryStore->GetInstance(after_dep);
         if (instance == nullptr) {
             ERROR("[InstanceRunHandler] ilegal dependency: " << after_dep);
             continue;
         }
         inDegree[instance->GetName()]++;
-        memoryStore.AddEdge(name, instance->GetName());
+        memoryStore->AddEdge(name, instance->GetName());
         /* Enable the instance that is required. */
         if (!instance->GetEnabled()) {
             EnableInstance(instance->GetName());
@@ -196,24 +196,26 @@ void InstanceRunHandler::Schedule()
     }
 }
 
-void start(InstanceRunHandler *instance_run_handler)
+void InstanceRunHandler::Start()
 {
     INFO("[InstanceRunHandler] instance schedule started!");
     const static uint64_t millisecond = 1000;
     while (true) {
-        if (!instance_run_handler->HandleMessage()) {
+        if (!HandleMessage()) {
             INFO("[InstanceRunHandler] instance schedule shutdown!");
             break;
         }
-        instance_run_handler->Schedule();
-        usleep(instance_run_handler->GetCycle() * millisecond);
-        instance_run_handler->AddTime(instance_run_handler->GetCycle());
+        Schedule();
+        usleep(GetCycle() * millisecond);
+        AddTime(GetCycle());
     }
 }
 
 void InstanceRunHandler::Run()
 {
-    std::thread t(start, this);
+    std::thread t([this] {
+        this->Start();
+    });
     t.detach();
 }
 }

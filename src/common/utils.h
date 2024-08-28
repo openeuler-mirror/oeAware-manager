@@ -17,6 +17,7 @@ namespace oeaware {
 bool Download(const std::string &url, const std::string &path);
 bool CheckPermission(const std::string &path, int mode);
 bool FileExist(const std::string &fileName);
+bool EndWith(const std::string &s, const std::string &ending);
 }
 
 #endif // !COMMON_UTILS_H

@@ -11,83 +11,101 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_PLUGIN_H
 #define PLUGIN_MGR_PLUGIN_H
-#include "interface.h"
 #include <string>
 #include <vector>
 #include <memory>
 #include <dlfcn.h>
+#include "interface.h"
 
+namespace oeaware {
 class Instance {
 public:
-    void set_name(const std::string &name)  {
+    void SetName(const std::string &name)
+    {
         this->name = name;
     }
-    std::string get_name() const {
+    std::string GetName() const
+    {
         return this->name;
     }
-    int get_priority() const {
+    int GetPriority() const
+    {
         return interface->get_priority();
     }
-    Interface* get_interface() const {
+    Interface* GetInterface() const
+    {
         return this->interface;
     }
-    void set_plugin_name(const std::string &name)  {
-        this->plugin_name = name;
+    void SetPluginName(const std::string &name)
+    {
+        this->pluginName = name;
     }
-    std::string get_plugin_name() const {
-        return this->plugin_name;
+    std::string GetPluginName() const
+    {
+        return this->pluginName;
     }
-    void set_state(bool state) {
-        this->state = state;
+    void SetState(bool newState)
+    {
+        this->state = newState;
     }
-    bool get_state() const {
+    bool GetState() const
+    {
         return this->state;
     }
-    void set_enabled(bool enabled) {
-        this->enabled = enabled;
+    void SetEnabled(bool newEnabled)
+    {
+        this->enabled = newEnabled;
     }
-    bool get_enabled() const {
+    bool GetEnabled() const
+    {
         return this->enabled;
     }
-    void set_interface(Interface *interface) {
-        this->interface = interface;
+    void SetInterface(Interface *newInterface)
+    {
+        this->interface = newInterface;
     }
-    std::string get_info() const;
-    std::vector<std::string> get_deps();
+    std::string GetInfo() const;
+    std::vector<std::string> GetDeps();
 private:
     std::string name;
-    std::string plugin_name;
+    std::string pluginName;
     bool state;
     bool enabled;
     Interface *interface;
-    const static std::string PLUGIN_ENABLED;
-    const static std::string PLUGIN_DISABLED;
-    const static std::string PLUGIN_STATE_ON;
-    const static std::string PLUGIN_STATE_OFF;
+    const static std::string pluginEnabled;
+    const static std::string pluginDisabled;
+    const static std::string pluginStateOn;
+    const static std::string pluginStateOff;
 };
 
 class Plugin {
 public:
     explicit Plugin(const std::string &name) : name(name), handler(nullptr) { }
-    ~Plugin() {   
+    ~Plugin()
+    {
         if (handler != nullptr) {
             dlclose(handler);
         }
     }
-    int load(const std::string &dl_path);
-    std::string get_name() const {
+    int Load(const std::string &dl_path);
+    std::string GetName() const
+    {
         return this->name;
     }
-    void add_instance(std::shared_ptr<Instance> ins) {
+    void AddInstance(std::shared_ptr<Instance> ins)
+    {
         instances.emplace_back(ins);
     }
-    std::shared_ptr<Instance> get_instance(size_t i) const {
+    std::shared_ptr<Instance> GetInstance(size_t i) const
+    {
         return instances[i];
     }
-    size_t get_instance_len() const {
+    size_t GetInstanceLen() const
+    {
         return instances.size();
     }
-    void* get_handler() const {
+    void* GetHandler() const
+    {
         return handler;
     }
 private:
@@ -95,5 +113,6 @@ private:
     std::string name;
     void *handler;
 };
+}
 
-#endif 
+#endif

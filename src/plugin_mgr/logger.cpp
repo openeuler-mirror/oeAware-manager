@@ -12,29 +12,35 @@
 #include "logger.h"
 #include <sys/stat.h>
 
-Logger::Logger() {
+namespace oeaware {
+Logger::Logger() noexcept
+{
     logger = log4cplus::Logger::getInstance("oeAware");
-    log4cplus::SharedAppenderPtr appender(new log4cplus::ConsoleAppender()); 
+    log4cplus::SharedAppenderPtr appender(new log4cplus::ConsoleAppender());
     appender->setName("console");
     log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m"
 #ifdef OEAWARE_DEBUG 
     " [%l]"
 #endif
      "%n");
-    appender->setLayout(std::unique_ptr<log4cplus::Layout>(new log4cplus::PatternLayout(pattern)));
+    std::unique_ptr<log4cplus::Layout> layout = std::make_unique<log4cplus::PatternLayout>(pattern);
+    appender->setLayout(std::move(layout));
     logger.setLogLevel(log4cplus::INFO_LOG_LEVEL);
     logger.addAppender(appender);
 }
 
-void Logger::init(std::shared_ptr<Config> config) {   
-    log4cplus::SharedAppenderPtr appender(new log4cplus::FileAppender(config->get_log_path() + "/server.log", std::ios_base::app));
+void Logger::Init(const std::string &path, const int level)
+{
+    log4cplus::SharedAppenderPtr appender(new log4cplus::FileAppender(path + "/server.log", std::ios_base::app));
     appender->setName("file");
     log4cplus::tstring pattern = LOG4CPLUS_TEXT("%D{%m/%d/%y %H:%M:%S} [%t] %-5p %c - %m"
-#ifdef OEAWARE_DEBUG 
+#ifdef OEAWARE_DEBUG
     " [%l]"
 #endif
     "%n");
-    appender->setLayout(std::unique_ptr<log4cplus::Layout>(new log4cplus::PatternLayout(pattern)));
-    logger.setLogLevel(config->get_log_level());
+    std::unique_ptr<log4cplus::Layout> layout = std::make_unique<log4cplus::PatternLayout>(pattern);
+    appender->setLayout(std::move(layout));
+    logger.setLogLevel(level);
     logger.addAppender(appender);
+}
 }

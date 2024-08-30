@@ -11,13 +11,13 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 #define PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
-
+#include <queue>
 #include "safe_queue.h"
 #include "plugin.h"
 #include "logger.h"
 #include "memory_store.h"
-#include <queue>
 
+namespace oeaware {
 enum class RunType {
     /* Message from PluginManager. */
     ENABLED,
@@ -29,20 +29,25 @@ enum class RunType {
 class InstanceRunMessage {
 public:
     InstanceRunMessage() {}
-    InstanceRunMessage(RunType type, std::shared_ptr<Instance> instance) : type(type), instance(instance), finish(false) { }
-    RunType get_type() {
+    InstanceRunMessage(RunType type, std::shared_ptr<Instance> instance) : type(type), instance(instance),
+        finish(false) { }
+    RunType GetType()
+    {
         return type;
     }
-    std::shared_ptr<Instance> get_instance() {
+    std::shared_ptr<Instance> GetInstance()
+    {
         return instance;
     }
-    void wait() {
+    void Wait()
+    {
         std::unique_lock<std::mutex> lock(mutex);
         cond.wait(lock, [this]() {
             return finish;
         });
     }
-    void notify_one() {
+    void NotifyOne()
+    {
         std::unique_lock<std::mutex> lock(mutex);
         finish = true;
         cond.notify_one();
@@ -57,51 +62,60 @@ private:
 
 class ScheduleInstance {
 public:
-    bool operator < (const ScheduleInstance &rhs) const {
-        return time > rhs.time || (time == rhs.time && instance->get_priority() > rhs.instance->get_priority());
+    bool operator < (const ScheduleInstance &rhs) const
+    {
+        return time > rhs.time || (time == rhs.time && instance->GetPriority() > rhs.instance->GetPriority());
     }
     std::shared_ptr<Instance> instance;
     uint64_t time;
 };
 
-/* A handler to schedule instances. */ 
+/* A handler to schedule instances. */
 class InstanceRunHandler {
 public:
     using InstanceRun = void (*)(const struct Param*);
-    explicit InstanceRunHandler(MemoryStore &memory_store) : memory_store(memory_store), time(0), cycle(DEFAULT_CYCLE_SIZE) { }
-    void run();
-    void schedule();
-    bool handle_message();
-    void set_cycle(int cycle) {
-        this->cycle = cycle;
+    explicit InstanceRunHandler(MemoryStore &memoryStore) : memoryStore(memoryStore), time(0),
+        cycle(defaultCycleSize) { }
+    void Run();
+    void Schedule();
+    bool HandleMessage();
+    void SetCycle(uint64_t newCycle)
+    {
+        this->cycle = newCycle;
     }
-    int get_cycle() {
+    int GetCycle()
+    {
         return cycle;
     }
-    void recv_queue_push(std::shared_ptr<InstanceRunMessage> msg) {
-        this->recv_queue.push(msg);
+    void RecvQueuePush(std::shared_ptr<InstanceRunMessage> msg)
+    {
+        this->RecvQueue.Push(msg);
     }
-    bool recv_queue_try_pop(std::shared_ptr<InstanceRunMessage> &msg) {
-        return this->recv_queue.try_pop(msg);
+    bool RecvQueueTryPop(std::shared_ptr<InstanceRunMessage> &msg)
+    {
+        return this->RecvQueue.TryPop(msg);
     }
-    void add_time(uint64_t period) {
+    void AddTime(uint64_t period)
+    {
         time += period;
     }
 private:
-    void run_instance(std::vector<std::string> &deps, InstanceRun run);
-    void change_instance_state(const std::string &name, std::vector<std::string> &deps, std::vector<std::string> &after_deps);
-    void enable_instance(const std::string &name);
-    void disable_instance(const std::string &name, bool force);
+    void RunInstance(std::vector<std::string> &deps, InstanceRun run);
+    void ChangeInstanceState(const std::string &name, std::vector<std::string> &deps,
+        std::vector<std::string> &after_deps);
+    void EnableInstance(const std::string &name);
+    void DisableInstance(const std::string &name, bool force);
 private:
     /* Instance execution queue. */
-    std::priority_queue<ScheduleInstance> schedule_queue;
+    std::priority_queue<ScheduleInstance> scheduleQueue;
     /* Receives messages from the PluginManager. */
-    SafeQueue<std::shared_ptr<InstanceRunMessage>> recv_queue;
-    std::unordered_map<std::string, int> in_degree;
-    MemoryStore &memory_store;
+    SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
+    std::unordered_map<std::string, int> inDegree;
+    MemoryStore &memoryStore;
     uint64_t time;
-    int cycle;
-    static const int DEFAULT_CYCLE_SIZE = 10;
+    uint64_t cycle;
+    static const uint64_t defaultCycleSize = 10;
 };
+}
 
 #endif // !PLUGIN_MGR_INSTANCE_RUN_HANDLER_H

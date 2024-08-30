@@ -11,11 +11,12 @@
  ******************************************************************************/
 #include "client.h"
 
-int main(int argc, char *argv[]) {
-    Client client;
-    if (!client.init(argc, argv)) {
+int main(int argc, char *argv[])
+{
+    oeaware::Client client;
+    if (!client.Init(argc, argv)) {
         exit(EXIT_FAILURE);
     }
-    client.run_cmd();       
+    client.RunCmd();
     return 0;
 }

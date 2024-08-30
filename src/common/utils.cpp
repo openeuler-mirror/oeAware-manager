@@ -11,46 +11,82 @@
  ******************************************************************************/
 #include "utils.h"
 #include <curl/curl.h>
+#include <fstream>
+#include <sys/stat.h>
 
-static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *file) {
+namespace oeaware {
+const static int ST_MODE_MASK = 0777;
+const static int HTTP_OK = 200;
+
+static size_t WriteData(char *ptr, size_t size, size_t nmemb, FILE *file)
+{
     return fwrite(ptr, size, nmemb, file);
 }
 
 // set curl options
-static void curl_set_opt(CURL *curl, const std::string &url, FILE *file) {
+static void CurlSetOpt(CURL *curl, const std::string &url, FILE *file)
+{
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteData);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-        
 }
-static bool curl_handle(CURL *curl, const std::string &url, const std::string &path) {
+
+static bool CurlHandle(CURL *curl, const std::string &url, const std::string &path)
+{
     FILE *file = fopen(path.c_str(), "wb");
     if (file == nullptr) {
         return false;
     }
-    curl_set_opt(curl, url, file);
+    CurlSetOpt(curl, url, file);
     CURLcode res = curl_easy_perform(curl);
-    long http_code = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-    fclose(file);
-    if (res == CURLE_OK && http_code >= 200 && http_code < 300) {
+    long httpCode = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+    if (fclose(file) == EOF) {
+        return false;
+    }
+    if (res == CURLE_OK && httpCode == HTTP_OK) {
         return true;
-    } 
+    }
     return false;
 }
 
 // Downloads file from the specified url to the path.
-bool download(const std::string &url, const std::string &path) {
+bool Download(const std::string &url, const std::string &path)
+{
     CURL *curl = nullptr;
     bool ret = true;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
     if (curl) {
-        if (!curl_handle(curl, url, path)) ret = false;
+        if (!CurlHandle(curl, url, path)) {
+            ret = false;
+        }
     } else {
         ret = false;
     }
     curl_global_cleanup();
     curl_easy_cleanup(curl);
     return ret;
+}
+
+// Check the file permission. The file owner is root.
+bool CheckPermission(const std::string &path, int mode)
+{
+    struct stat st;
+    lstat(path.c_str(), &st);
+    int curMode = (st.st_mode & ST_MODE_MASK);
+    if (st.st_gid != 0 && st.st_uid != 0) {
+        return false;
+    }
+    if (curMode != mode) {
+        return false;
+    }
+    return true;
+}
+
+bool FileExist(const std::string &fileName)
+{
+    std::ifstream file(fileName);
+    return file.good();
+}
 }

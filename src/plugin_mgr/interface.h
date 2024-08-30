@@ -8,12 +8,13 @@
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- ******************************************************************************/ 
+ ******************************************************************************/
 #ifndef PLUGIN_MGR_INTERFACE_H
 #define PLUGIN_MGR_INTERFACE_H
 #include <stdbool.h>
 #include <stdint.h>
 
+namespace oeaware {
 struct DataBuf {
     int len;
     void *data;
@@ -44,7 +45,7 @@ struct Interface {
      * for instance execution.
      */
     const char* (*get_dep)();
-    /* Instance scheduling priority. In a uniform time period, a instance with a 
+    /* Instance scheduling priority. In a uniform time period, a instance with a
      * lower priority is scheduled first.
      */
     int (*get_priority)();
@@ -61,5 +62,6 @@ struct Interface {
  * The return value is the number of instances.
  */
 int get_instance(struct Interface **interface);
+}
 
 #endif // !PLUGIN_MGR_INTERFACE_H

@@ -11,7 +11,8 @@
  ******************************************************************************/
 #include "error_code.h"
 
-const std::unordered_map<ErrorCode, std::string> ErrorText::error_codes = {
+namespace oeaware {
+const std::unordered_map<ErrorCode, std::string> ErrorText::errorCodes = {
     {ErrorCode::ENABLE_INSTANCE_NOT_LOAD, "instance is not loaded"},
     {ErrorCode::ENABLE_INSTANCE_UNAVAILABLE, "instance is unavailable"},
     {ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED, "instance is already enabled"},
@@ -32,11 +33,13 @@ const std::unordered_map<ErrorCode, std::string> ErrorText::error_codes = {
     {ErrorCode::QUERY_DEP_NOT_EXIST, "instance does not exist"},
     {ErrorCode::DOWNLOAD_NOT_FOUND, "unable to find a match"},
 };
-std::string ErrorText::get_error_text(ErrorCode code) {
-    auto it = ErrorText::error_codes.find(code);
-    if (it != ErrorText::error_codes.end()) {
+std::string ErrorText::GetErrorText(ErrorCode code)
+{
+    auto it = ErrorText::errorCodes.find(code);
+    if (it != ErrorText::errorCodes.end()) {
         return it->second;
     } else {
         return "unknown error.";
     }
+}
 }

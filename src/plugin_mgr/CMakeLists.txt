@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.16)
 project(oeAware-server)
 
-SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++11 -g -Wl,-z,relro,-z,now -Wall -Wextra -O2")
+SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -O2")
 
 if("${OEAWARE_DEBUG}" EQUAL 1)
 add_definitions(-DOEAWARE_DEBUG)
@@ -15,7 +15,7 @@ link_directories(/usr/lib64)
 add_executable (oeaware
                 ${SOURCE}
                 ) 
-target_link_libraries(oeaware common)
+target_link_libraries(oeaware common boundscheck)
 if (${CMAKE_CXX_COMPILER_VERSION} LESS "10.3.1")
     target_link_libraries(oeaware -lpthread -ldl)
 endif()

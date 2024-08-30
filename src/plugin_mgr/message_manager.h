@@ -11,16 +11,16 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MESSAGE_MANAGER_H
 #define PLUGIN_MGR_MESSAGE_MANAGER_H
-
-#include "safe_queue.h"
-#include "message_protocol.h"
-#include "logger.h"
-#include "config.h"
 #include <vector>
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
+#include "safe_queue.h"
+#include "message_protocol.h"
+#include "logger.h"
+#include "config.h"
 
+namespace oeaware {
 enum class MessageType {
     INTERNAL,
     EXTERNAL,
@@ -30,27 +30,34 @@ class Message {
 public:
     Message() : type(MessageType::EXTERNAL) {}
     explicit Message(Opt opt) : opt(opt) {}
-    Message(Opt opt, MessageType type) : opt(opt), type(type) {} 
+    Message(Opt opt, MessageType type) : opt(opt), type(type) {}
     Message(Opt opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) {}
-    Opt get_opt() {
+    Opt getOpt()
+    {
         return this->opt;
     }
-    void set_opt(Opt opt) {
-        this->opt = opt;
+    void SetOpt(Opt newOpt)
+    {
+        this->opt = newOpt;
     }
-    void set_type(MessageType type) {
-        this->type = type;
+    void SetType(MessageType newType)
+    {
+        this->type = newType;
     }
-    MessageType get_type() const {
+    MessageType GetType() const
+    {
         return this->type;
     }
-    void add_payload(std::string s) {
+    void AddPayload(const std::string &s)
+    {
         this->payload.emplace_back(s);
     }
-    std::string get_payload(int index) const {
+    std::string GetPayload(int index) const
+    {
         return this->payload[index];
     }
-    int get_payload_len() const {
+    int GetPayloadLen() const
+    {
         return this->payload.size();
     }
 private:
@@ -62,37 +69,43 @@ private:
 class TcpSocket {
 public:
     TcpSocket() : sock(-1), epfd(-1) { }
-    ~TcpSocket() {
+    ~TcpSocket()
+    {
         close(sock);
     }
-    bool init();
-    void serve_accept(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg);    
+    bool Init();
+    void ServeAccept(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg);
 private:
-    int domain_listen(const char *name);
-private:    
+    int DomainListen(const char *name);
+    void HandleMessage(int curFd, std::shared_ptr<SafeQueue<Message>> handlerMsg,
+    std::shared_ptr<SafeQueue<Message>> resMsg);
+private:
     int sock;
     int epfd;
+    const int maxRequestNum = 20;
 };
 
 class MessageManager {
 public:
     MessageManager(const MessageManager&) = delete;
     MessageManager& operator=(const MessageManager&) = delete;
-    static MessageManager& get_instance() {
-        static MessageManager message_manager;
-        return message_manager;
+    static MessageManager& GetInstance()
+    {
+        static MessageManager messageManager;
+        return messageManager;
     }
-    void init(std::shared_ptr<SafeQueue<Message>> handler_msg, std::shared_ptr<SafeQueue<Message>> res_msg);
-    void tcp_start();
-    void run();
+    void Init(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg);
+    void TcpStart();
+    void Run();
 private:
     MessageManager() { }
 private:
     /* Message queue stores messages from the client and is consumed by PluginManager. */
-    std::shared_ptr<SafeQueue<Message>> handler_msg;
+    std::shared_ptr<SafeQueue<Message>> handlerMsg;
     /* Message queue stores messages from PluginManager and is consumed by TcpSocket. */
-    std::shared_ptr<SafeQueue<Message>> res_msg;
-    TcpSocket tcp_socket;
+    std::shared_ptr<SafeQueue<Message>> resMsg;
+    TcpSocket tcpSocket;
 };
+}
 
 #endif // !PLUGIN_MGR_MESSAGE_MANAGER_H

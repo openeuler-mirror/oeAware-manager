@@ -33,6 +33,7 @@ const std::unordered_map<ErrorCode, std::string> ErrorText::errorCodes = {
     {ErrorCode::QUERY_DEP_NOT_EXIST, "instance does not exist"},
     {ErrorCode::DOWNLOAD_NOT_FOUND, "unable to find a match"},
 };
+
 std::string ErrorText::GetErrorText(ErrorCode code)
 {
     auto it = ErrorText::errorCodes.find(code);

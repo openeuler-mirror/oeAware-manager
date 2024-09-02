@@ -66,29 +66,29 @@ bool TcpSocket::Init()
     return true;
 }
 
-static void SendMsg(Msg &msg, std::shared_ptr<SafeQueue<Message>> handlerMsg)
+static void SendMsg(Msg &msg, std::shared_ptr<SafeQueue<Event>> recvMessage)
 {
-    Message message;
-    message.SetOpt(msg.Opt());
-    message.SetType(MessageType::EXTERNAL);
+    Event Event;
+    Event.SetOpt(msg.Opt());
+    Event.SetType(EventType::EXTERNAL);
     for (int i = 0; i < msg.PayloadSize(); ++i) {
-        message.AddPayload(msg.Payload(i));
+        Event.AddPayload(msg.Payload(i));
     }
-    handlerMsg->Push(message);
+    recvMessage->Push(Event);
 }
 
-static void RecvMsg(Msg &msg, std::shared_ptr<SafeQueue<Message>> resMsg)
+static void RecvMsg(Msg &msg, std::shared_ptr<SafeQueue<EventResult>> sendMessage)
 {
-    Message res;
-    resMsg->WaitAndPop(res);
-    msg.SetOpt(res.getOpt());
+    EventResult res;
+    sendMessage->WaitAndPop(res);
+    msg.SetOpt(res.GetOpt());
     for (int i = 0; i < res.GetPayloadLen(); ++i) {
         msg.AddPayload(res.GetPayload(i));
     }
 }
 
-void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Message>> handlerMsg,
-    std::shared_ptr<SafeQueue<Message>> resMsg)
+void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvMessage,
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
 {
     SocketStream stream(curFd);
     MessageProtocol msgProtocol;
@@ -102,14 +102,15 @@ void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Message>> han
         return;
     }
     Decode(clientMsg, msgProtocol.body);
-    SendMsg(clientMsg, handlerMsg);
-    RecvMsg(internalMsg, resMsg);
+    SendMsg(clientMsg, recvMessage);
+    RecvMsg(internalMsg, sendMessage);
     if (!SendResponse(stream, internalMsg, header)) {
         WARN("[MessageManager] send msg to client failed!");
     }
 }
 
-void TcpSocket::ServeAccept(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg)
+void TcpSocket::ServeAccept(std::shared_ptr<SafeQueue<Event>> recvMessage,
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
 {
     struct epoll_event evs[MAX_EVENT_SIZE];
     int sz = sizeof(evs) / sizeof(struct epoll_event);
@@ -125,7 +126,7 @@ void TcpSocket::ServeAccept(std::shared_ptr<SafeQueue<Message>> handlerMsg, std:
                 epoll_ctl(epfd, EPOLL_CTL_ADD, conn, &ev);
                 DEBUG("[MessageManager] client connected!");
             } else {
-                HandleMessage(curFd, handlerMsg, resMsg);
+                HandleMessage(curFd, recvMessage, sendMessage);
             }
         }
     }
@@ -136,23 +137,26 @@ void MessageManager::TcpStart()
     if (!tcpSocket.Init()) {
         return;
     }
-    tcpSocket.ServeAccept(handlerMsg, resMsg);
+    tcpSocket.ServeAccept(recvMessage, sendMessage);
 }
 
-static void handler(MessageManager *mgr)
+void MessageManager::Handler()
 {
-    mgr->TcpStart();
+    TcpStart();
 }
 
-void MessageManager::Init(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg)
+void MessageManager::Init(std::shared_ptr<SafeQueue<Event>> recvMessage,
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
 {
-    this->handlerMsg = handlerMsg;
-    this->resMsg = resMsg;
+    this->recvMessage = recvMessage;
+    this->sendMessage = sendMessage;
 }
 
 void MessageManager::Run()
 {
-    std::thread t(handler, this);
+    std::thread t([this]() {
+        this->Handler();
+    });
     t.detach();
 }
 }

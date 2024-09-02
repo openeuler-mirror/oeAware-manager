@@ -11,7 +11,6 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MESSAGE_MANAGER_H
 #define PLUGIN_MGR_MESSAGE_MANAGER_H
-#include <vector>
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
@@ -19,53 +18,9 @@
 #include "message_protocol.h"
 #include "logger.h"
 #include "config.h"
+#include "event/event.h"
 
 namespace oeaware {
-enum class MessageType {
-    INTERNAL,
-    EXTERNAL,
-};
-
-class Message {
-public:
-    Message() : type(MessageType::EXTERNAL) {}
-    explicit Message(Opt opt) : opt(opt) {}
-    Message(Opt opt, MessageType type) : opt(opt), type(type) {}
-    Message(Opt opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) {}
-    Opt getOpt()
-    {
-        return this->opt;
-    }
-    void SetOpt(Opt newOpt)
-    {
-        this->opt = newOpt;
-    }
-    void SetType(MessageType newType)
-    {
-        this->type = newType;
-    }
-    MessageType GetType() const
-    {
-        return this->type;
-    }
-    void AddPayload(const std::string &s)
-    {
-        this->payload.emplace_back(s);
-    }
-    std::string GetPayload(int index) const
-    {
-        return this->payload[index];
-    }
-    int GetPayloadLen() const
-    {
-        return this->payload.size();
-    }
-private:
-    Opt opt;
-    MessageType type;
-    std::vector<std::string> payload;
-};
-
 class TcpSocket {
 public:
     TcpSocket() : sock(-1), epfd(-1) { }
@@ -74,11 +29,12 @@ public:
         close(sock);
     }
     bool Init();
-    void ServeAccept(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg);
+    void ServeAccept(std::shared_ptr<SafeQueue<Event>> recvMessage,
+        std::shared_ptr<SafeQueue<EventResult>> sendMessage);
 private:
     int DomainListen(const char *name);
-    void HandleMessage(int curFd, std::shared_ptr<SafeQueue<Message>> handlerMsg,
-    std::shared_ptr<SafeQueue<Message>> resMsg);
+    void HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvMessage,
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage);
 private:
     int sock;
     int epfd;
@@ -94,16 +50,17 @@ public:
         static MessageManager messageManager;
         return messageManager;
     }
-    void Init(std::shared_ptr<SafeQueue<Message>> handlerMsg, std::shared_ptr<SafeQueue<Message>> resMsg);
-    void TcpStart();
+    void Init(std::shared_ptr<SafeQueue<Event>> recvMessage, std::shared_ptr<SafeQueue<EventResult>> sendMessage);
     void Run();
 private:
     MessageManager() { }
+    void Handler();
+    void TcpStart();
 private:
-    /* Message queue stores messages from the client and is consumed by PluginManager. */
-    std::shared_ptr<SafeQueue<Message>> handlerMsg;
-    /* Message queue stores messages from PluginManager and is consumed by TcpSocket. */
-    std::shared_ptr<SafeQueue<Message>> resMsg;
+    /* Event queue stores Events from the client and is consumed by PluginManager. */
+    std::shared_ptr<SafeQueue<Event>> recvMessage;
+    /* Event queue stores Events from PluginManager and is consumed by TcpSocket. */
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage;
     TcpSocket tcpSocket;
 };
 }

@@ -9,8 +9,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef PLUGIN_MGR_ERROR_CODE_H
-#define PLUGIN_MGR_ERROR_CODE_H
+#ifndef PLUGIN_MGR_EVENT_ERROR_CODE_H
+#define PLUGIN_MGR_EVENT_ERROR_CODE_H
 #include <unordered_map>
 #include <string>
 
@@ -45,4 +45,4 @@ public:
 };
 }
 
-#endif // !PLUGIN_MGR_ERROR_CODE_H
+#endif

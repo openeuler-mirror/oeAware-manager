@@ -70,7 +70,6 @@ int ArgParse::init(int argc, char *argv[]) {
     init_opts();
     opterr = 0;
     while((opt = getopt_long(argc, argv, OPT_STRING.c_str(), long_options, nullptr)) != -1) {
-        std::string full_opt;
         switch (opt) {
             case 'h':
                 help = true;

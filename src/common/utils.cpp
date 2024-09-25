@@ -99,4 +99,18 @@ bool EndWith(const std::string &s, const std::string &ending)
     }
 }
 
+const unsigned int HASH_VALUE = 0x9e3779b9;
+const int SHIFT_LEFT = 6;
+const int SHIFT_RIGHT = 2;
+
+uint64_t Hash(const std::vector<std::string>& strings)
+{
+    std::hash<std::string> hasher;
+    uint64_t combinedHash = 0;
+    for (const auto& str : strings) {
+        combinedHash ^= hasher(str) + HASH_VALUE + (combinedHash << SHIFT_LEFT) + (combinedHash >> SHIFT_RIGHT);
+    }
+    return combinedHash;
+}
+
 }

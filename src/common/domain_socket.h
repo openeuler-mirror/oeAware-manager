@@ -9,17 +9,34 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
-#include <string>
+#ifndef COMMON_DOMAIN_SOCKET_H
+#define COMMON_DOMAIN_SOCKET_H
 #include <vector>
+#include <string>
+#include <sys/un.h>
 
 namespace oeaware {
-bool Download(const std::string &url, const std::string &path);
-bool CheckPermission(const std::string &path, int mode);
-bool FileExist(const std::string &fileName);
-bool EndWith(const std::string &s, const std::string &ending);
-uint64_t Hash(const std::vector<std::string>& strings);
+class DomainSocket {
+public:
+    explicit DomainSocket(const std::string &path) : localPath(path) { }
+    DomainSocket() { }
+    int Socket();
+    int Bind();
+    int Listen();
+    int Connect();
+    int Accept();
+    void Close();
+    void SetRemotePath(const std::string &path)
+    {
+        remotePath = path;
+    }
+private:
+    int CreateSockAddrUn(struct sockaddr_un &un, const std::string &sunPath);
+private:
+    std::string localPath;
+    std::string remotePath;
+    int sock;
+    const int maxRequestNum = 20;
+};
 }
-
-#endif // !COMMON_UTILS_H
+#endif

@@ -66,10 +66,10 @@ bool TcpSocket::Init()
     return true;
 }
 
-static void SendMsg(Msg &msg, std::shared_ptr<SafeQueue<Event>> recvMessage)
+static void SendMsg(Message &msg, std::shared_ptr<SafeQueue<Event>> recvMessage)
 {
     Event Event;
-    Event.SetOpt(msg.Opt());
+    Event.SetOpt(msg.GetOpt());
     Event.SetType(EventType::EXTERNAL);
     for (int i = 0; i < msg.PayloadSize(); ++i) {
         Event.AddPayload(msg.Payload(i));
@@ -77,7 +77,7 @@ static void SendMsg(Msg &msg, std::shared_ptr<SafeQueue<Event>> recvMessage)
     recvMessage->Push(Event);
 }
 
-static void RecvMsg(Msg &msg, std::shared_ptr<SafeQueue<EventResult>> sendMessage)
+static void RecvMsg(Message &msg, std::shared_ptr<SafeQueue<EventResult>> sendMessage)
 {
     EventResult res;
     sendMessage->WaitAndPop(res);
@@ -92,19 +92,22 @@ void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvM
 {
     SocketStream stream(curFd);
     MessageProtocol msgProtocol;
-    Msg clientMsg;
-    Msg internalMsg;
-    MessageHeader header;
-    if (!HandleRequest(stream, msgProtocol)) {
+    Message clientMsg;
+    Message internalMsg;
+    if (!RecvMessage(stream, msgProtocol)) {
         epoll_ctl(epfd, EPOLL_CTL_DEL, curFd, NULL);
         close(curFd);
         DEBUG("[MessageManager] one client disconnected!");
         return;
     }
-    Decode(clientMsg, msgProtocol.body);
+    clientMsg = msgProtocol.GetMessage();
     SendMsg(clientMsg, recvMessage);
     RecvMsg(internalMsg, sendMessage);
-    if (!SendResponse(stream, internalMsg, header)) {
+    MessageHeader header(MessageType::RESPONSE);
+    MessageProtocol resProtocol;
+    resProtocol.SetMessage(internalMsg);
+    resProtocol.SetHeader(header);
+    if (!SendMessage(stream, resProtocol)) {
         WARN("[MessageManager] send msg to client failed!");
     }
 }

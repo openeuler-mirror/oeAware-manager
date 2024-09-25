@@ -14,6 +14,7 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
+#include <unistd.h>
 #include "safe_queue.h"
 #include "message_protocol.h"
 #include "logger.h"

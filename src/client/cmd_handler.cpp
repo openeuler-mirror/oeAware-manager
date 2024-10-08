@@ -23,14 +23,14 @@ void LoadHandler::Check(const std::string &type)
     }
 }
 
-void LoadHandler::Handler(Msg &msg)
+void LoadHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.AddPayload(arg);
     msg.SetOpt(Opt::LOAD);
 }
 
-void LoadHandler::ResHandler(Msg &msg)
+void LoadHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_OK) {
         std::cout << "Plugin loaded successfully.";
@@ -47,7 +47,7 @@ void LoadHandler::ResHandler(Msg &msg)
     }
 }
 
-void QueryHandler::Handler(Msg &msg)
+void QueryHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (arg.empty()) {
@@ -67,7 +67,7 @@ void QueryHandler::PrintFormat()
             "running status: running means that instance is running, otherwise close.\n";
 }
 
-void QueryHandler::ResHandler(Msg &msg)
+void QueryHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
         std::cout << "Plugin query failed, because " << msg.Payload(0).c_str() <<".\n";
@@ -83,14 +83,14 @@ void QueryHandler::ResHandler(Msg &msg)
     PrintFormat();
 }
 
-void RemoveHandler::Handler(Msg &msg)
+void RemoveHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.AddPayload(arg);
     msg.SetOpt(Opt::REMOVE);
 }
 
-void RemoveHandler::ResHandler(Msg &msg)
+void RemoveHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_OK) {
         std::cout << "Plugin remove successfully.\n";
@@ -113,7 +113,7 @@ void write_to_file(const std::string &file_name, const std::string &text)
     out.close();
 }
 
-void QueryTopHandler::Handler(Msg &msg)
+void QueryTopHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (arg.empty()) {
@@ -124,7 +124,7 @@ void QueryTopHandler::Handler(Msg &msg)
     }
 }
 
-void QueryTopHandler::ResHandler(Msg &msg)
+void QueryTopHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
         std::cout << "Query instance dependencies failed, because "<< msg.Payload(0) << ".\n";
@@ -136,14 +136,14 @@ void QueryTopHandler::ResHandler(Msg &msg)
     std::cout << "Generate dependencies graph dep.png.\n";
 }
 
-void EnabledHandler::Handler(Msg &msg)
+void EnabledHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.AddPayload(arg);
     msg.SetOpt(Opt::ENABLED);
 }
 
-void EnabledHandler::ResHandler(Msg &msg)
+void EnabledHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_OK) {
         std::cout << "Instance enabled successfully.\n";
@@ -152,14 +152,14 @@ void EnabledHandler::ResHandler(Msg &msg)
     }
 }
 
-void DisabledHandler::Handler(Msg &msg)
+void DisabledHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.AddPayload(arg);
     msg.SetOpt(Opt::DISABLED);
 }
 
-void DisabledHandler::ResHandler(Msg &msg)
+void DisabledHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_OK) {
         std::cout << "Instance disabled successfully.\n";
@@ -168,12 +168,12 @@ void DisabledHandler::ResHandler(Msg &msg)
     }
 }
 
-void ListHandler::Handler(Msg &msg)
+void ListHandler::Handler(Message &msg)
 {
     msg.SetOpt(Opt::LIST);
 }
 
-void ListHandler::ResHandler(Msg &msg)
+void ListHandler::ResHandler(Message &msg)
 {
     if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
         std::cerr << "Query list failed, because "<< msg.Payload(0) << ".\n";
@@ -187,14 +187,14 @@ void ListHandler::ResHandler(Msg &msg)
     std::cout << "------------------------------------------------------------\n";
 }
 
-void InstallHandler::Handler(Msg &msg)
+void InstallHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.SetOpt(Opt::DOWNLOAD);
     msg.AddPayload(arg);
 }
 
-void InstallHandler::ResHandler(Msg &msg)
+void InstallHandler::ResHandler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (msg.GetOpt() == Opt::RESPONSE_ERROR) {

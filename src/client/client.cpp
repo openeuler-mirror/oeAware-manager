@@ -35,8 +35,8 @@ bool Client::Init(int argc, char *argv[])
 
 void Client::RunCmd()
 {
-    Msg msg;
-    Msg res;
+    Message msg;
+    Message res;
     MessageHeader header;
     this->cmdHandler = cmdHandlerGroups[cmd];
     this->cmdHandler->Handler(msg);

@@ -74,26 +74,16 @@ ssize_t SocketStream::Write(const char buf[], size_t size)
     return SendSocket(sock, buf, size, 0);
 }
 
-static std::string to_hex(size_t x) {
-    std::stringstream ss;
-    std::string result;
-    ss << std::hex << std::uppercase << x;
-    result = ss.str();
-    std::string zero = "";
-    for (size_t i = result.length(); i < sizeof(size_t); ++i) {
-        zero += "0";
-    }
-    result = zero + result;
-    return result;
-}
-
-static size_t from_hex(std::string s)
+std::string MessageProtocol::GetProtocolStr()
 {
-    std::stringstream ss;
-    size_t ret;
-    ss << std::hex << s;
-    ss >> ret;
-    return ret;
+    OutStream out;
+    out << header;
+    uint64_t headLength = out.Str().length();
+    out << message;
+    uint64_t totLength = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE + out.Str().length();
+    OutStream outLength;
+    outLength << totLength << headLength;
+    return outLength.Str() + out.Str();
 }
 
 static bool ReadBuf(int start, int end, char *buf, SocketStream &stream, std::string &msg)
@@ -110,50 +100,38 @@ static bool ReadBuf(int start, int end, char *buf, SocketStream &stream, std::st
     return true;
 }
 
-bool HandleRequest(SocketStream &stream, MessageProtocol &msgProtocol)
+bool RecvMessage(SocketStream &stream, MessageProtocol &msgProtocol)
 {
     char buf[MAX_RECV_BUFF_SIZE];
-    // get tot length
-    int ret = stream.Read(buf, PROTOCOL_LENGTH_SIZE);
+    int ret = stream.Read(buf, PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE);
     if (ret <= 0) {
         return false;
     }
-    msgProtocol.totLength = from_hex(buf);
-    ret = stream.Read(buf, HEADER_LENGTH_SIZE);
-    if (ret <= 0) {
-        return false;
-    }
-    msgProtocol.headerLength = from_hex(buf);
-    int headerStart = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
-    int headerEnd = headerStart + msgProtocol.headerLength;
-    if (!ReadBuf(headerStart, headerEnd, buf, stream, msgProtocol.header)) {
+    InStream in(std::string(buf, ret));
+    uint64_t totLength = 0;
+    uint64_t headerLength = 0;
+    in >> totLength >> headerLength;
+    uint64_t headerStart = PROTOCOL_LENGTH_SIZE + HEADER_LENGTH_SIZE;
+    uint64_t headerEnd = headerStart + headerLength;
+    std::string header;
+    if (!ReadBuf(headerStart, headerEnd, buf, stream, header)) {
         return false;
     }
     
     int bodyStart = headerEnd;
-    int bodyEnd = msgProtocol.totLength;
-    if (!ReadBuf(bodyStart, bodyEnd, buf, stream, msgProtocol.body)) {
+    int bodyEnd = totLength;
+    std::string message;
+    if (!ReadBuf(bodyStart, bodyEnd, buf, stream, message)) {
         return false;
     }
+    msgProtocol.SetHeader(header);
+    msgProtocol.SetMessage(message);
     return true;
 }
 
-bool SendResponse(SocketStream &stream, const Msg &msg, const MessageHeader &header)
+bool SendMessage(SocketStream &stream, MessageProtocol &msgProtocol)
 {
-    MessageProtocol proto;
-    proto.header = Encode(header);
-    proto.body = Encode(msg);
-
-    proto.totLength += PROTOCOL_LENGTH_SIZE;
-    proto.totLength += HEADER_LENGTH_SIZE;
-    proto.totLength += proto.header.size();
-    proto.totLength += proto.body.size();
-    proto.headerLength = proto.header.size();
-
-    std::string res = to_hex(proto.totLength);
-    res += to_hex(proto.headerLength);
-    res += proto.header;
-    res += proto.body;
+    auto res = msgProtocol.GetProtocolStr();
     return stream.Write(res.c_str(), res.size());
 }
 }

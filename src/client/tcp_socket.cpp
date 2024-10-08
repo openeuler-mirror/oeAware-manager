@@ -15,21 +15,24 @@
 #include <sys/un.h>
 
 namespace oeaware {
-bool TcpSocket::RecvMsg(Msg &res, MessageHeader &header)
+bool TcpSocket::RecvMsg(Message &res, MessageHeader &header)
 {
     MessageProtocol proto;
-    if (!HandleRequest(stream, proto)) {
+    if (!RecvMessage(stream, proto)) {
         printf("can't connect to server!\n");
         return false;
     }
-    Decode(res, proto.body);
-    Decode(header, proto.header);
+    res = proto.GetMessage();
+    header = proto.GetHeader();
     return true;
 }
 
-bool TcpSocket::SendMsg(Msg &msg, MessageHeader &header)
+bool TcpSocket::SendMsg(Message &msg, MessageHeader &header)
 {
-    if (!SendResponse(stream, msg, header)) {
+    MessageProtocol proto;
+    proto.SetHeader(header);
+    proto.SetMessage(msg);
+    if (!SendMessage(stream, proto)) {
         return false;
     }
     return true;

@@ -17,14 +17,14 @@
 namespace oeaware {
 class CmdHandler {
 public:
-    virtual void Handler(Msg &msg) = 0;
-    virtual void ResHandler(Msg &msg) = 0;
+    virtual void Handler(Message &msg) = 0;
+    virtual void ResHandler(Message &msg) = 0;
 };
 
 class LoadHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 private:
     void Check(const std::string &type);
     static std::unordered_set<std::string> types;
@@ -32,47 +32,47 @@ private:
 
 class QueryHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 private:
     void PrintFormat();
 };
 
 class RemoveHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 
 class QueryTopHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class EnabledHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class DisabledHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class ListHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class InstallHandler : public CmdHandler {
 public:
-    void Handler(Msg &msg) override;
-    void ResHandler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 }
 

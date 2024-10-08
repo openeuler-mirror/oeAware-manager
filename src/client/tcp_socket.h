@@ -11,6 +11,7 @@
  ******************************************************************************/
 #ifndef CLIENT_TCP_SOCKET_H
 #define CLIENT_TCP_SOCKET_H
+#include <unistd.h>
 #include "message_protocol.h"
 #include "default_path.h"
 
@@ -22,8 +23,8 @@ public:
     {
         close(sock);
     }
-    bool RecvMsg(Msg &res, MessageHeader &header);
-    bool SendMsg(Msg &msg, MessageHeader &header);
+    bool RecvMsg(Message &res, MessageHeader &header);
+    bool SendMsg(Message &msg, MessageHeader &header);
     int FileConnect(const char *name);
     bool Init();
 private:

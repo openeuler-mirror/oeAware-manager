@@ -50,11 +50,11 @@ int LoadHandler::LoadDlInstance(std::shared_ptr<Plugin> plugin, Interface **inte
 {
     int (*getInstance)(Interface**) = (int(*)(Interface**))dlsym(plugin->GetHandler(), "get_instance");
     if (getInstance == nullptr) {
-        ERROR("[PluginManager] dlsym error!\n");
+        ERROR(logger, "dlsym error!");
         return -1;
     }
     int len = getInstance(interfaceList);
-    DEBUG("[PluginManager] dl loaded! ");
+    DEBUG(logger, "dl loaded!");
     return len;
 }
 
@@ -69,7 +69,7 @@ void LoadHandler::SaveInstance(std::shared_ptr<Plugin> plugin, Interface *interf
         instance->SetName(name);
         instance->SetPluginName(plugin->GetName());
         instance->SetEnabled(false);
-        DEBUG("[PluginManager] Instance: " << name.c_str());
+        DEBUG(logger, "Instance: " << name.c_str());
         memoryStore->AddInstance(instance);
         plugin->AddInstance(instance);
     }
@@ -78,7 +78,7 @@ void LoadHandler::SaveInstance(std::shared_ptr<Plugin> plugin, Interface *interf
 bool LoadHandler::LoadInstance(std::shared_ptr<Plugin> plugin)
 {
     int len = 0;
-    DEBUG("plugin: " << plugin->GetName());
+    DEBUG(logger, "plugin: " << plugin->GetName());
     Interface *interfaceList = nullptr;
     len = LoadDlInstance(plugin, &interfaceList);
     if (len < 0) {
@@ -121,15 +121,15 @@ EventResult LoadHandler::Handle(const Event &event)
     auto retCode = LoadPlugin(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] " << name << " plugin loaded.");
+        INFO(logger, name << " plugin loaded.");
         auto lackDep = InstanceDepCheck(name);
         eventResult.SetOpt(Opt::RESPONSE_OK);
         if (!lackDep.empty() && event.GetType() == EventType::EXTERNAL) {
-            INFO("[PluginManager] " << name << " requires the following dependencies:\n" << lackDep);
+            INFO(logger, name << " requires the following dependencies:\n" << lackDep);
             eventResult.AddPayload(lackDep);
         }
     } else {
-        WARN("[PluginManager] " << name << " " << ErrorText::GetErrorText(retCode)  << ".");
+        WARN(logger, name << " " << ErrorText::GetErrorText(retCode)  << ".");
         eventResult.SetOpt(Opt::RESPONSE_ERROR);
         eventResult.AddPayload(ErrorText::GetErrorText(retCode));
     }

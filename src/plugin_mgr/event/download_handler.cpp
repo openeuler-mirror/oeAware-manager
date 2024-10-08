@@ -28,11 +28,11 @@ EventResult DownloadHandler::Handle(const Event &event)
     auto retCode = Download(name, resText);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] download " << name << " from " << resText << ".");
+        INFO(logger, "download " << name << " from " << resText << ".");
         eventResult.SetOpt(Opt::RESPONSE_OK);
         eventResult.AddPayload(resText);
     } else {
-        WARN("[PluginManager] download " << name << " failed, because " << ErrorText::GetErrorText(retCode) + ".");
+        WARN(logger, "download " << name << " failed, because " << ErrorText::GetErrorText(retCode) + ".");
         eventResult.SetOpt(Opt::RESPONSE_ERROR);
         eventResult.AddPayload(ErrorText::GetErrorText(retCode));
     }

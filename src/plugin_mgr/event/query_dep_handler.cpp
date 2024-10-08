@@ -53,7 +53,7 @@ ErrorCode QueryDepHandler::QueryDependency(const std::string &name, std::string 
     if (!memoryStore->IsInstanceExist(name)) {
         return ErrorCode::QUERY_DEP_NOT_EXIST;
     }
-    DEBUG("[PluginManager] query top : " << name);
+    DEBUG(logger, "query top : " << name);
     std::vector<std::vector<std::string>> query;
     memoryStore->QueryNodeDependency(name, query);
     res = GenerateDot(query);
@@ -64,7 +64,7 @@ ErrorCode QueryDepHandler::QueryAllDependencies(std::string &res)
 {
     std::vector<std::vector<std::string>> query;
     memoryStore->QueryAllDependencies(query);
-    DEBUG("[PluginManager] query size:" << query.size());
+    DEBUG(logger, "query size:" << query.size());
     res = GenerateDot(query);
     return ErrorCode::OK;
 }
@@ -74,7 +74,7 @@ EventResult QueryDepHandler::Handle(const Event &event)
     EventResult eventResult;
     std::string resText;
     if (event.GetOpt() == Opt::QUERY_ALL_DEPS) {
-        INFO("[PluginManager] query all instances dependencies.");
+        INFO(logger, "query all instances dependencies.");
         QueryAllDependencies(resText);
         eventResult.SetOpt(Opt::RESPONSE_OK);
         eventResult.AddPayload(resText);
@@ -82,11 +82,11 @@ EventResult QueryDepHandler::Handle(const Event &event)
         auto name = event.GetPayload(0);
         auto retCode = QueryDependency(name, resText);
         if (retCode == ErrorCode::OK) {
-            INFO("[PluginManager] query " << name << " instance dependencies.");
+            INFO(logger, "query " << name << " instance dependencies.");
             eventResult.SetOpt(Opt::RESPONSE_OK);
             eventResult.AddPayload(resText);
         } else {
-            WARN("[PluginManager] query  " << name  << " instance dependencies failed, because " <<
+            WARN(logger, "query  " << name  << " instance dependencies failed, because " <<
                 ErrorText::GetErrorText(retCode) << ".");
             eventResult.SetOpt(Opt::RESPONSE_ERROR);
             eventResult.AddPayload(ErrorText::GetErrorText(retCode));

@@ -75,7 +75,7 @@ void InstanceRunHandler::EnableInstance(const std::string &name)
         for (auto &enabled_name : new_enabled) {
             auto instance = dep_handler.GetInstance(enabled_name);
             scheduleQueue.push(ScheduleInstance{instance, time});
-            INFO("[InstanceRunHandler] " << enabled_name << " instance insert into schedule queue at time " << time);
+            INFO(logger, enabled_name << " instance insert into schedule queue at time " << time);
         }
     }
 }
@@ -96,7 +96,7 @@ void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
         auto cur_name = instance->GetName();
         instance->SetEnabled(false);
         instance->GetInterface()->disable();
-        INFO("[InstanceRunHandler] " << cur_name << " instance disabled at time " << time);
+        INFO(logger, cur_name << " instance disabled at time " << time);
         for (auto arc = node->head->next; arc != nullptr; arc = arc->next) {
             auto cur_node = dep_handler.GetNode(arc->to);
             arc->isExist = arc->init;
@@ -146,7 +146,7 @@ void InstanceRunHandler::ChangeInstanceState(const std::string &name, std::vecto
         }
         auto instance = memoryStore->GetInstance(dep);
         if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] ilegal dependency: " << dep);
+            ERROR(logger, "ilegal dependency: " << dep);
             continue;
         }
         memoryStore->DeleteEdge(name, instance->GetName());
@@ -162,7 +162,7 @@ void InstanceRunHandler::ChangeInstanceState(const std::string &name, std::vecto
         }
         auto instance = memoryStore->GetInstance(after_dep);
         if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] ilegal dependency: " << after_dep);
+            ERROR(logger, "ilegal dependency: " << after_dep);
             continue;
         }
         inDegree[instance->GetName()]++;
@@ -198,11 +198,11 @@ void InstanceRunHandler::Schedule()
 
 void InstanceRunHandler::Start()
 {
-    INFO("[InstanceRunHandler] instance schedule started!");
+    INFO(logger, "instance schedule started!");
     const static uint64_t millisecond = 1000;
     while (true) {
         if (!HandleMessage()) {
-            INFO("[InstanceRunHandler] instance schedule shutdown!");
+            INFO(logger, "instance schedule shutdown!");
             break;
         }
         Schedule();
@@ -211,8 +211,15 @@ void InstanceRunHandler::Start()
     }
 }
 
+void InstanceRunHandler::Init()
+{
+    Logger::GetInstance().Register("InstanceSchedule");
+    logger = Logger::GetInstance().Get("InstanceSchedule");
+}
+
 void InstanceRunHandler::Run()
 {
+    Init();
     std::thread t([this] {
         this->Start();
     });

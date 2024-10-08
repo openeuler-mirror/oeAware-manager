@@ -54,6 +54,7 @@ private:
     std::shared_ptr<SafeQueue<EventResult>> sendMessage;
     std::unordered_map<Opt, std::shared_ptr<Handler>> eventHandler;
     std::shared_ptr<MemoryStore> memoryStore;
+    log4cplus::Logger logger;
 };
 
 void PrintHelp();

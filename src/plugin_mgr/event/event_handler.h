@@ -21,6 +21,7 @@ public:
     virtual ~Handler() = default;
     virtual EventResult Handle(const Event &event) = 0;
     static std::shared_ptr<MemoryStore> memoryStore;
+    static log4cplus::Logger logger;
 };
 }
 

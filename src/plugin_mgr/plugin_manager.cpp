@@ -39,10 +39,12 @@ void SignalHandler(int signum)
 }
 
 std::shared_ptr<MemoryStore> Handler::memoryStore;
+log4cplus::Logger Handler::logger;
 
 void PluginManager::InitEventHandler()
 {
     Handler::memoryStore = memoryStore;
+    Handler::logger = logger;
     eventHandler[Opt::LOAD] = std::make_shared<LoadHandler>();
     eventHandler[Opt::REMOVE] = std::make_shared<RemoveHandler>();
     eventHandler[Opt::QUERY_ALL] = std::make_shared<QueryHandler>();
@@ -63,6 +65,8 @@ void PluginManager::Init(std::shared_ptr<Config> config, std::shared_ptr<SafeQue
     this->sendMessage = sendMessage;
     memoryStore = std::make_shared<MemoryStore>();
     instanceRunHandler = std::make_shared<InstanceRunHandler>(memoryStore);
+    Logger::GetInstance().Register("PluginManager");
+    logger = Logger::GetInstance().Get("PluginManager");
     InitEventHandler();
 }
 
@@ -89,7 +93,7 @@ void PluginManager::PreEnable()
         EnableItem item = config->GetEnableList(i);
         std::string pluginName = item.GetName();
         if (!memoryStore->IsPluginExist(pluginName)) {
-            WARN("[PluginManager] plugin " << pluginName << " cannot be enabled, because it does not exist.");
+            WARN(logger, "plugin " << pluginName << " cannot be enabled, because it does not exist.");
             continue;
         }
         if (item.GetEnabled()) {
@@ -134,7 +138,7 @@ void PluginManager::Exit()
                 continue;
             }
             instance->GetInterface()->disable();
-            INFO("[PluginManager] " << instance->GetName() << " instance disabled.");
+            INFO(logger, instance->GetName() << " instance disabled.");
         }
     }
 }

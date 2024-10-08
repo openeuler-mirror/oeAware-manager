@@ -36,10 +36,10 @@ EventResult DisableHandler::Handle(const Event &event)
     auto retCode = InstanceDisabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] " << name << " disabled successful.");
+        INFO(logger, name << " disabled successful.");
         eventResult.SetOpt(Opt::RESPONSE_OK);
     } else {
-        WARN("[PluginManager] " << name << "disabled failed, because " << ErrorText::GetErrorText(retCode) << ".");
+        WARN(logger, name << "disabled failed, because " << ErrorText::GetErrorText(retCode) << ".");
         eventResult.SetOpt(Opt::RESPONSE_ERROR);
         eventResult.AddPayload(ErrorText::GetErrorText(retCode));
     }

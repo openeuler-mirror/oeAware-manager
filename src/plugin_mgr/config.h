@@ -127,8 +127,6 @@ private:
     std::string logType;
     std::unordered_map<std::string, PluginInfo> pluginList;
     std::vector<EnableItem> enableList;
-    const std::vector<int>logLevels{log4cplus::TRACE_LOG_LEVEL, log4cplus::DEBUG_LOG_LEVEL, log4cplus::INFO_LOG_LEVEL,
-        log4cplus::WARN_LOG_LEVEL, log4cplus::ERROR_LOG_LEVEL, log4cplus::FATAL_LOG_LEVEL, log4cplus::OFF_LOG_LEVEL};
 };
 
 std::string GetPath();

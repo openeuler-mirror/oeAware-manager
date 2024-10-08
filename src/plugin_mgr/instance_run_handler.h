@@ -76,6 +76,7 @@ public:
     using InstanceRun = void (*)(const struct Param*);
     explicit InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore) : memoryStore(memoryStore), time(0),
         cycle(defaultCycleSize) { }
+    void Init();
     void Run();
     void Schedule();
     bool HandleMessage();
@@ -113,6 +114,7 @@ private:
     SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
     std::unordered_map<std::string, int> inDegree;
     std::shared_ptr<MemoryStore> memoryStore;
+    log4cplus::Logger logger;
     uint64_t time;
     uint64_t cycle;
     static const uint64_t defaultCycleSize = 10;

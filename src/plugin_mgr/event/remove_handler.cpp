@@ -15,7 +15,7 @@ namespace oeaware {
 ErrorCode RemoveHandler::Remove(const std::string &name)
 {
     if (!memoryStore->IsPluginExist(name)) {
-        WARN("[PluginManager] " << name << " " << ErrorText::GetErrorText(ErrorCode::REMOVE_PLUGIN_NOT_EXIST) + ".");
+        WARN(logger, name << " " << ErrorText::GetErrorText(ErrorCode::REMOVE_PLUGIN_NOT_EXIST) + ".");
         return ErrorCode::REMOVE_PLUGIN_NOT_EXIST;
     }
     std::shared_ptr<Plugin> plugin = memoryStore->GetPlugin(name);
@@ -24,13 +24,12 @@ ErrorCode RemoveHandler::Remove(const std::string &name)
         std::shared_ptr<Instance> instance = plugin->GetInstance(i);
         std::string iname = instance->GetName();
         if (instance->GetEnabled()) {
-            WARN("[PluginManager] " << iname << " " <<
+            WARN(logger, iname << " " <<
                 ErrorText::GetErrorText(ErrorCode::REMOVE_INSTANCE_IS_RUNNING) << ".");
             return ErrorCode::REMOVE_INSTANCE_IS_RUNNING;
         }
         if (memoryStore->HaveDep(iname)) {
-            WARN("[PluginManager] " << iname << " " << ErrorText::GetErrorText(ErrorCode::REMOVE_INSTANCE_HAVE_DEP) <<
-                ".");
+            WARN(logger, iname << " " << ErrorText::GetErrorText(ErrorCode::REMOVE_INSTANCE_HAVE_DEP) << ".");
             return ErrorCode::REMOVE_INSTANCE_HAVE_DEP;
         }
         instanceNames.emplace_back(iname);
@@ -48,7 +47,7 @@ EventResult RemoveHandler::Handle(const Event &event)
     auto retCode = Remove(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] " << name << " plugin removed.");
+        INFO(logger, name << " plugin removed.");
         eventResult.SetOpt(Opt::RESPONSE_OK);
     } else {
         eventResult.SetOpt(Opt::RESPONSE_ERROR);

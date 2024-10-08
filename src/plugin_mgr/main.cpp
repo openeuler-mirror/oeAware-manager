@@ -13,18 +13,18 @@
 #include "plugin_manager.h"
 #include "utils.h"
 
-oeaware::Logger g_logger;
-
 int main(int argc, char **argv) {
+    oeaware::Logger::GetInstance().Register("Main");
+    auto logger = oeaware::Logger::GetInstance().Get("Main");
     if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR ||
         signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-        ERROR("Sig Error!");
+        ERROR(logger, "Sig Error!");
         exit(EXIT_FAILURE);
     }
     std::shared_ptr<oeaware::Config> config = std::make_shared<oeaware::Config>();
     int argCnt = 2;
     if (argc < argCnt) {
-        ERROR("System need an argument!");
+        ERROR(logger, "System need an argument!");
         oeaware::PrintHelp();
         exit(EXIT_FAILURE);
     }
@@ -33,26 +33,30 @@ int main(int argc, char **argv) {
         exit(EXIT_SUCCESS);
     }
     if (!oeaware::FileExist(argv[1])) {
-        ERROR("Config file " << argv[1] << " does not exist!");
+        ERROR(logger, "Config file " << argv[1] << " does not exist!");
         exit(EXIT_FAILURE);
     }
     std::string config_path(argv[1]);
     if (!oeaware::CheckPermission(config_path, S_IRUSR | S_IWUSR | S_IRGRP)) {
-        ERROR("Insufficient permission on " << config_path);
+        ERROR(logger, "Insufficient permission on " << config_path);
         exit(EXIT_FAILURE);
     }
     if (!config->Load(config_path)) {
-        ERROR("Config load error!");
+        ERROR(logger, "Config load error!");
         exit(EXIT_FAILURE);
     }
-    g_logger.Init(config->GetLogPath(), config->GetLogLevel());
+    if (oeaware::Logger::GetInstance().Init(config->GetLogPath(), config->GetLogLevel()) < 0) {
+        ERROR(logger, "logger init failed!");
+        exit(EXIT_FAILURE);
+    }
+    INFO(logger, "log path: " << config->GetLogPath() << ", log level: " << config->GetLogLevel());
     auto recvMessage = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
     auto sendMessage = std::make_shared<oeaware::SafeQueue<oeaware::EventResult>>();
-    INFO("[MessageManager] Start message manager!");
+    INFO(logger, "Start message manager!");
     oeaware::MessageManager &messageManager = oeaware::MessageManager::GetInstance();
     messageManager.Init(recvMessage, sendMessage);
     messageManager.Run();
-    INFO("[PluginManager] Start plugin manager!");
+    INFO(logger, "Start plugin manager!");
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
     pluginManager.Init(config, recvMessage, sendMessage);
     pluginManager.Run();

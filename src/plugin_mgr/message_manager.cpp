@@ -25,31 +25,32 @@ int TcpSocket::DomainListen(const char *name)
     int maxNameLength = 100;
     auto ret = strcpy_s(un.sun_path, maxNameLength, name);
     if (ret != EOK) {
-        ERROR("[MessageManager] sock path too long!");
+        ERROR(logger, "sock path too long!");
         return -1;
     }
     len = offsetof(struct sockaddr_un, sun_path)  + strlen(name);
     if (bind(sock, reinterpret_cast<struct sockaddr*>(&un), len) < 0) {
-        ERROR("[MessageManager] bind error!");
+        ERROR(logger, "bind error!");
         return -1;
     }
     if (chmod(name, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
-        ERROR("[MessageManager] " << name << " chmod error!");
+        ERROR(logger, name << " chmod error!");
     }
     if (listen(sock, maxRequestNum) < 0) {
-        ERROR("[MessageManager] listen error!");
+        ERROR(logger, "listen error!");
         return -1;
     }
-    INFO("[MessageManager] listen : " << name);
+    INFO(logger, "listen : " << name);
     return 0;
 }
 
 bool TcpSocket::Init()
 {
+    logger = Logger::GetInstance().Get("MessageManager");
     CreateDir(DEFAULT_RUN_PATH);
     std::string path = DEFAULT_RUN_PATH + "/oeAware-sock";
     if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        ERROR("[MessageManager] socket error!");
+        ERROR(logger, "socket error!");
         return false;
     }
     if (DomainListen(path.c_str()) < 0) {
@@ -97,7 +98,7 @@ void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvM
     if (!RecvMessage(stream, msgProtocol)) {
         epoll_ctl(epfd, EPOLL_CTL_DEL, curFd, NULL);
         close(curFd);
-        DEBUG("[MessageManager] one client disconnected!");
+        DEBUG(logger, "one client disconnected!");
         return;
     }
     clientMsg = msgProtocol.GetMessage();
@@ -108,7 +109,7 @@ void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvM
     resProtocol.SetMessage(internalMsg);
     resProtocol.SetHeader(header);
     if (!SendMessage(stream, resProtocol)) {
-        WARN("[MessageManager] send msg to client failed!");
+        WARN(logger, "send msg to client failed!");
     }
 }
 
@@ -127,7 +128,7 @@ void TcpSocket::ServeAccept(std::shared_ptr<SafeQueue<Event>> recvMessage,
                 ev.events = EPOLLIN;
                 ev.data.fd = conn;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, conn, &ev);
-                DEBUG("[MessageManager] client connected!");
+                DEBUG(logger, "client connected!");
             } else {
                 HandleMessage(curFd, recvMessage, sendMessage);
             }
@@ -153,6 +154,7 @@ void MessageManager::Init(std::shared_ptr<SafeQueue<Event>> recvMessage,
 {
     this->recvMessage = recvMessage;
     this->sendMessage = sendMessage;
+    Logger::GetInstance().Register("MessageManager");
 }
 
 void MessageManager::Run()

@@ -44,7 +44,7 @@ EventResult QueryHandler::Handle(const Event &event)
     EventResult eventResult;
     std::string resText;
     if (event.GetOpt() == Opt::QUERY_ALL) {
-        INFO("[PluginManager] query all plugins information.");
+        INFO(logger, "query all plugins information.");
         QueryAllPlugins(resText);
         eventResult.SetOpt(Opt::RESPONSE_OK);
         eventResult.AddPayload(resText);
@@ -52,11 +52,11 @@ EventResult QueryHandler::Handle(const Event &event)
         auto name = event.GetPayload(0);
         auto retCode = QueryPlugin(name, resText);
         if (retCode == ErrorCode::OK) {
-            INFO("[PluginManager] " << name << " plugin query successfully.");
+            INFO(logger, name << " plugin query successfully.");
             eventResult.SetOpt(Opt::RESPONSE_OK);
             eventResult.AddPayload(resText);
         } else {
-            WARN("[PluginManager] " << name << " " << ErrorText::GetErrorText(retCode) + ".");
+            WARN(logger, name << " " << ErrorText::GetErrorText(retCode) + ".");
             eventResult.SetOpt(Opt::RESPONSE_ERROR);
             eventResult.AddPayload(ErrorText::GetErrorText(retCode));
         }

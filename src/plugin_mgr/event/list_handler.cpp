@@ -56,11 +56,11 @@ EventResult ListHandler::Handle(const Event &event)
     auto retCode = AddList(resText);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] query plugin_list.");
+        INFO(logger, "query plugin_list.");
         eventResult.SetOpt(Opt::RESPONSE_OK);
         eventResult.AddPayload(resText);
     } else {
-        WARN("[PluginManager] query plugin_list failed, because " << ErrorText::GetErrorText(retCode) << ".");
+        WARN(logger, "query plugin_list failed, because " << ErrorText::GetErrorText(retCode) << ".");
         eventResult.SetOpt(Opt::RESPONSE_ERROR);
         eventResult.AddPayload(ErrorText::GetErrorText(retCode));
     }

@@ -42,10 +42,10 @@ EventResult EnableHandler::Handle(const Event &event)
     auto retCode = InstanceEnabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO("[PluginManager] " << name << " enabled successful.");
+        INFO(logger, name << " enabled successful.");
         eventResult.SetOpt(Opt::RESPONSE_OK);
     } else {
-        WARN("[PluginManager] " << name << " enabled failed. because " << ErrorText::GetErrorText(retCode) << ".");
+        WARN(logger, name << " enabled failed. because " << ErrorText::GetErrorText(retCode) << ".");
         eventResult.SetOpt(Opt::RESPONSE_ERROR);
         eventResult.AddPayload(ErrorText::GetErrorText(retCode));
     }

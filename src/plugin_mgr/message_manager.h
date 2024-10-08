@@ -37,6 +37,7 @@ private:
     void HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvMessage,
     std::shared_ptr<SafeQueue<EventResult>> sendMessage);
 private:
+    log4cplus::Logger logger;
     int sock;
     int epfd;
     const int maxRequestNum = 20;

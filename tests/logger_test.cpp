@@ -9,31 +9,16 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef PLUGIN_MGR_LOGGER_H
-#define PLUGIN_MGR_LOGGER_H
-#include <memory>
-#include <log4cplus/log4cplus.h>
+#include <gtest/gtest.h>
+#include "logger.h"
 
-namespace oeaware {
-#define INFO(fmt) LOG4CPLUS_INFO(g_logger.Get(), fmt)
-#define DEBUG(fmt) LOG4CPLUS_DEBUG(g_logger.Get(), fmt)
-#define WARN(fmt) LOG4CPLUS_WARN(g_logger.Get(), fmt)
-#define ERROR(fmt) LOG4CPLUS_ERROR(g_logger.Get(), fmt)
-#define FATAL(fmt) LOG4CPLUS_FATAL(g_logger.Get(), fmt)
-
-class Logger {
-public:
-    Logger() noexcept;
-    void Init(const std::string &path, const int level);
-    log4cplus::Logger Get()
-    {
-        return logger;
-    }
-private:
-    log4cplus::Logger logger;
-    log4cplus::Initializer initalizer;
-};
+TEST(Serialize, Logger)
+{
+    oeaware::Logger::GetInstance().Init("./", 1);
+    oeaware::Logger::GetInstance().Register("test1");
+    auto logger = oeaware::Logger::GetInstance().Get("test1");
+    DEBUG(logger, "Debug world");
+    INFO(logger, "Hello world");
+    WARN(logger, "wrang world");
+    ERROR(logger, "Error world");
 }
-extern oeaware::Logger g_logger;
-
-#endif

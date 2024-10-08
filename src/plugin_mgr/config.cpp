@@ -106,7 +106,7 @@ bool Config::Load(const std::string &path)
             this->logPath = node["log_path"].as<std::string>();
         }
         if (!node["log_level"].IsNull()) {
-            this->logLevel =  logLevels[node["log_level"].as<int>()];
+            this->logLevel = node["log_level"].as<int>();
         }
         if (!node["plugin_list"].IsNull()) {
             SetPluginList(node);

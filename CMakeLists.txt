@@ -6,3 +6,5 @@ add_subdirectory(src/common)
 add_subdirectory(src/plugin_mgr)
 add_subdirectory(src/client)
 
+add_subdirectory(src/plugin)
+

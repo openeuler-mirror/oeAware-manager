@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.11)
+project(smc_tune)
+
+if (WITH_DEBUG)
+    add_compile_options(-g)
+else()
+    add_compile_options(-O2)
+endif()
+add_compile_options(-fPIC -Wall -Wextra -Wno-unused-value -Wno-missing-field-initializers)
+
+include_directories(../include)
+
+include_directories(/usr/include/libnl3)
+
+add_subdirectory(kprobe)
+
+add_library(smc_tune SHARED
+    smc_tune.cpp
+    smc_ueid.cpp
+    smc_netlink.cpp
+)
+
+target_link_libraries(smc_tune nl-genl-3 nl-3)
+set_target_properties(smc_tune PROPERTIES
+                      LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

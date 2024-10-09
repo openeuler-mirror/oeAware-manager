@@ -206,7 +206,7 @@ ErrorCode PluginManager::instance_enabled(const std::string &name) {
     std::shared_ptr<InstanceRunMessage> msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, instance);
     /* Send message to InstanceRunHandler. */
     instance_run_handler->recv_queue_push(msg);
-    /* Wait for InstanceRunHandler to finsh this task. */
+    /* Wait for InstanceRunHandler to finish this task. */
     msg->wait();
     if (msg->get_instance()->get_enabled()) {
         return ErrorCode::OK; 

@@ -11,10 +11,14 @@ set(PLUGIN_OBJECT_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/output/plugin/ko)
 file(MAKE_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
 file(MAKE_DIRECTORY ${PLUGIN_OBJECT_OUTPUT_DIRECTORY})
 
-add_subdirectory(collect/pmu)
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    add_subdirectory(collect/pmu)
+endif()
 add_subdirectory(collect/thread_collector)
 
-add_subdirectory(scenario/analysis)
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    add_subdirectory(scenario/analysis)
+endif()
 add_subdirectory(scenario/thread_aware)
 
 add_subdirectory(tune/smc_tune)

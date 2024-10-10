@@ -3,12 +3,14 @@
 set -x
 script_dir=$(cd $(dirname $0);pwd)
 cd $script_dir/
-
+os_arch=$(uname -m)
 libkperf_version="v1.2.1"
 
 mkdir build
 cd build
-if [ -f $(pwd)/libkperf/output/lib/libkperf.so ]; then
+if [[ "$os_arch" == "x86_64" ]]; then
+    echo "[NOTE] x86_64 not support libkperf, so skip build libkperf!!!"
+elif [ -f $(pwd)/libkperf/output/lib/libkperf.so ]; then
     echo "[NOTE] libkperf already exists, so skip build libkperf!!!"
 else
     git clone --recurse-submodules https://gitee.com/openeuler/libkperf.git

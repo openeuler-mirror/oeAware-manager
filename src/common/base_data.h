@@ -9,17 +9,19 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
-#include <string>
-#include <vector>
+#ifndef COMMON_BASE_DATA_H
+#define COMMON_BASE_DATA_H
+#include <functional>
+#include "serialize.h"
 
 namespace oeaware {
-bool Download(const std::string &url, const std::string &path);
-bool CheckPermission(const std::string &path, int mode);
-bool FileExist(const std::string &fileName);
-bool EndWith(const std::string &s, const std::string &ending);
-std::string Concat(const std::vector<std::string>& strings, const std::string &split);
+class BaseData {
+public:
+    virtual void Serialize(oeaware::OutStream &out) const = 0;
+    virtual void Deserialize(oeaware::InStream &in) = 0;
+    static void RegisterClass(const std::string &key, std::function<std::shared_ptr<BaseData>()> constructor);
+    static std::shared_ptr<BaseData> Create(const std::string &type);
+};
 }
 
-#endif // !COMMON_UTILS_H
+#endif

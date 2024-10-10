@@ -10,7 +10,8 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <gtest/gtest.h>
-#include "serialize.h"
+#include "data_register.h"
+#include "utils.h"
 
 struct TestData {
     int a;
@@ -85,7 +86,7 @@ struct Stack {
     __u64 count;
 } __attribute__((aligned(64)));
 
-struct SpeData {
+struct SpeData : public oeaware::BaseData {
     struct Stack* stack;            // call stack
     const char *evt;                // event name
     int64_t ts;                     // time stamp
@@ -96,6 +97,87 @@ struct SpeData {
     const char *comm;               // process command
     uint64_t period;                // sample period
     struct PmuDataExt *ext;         // extension. Only available for Spe.
+    static oeaware::Register<SpeData> reg;
+    struct SpeBuilder {
+        struct Stack* stack;            // call stack
+        const char *evt;                // event name
+        int64_t ts;                     // time stamp
+        pid_t pid;                      // process id
+        int tid;                        // thread id
+        unsigned cpu;                   // cpu id
+        struct CpuTopology *cpuTopo;    // cpu topology
+        const char *comm;               // process command
+        uint64_t period;                // sample period
+        struct PmuDataExt *ext;         // extension. Only available for Spe.
+        SpeBuilder& WithStack(struct Stack* newStack)
+        {
+            this->stack = newStack;
+            return *this;
+        }
+        SpeBuilder& WithEvt(const char *newEvt)
+        {
+            this->evt = newEvt;
+            return *this;
+        }
+        SpeBuilder& WithTs(int64_t newTs)
+        {
+            this->ts = newTs;
+            return *this;
+        }
+        SpeBuilder& WithPid(pid_t newPid)
+        {
+            this->pid = newPid;
+            return *this;
+        }
+        SpeBuilder& WithTid(int newTid)
+        {
+            this->tid = newTid;
+            return *this;
+        }
+        SpeBuilder& WithCpu(unsigned newCpu)
+        {
+            this->cpu = newCpu;
+            return *this;
+        }
+        SpeBuilder& WithCpuTopo(struct CpuTopology *newCpuTopo)
+        {
+            this->cpuTopo = newCpuTopo;
+            return *this;
+        }
+        SpeBuilder& WithComm(const char *newComm)
+        {
+            this->comm = newComm;
+            return *this;
+        }
+        SpeBuilder& WithPeriod(uint64_t newPeriod)
+        {
+            this->period = newPeriod;
+            return *this;
+        }
+        SpeBuilder& WithExt(struct PmuDataExt *newExt)
+        {
+            this->ext = newExt;
+            return *this;
+        }
+        SpeData Build()
+        {
+            return SpeData(*this);
+        }
+    };
+    explicit SpeData(SpeBuilder &speBuilder)
+    {
+        this->stack = speBuilder.stack;
+        this->evt = speBuilder.evt;
+        this->ts = speBuilder.ts;
+        this->pid = speBuilder.pid;
+        this->tid = speBuilder.tid;
+        this->cpu = speBuilder.cpu;
+        this->cpuTopo = speBuilder.cpuTopo;
+        this->comm = speBuilder.comm;
+        this->period = speBuilder.period;
+        this->ext = speBuilder.ext;
+    }
+    SpeData() { }
     void Serialize(oeaware::OutStream &out) const
     {
         auto p = stack;
@@ -105,13 +187,13 @@ struct SpeData {
             p = p->next;
         }
         out << count;
-        
         auto tmp = stack;
         while (count--) {
             out << *tmp->symbol;
             out << tmp->count;
             tmp = tmp->next;
         }
+        
         out << evt << ts << pid << tid << cpu << *cpuTopo << comm << period << *ext;
     }
     void Deserialize(oeaware::InStream &in)
@@ -135,6 +217,7 @@ struct SpeData {
     }
 };
 
+oeaware::Register<SpeData> SpeData::reg("Pmu::SpeData");
 
 TEST(Serialize, base_type)
 {
@@ -239,20 +322,33 @@ SpeData CreateSpeData(int n)
     int tid = 11;
     unsigned cpuId = 1;
     uint64_t period = 0xff12;
-    SpeData data = {stack, "data1", ts, pid, tid, cpuId, cpu, "hello", period, ext};
+    SpeData data = SpeData::SpeBuilder()
+                    .WithStack(stack)
+                    .WithEvt("data1")
+                    .WithTs(ts)
+                    .WithPid(pid)
+                    .WithTid(tid)
+                    .WithCpu(cpuId)
+                    .WithCpuTopo(cpu)
+                    .WithComm("hello")
+                    .WithPeriod(period)
+                    .WithExt(ext)
+                    .Build();
     return data;
 }
 
 TEST(Serialize, SpeData)
 {
     int n = 10;
-    auto data = CreateSpeData(n);
+    SpeData data = CreateSpeData(n);
+    std::shared_ptr<oeaware::BaseData> dataPtr = std::make_shared<SpeData>(data);
     oeaware::OutStream out;
-    out << data;
+    out << dataPtr;
     oeaware::InStream in(out.Str());
-    SpeData data1;
+    auto data1 = std::dynamic_pointer_cast<SpeData>(oeaware::BaseData::Create("Pmu::SpeData"));
     in >> data1;
-    auto tmpStack = data1.stack;
+   
+    auto tmpStack = data1->stack;
     auto stack = data.stack;
     for (int i = 0; i < n; ++i) {
         EXPECT_EQ(tmpStack->count, stack->count);
@@ -268,17 +364,48 @@ TEST(Serialize, SpeData)
         tmpStack = tmpStack->next;
         stack = stack->next;
     }
-    EXPECT_EQ(0, strcmp(data1.evt, data.evt));
-    EXPECT_EQ(data1.ts, data.ts);
-    EXPECT_EQ(data1.pid, data.pid);
-    EXPECT_EQ(data1.tid, data.tid);
-    EXPECT_EQ(data1.cpu, data.cpu);
-    EXPECT_EQ(data1.cpuTopo->coreId, data.cpuTopo->coreId);
-    EXPECT_EQ(data1.cpuTopo->socketId, data.cpuTopo->socketId);
-    EXPECT_EQ(data1.cpuTopo->numaId, data.cpuTopo->numaId);
-    EXPECT_EQ(0, strcmp(data1.comm, data.comm));
-    EXPECT_EQ(data1.period, data.period);
-    EXPECT_EQ(data1.ext->pa, data.ext->pa);
-    EXPECT_EQ(data1.ext->va, data.ext->va);
-    EXPECT_EQ(data1.ext->event, data.ext->event);
+    EXPECT_EQ(0, strcmp(data1->evt, data.evt));
+    EXPECT_EQ(data1->ts, data.ts);
+    EXPECT_EQ(data1->pid, data.pid);
+    EXPECT_EQ(data1->tid, data.tid);
+    EXPECT_EQ(data1->cpu, data.cpu);
+    EXPECT_EQ(data1->cpuTopo->coreId, data.cpuTopo->coreId);
+    EXPECT_EQ(data1->cpuTopo->socketId, data.cpuTopo->socketId);
+    EXPECT_EQ(data1->cpuTopo->numaId, data.cpuTopo->numaId);
+    EXPECT_EQ(0, strcmp(data1->comm, data.comm));
+    EXPECT_EQ(data1->period, data.period);
+    EXPECT_EQ(data1->ext->pa, data.ext->pa);
+    EXPECT_EQ(data1->ext->va, data.ext->va);
+    EXPECT_EQ(data1->ext->event, data.ext->event);
+}
+
+struct DataA : public oeaware::BaseData {
+    int a;
+    int b;
+    static oeaware::Register<DataA> reg;
+    DataA() { }
+    DataA(int a, int b) : a(a), b(b) { }
+    void Serialize(oeaware::OutStream &out) const
+    {
+        out << a << b;
+    }
+    void Deserialize(oeaware::InStream &in)
+    {
+        in >> a >> b;
+    }
+};
+
+oeaware::Register<DataA> DataA::reg("test");
+
+TEST(Serialize, BaseData)
+{
+    std::shared_ptr<oeaware::BaseData> data = std::make_shared<DataA>(1, 2);
+    oeaware::OutStream out;
+    out << data;
+    oeaware::InStream in(out.Str());
+    auto newData = oeaware::BaseData::Create("test");
+    newData->Deserialize(in);
+    auto p = std::dynamic_pointer_cast<DataA>(newData);
+    EXPECT_EQ(p->a, 1);
+    EXPECT_EQ(p->b, 2);
 }

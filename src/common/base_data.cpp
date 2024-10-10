@@ -9,17 +9,27 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
-#include <string>
-#include <vector>
+#include "base_data.h"
+#include <unordered_map>
 
 namespace oeaware {
-bool Download(const std::string &url, const std::string &path);
-bool CheckPermission(const std::string &path, int mode);
-bool FileExist(const std::string &fileName);
-bool EndWith(const std::string &s, const std::string &ending);
-std::string Concat(const std::vector<std::string>& strings, const std::string &split);
+static std::unordered_map<std::string, std::function<std::shared_ptr<BaseData>()>>& GetRegistry()
+{
+    static std::unordered_map<std::string, std::function<std::shared_ptr<BaseData>()>> registry;
+    return registry;
 }
 
-#endif // !COMMON_UTILS_H
+void BaseData::RegisterClass(const std::string &key, std::function<std::shared_ptr<BaseData>()> constructor)
+{
+    GetRegistry()[key] = constructor;
+}
+
+std::shared_ptr<BaseData> BaseData::Create(const std::string &type)
+{
+    auto it = GetRegistry().find(type);
+    if (it != GetRegistry().end()) {
+        return it->second();
+    }
+    return nullptr;
+}
+}

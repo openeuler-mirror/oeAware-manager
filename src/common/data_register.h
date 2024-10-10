@@ -9,17 +9,22 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
-#include <string>
-#include <vector>
+#ifndef COMMON_DATA_REGISTER_H
+#define COMMON_DATA_REGISTER_H
+#include <functional>
+#include "base_data.h"
 
 namespace oeaware {
-bool Download(const std::string &url, const std::string &path);
-bool CheckPermission(const std::string &path, int mode);
-bool FileExist(const std::string &fileName);
-bool EndWith(const std::string &s, const std::string &ending);
-std::string Concat(const std::vector<std::string>& strings, const std::string &split);
+template <typename T>
+class Register {
+public:
+    Register(const std::string &type)
+    {
+        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
+            return std::make_shared<T>();
+        });
+    }
+};
 }
 
-#endif // !COMMON_UTILS_H
+#endif

@@ -14,13 +14,14 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
+#include <thread>
+#include <chrono>
 
 namespace oeaware {
 template<typename T>
 class SafeQueue {
 public:
-    SafeQueue() { }
-
+    SafeQueue(time_t timeout = 2000):timeout(timeout) { }
     void Push(T value)
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -42,6 +43,27 @@ public:
         value = queue.front();
         queue.pop_front();
     }
+    bool WaitTimeAndPop(T &value)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        auto start = std::chrono::steady_clock::now();
+        int intervalMs = 10;
+        while (true) {
+            if (!queue.empty()) {
+                value = std::move(queue.front());
+                return true;
+            } else {
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+                if (elapsed >= timeout) {
+                    return false;
+                }
+                // sleep 10 ms
+                std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
+            }
+        }
+        return false;
+    }
     bool Empty()
     {
         std::lock_guard<std::mutex> lock(mutex);
@@ -51,6 +73,7 @@ private:
     mutable std::mutex mutex;
     std::deque<T> queue;
     std::condition_variable cond;
+    time_t timeout; // Queue timeout interval, in milliseconds.
 };
 }
 

@@ -24,6 +24,14 @@ void BaseData::RegisterClass(const std::string &key, std::function<std::shared_p
     GetRegistry()[key] = constructor;
 }
 
+void BaseData::RegisterClass(const std::vector<std::string> &keys,
+    std::function<std::shared_ptr<BaseData>()> constructor)
+{
+    for (auto &key : keys) {
+        GetRegistry()[key] = constructor;
+    }
+}
+
 std::shared_ptr<BaseData> BaseData::Create(const std::string &type)
 {
     auto it = GetRegistry().find(type);

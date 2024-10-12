@@ -11,36 +11,70 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MESSAGE_MANAGER_H
 #define PLUGIN_MGR_MESSAGE_MANAGER_H
+#include <unordered_set>
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
 #include <unistd.h>
-#include "safe_queue.h"
 #include "message_protocol.h"
 #include "logger.h"
 #include "config.h"
 #include "event/event.h"
+#include "domain_socket.h"
 
 namespace oeaware {
+class Epoll {
+public:
+    void Init();
+    bool EventCtl(int op, int eventFd);
+    int EventWait(struct epoll_event *events, int maxEvents, int timeout);
+    void Close();
+private:
+    int epfd;
+};
+
+class TcpMessageHandler {
+public:
+    void Init(EventQueue newRecvMessage, EventResultQueue newSendMessage, EventQueue newRecvData);
+    void AddConn(int conn, int type);
+    bool HandleMessage(int fd);
+    void Start();
+    void Close();
+    bool IsConn(int fd);
+private:
+    Message GetMessageFromDataEvent(const Event &event);
+private:
+    /* Use for sdk conn. */
+    mutable std::mutex connMutex;
+    /* Event queue stores Events from the client and is consumed by PluginManager. */
+    EventQueue recvMessage;
+    /* Event queue stores Events from PluginManager and is consumed by TcpSocket. */
+    EventResultQueue sendMessage;
+    /* key:fd, value:type, the first bit of type indicates cmd, the second bit indicates sdk. */
+    std::unordered_map<int, int> conns;
+    EventQueue recvData;
+    log4cplus::Logger logger;
+};
+
 class TcpSocket {
 public:
-    TcpSocket() : sock(-1), epfd(-1) { }
-    ~TcpSocket()
-    {
-        close(sock);
-    }
-    bool Init();
-    void ServeAccept(std::shared_ptr<SafeQueue<Event>> recvMessage,
-        std::shared_ptr<SafeQueue<EventResult>> sendMessage);
+    bool Init(EventQueue recvMessage, EventResultQueue sendMessage, EventQueue newRecvData);
+    void ServeAccept();
+    void Close();
 private:
-    int DomainListen(const char *name);
-    void HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvMessage,
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage);
+    void HandleMessage(int fd);
+    void InitGroups();
+    bool StartListen();
+    void SaveConnection();
+    void HandleEvents(struct epoll_event *events, int num);
 private:
     log4cplus::Logger logger;
-    int sock;
-    int epfd;
+    std::unique_ptr<DomainSocket> domainSocket;
+    std::unique_ptr<Epoll> epoll;
+    TcpMessageHandler tcpMessageHandler;
+    std::vector<gid_t> groups;
     const int maxRequestNum = 20;
+    const int maxNameLength = 108;
 };
 
 class MessageManager {
@@ -52,18 +86,16 @@ public:
         static MessageManager messageManager;
         return messageManager;
     }
-    void Init(std::shared_ptr<SafeQueue<Event>> recvMessage, std::shared_ptr<SafeQueue<EventResult>> sendMessage);
+    bool Init(EventQueue recvMessage, EventResultQueue sendMessage, EventQueue recvData);
     void Run();
+    void Exit();
 private:
     MessageManager() { }
     void Handler();
     void TcpStart();
 private:
-    /* Event queue stores Events from the client and is consumed by PluginManager. */
-    std::shared_ptr<SafeQueue<Event>> recvMessage;
-    /* Event queue stores Events from PluginManager and is consumed by TcpSocket. */
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage;
     TcpSocket tcpSocket;
+    log4cplus::Logger logger;
 };
 }
 

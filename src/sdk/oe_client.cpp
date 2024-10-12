@@ -81,8 +81,8 @@ void OeClient::Impl::HandleRecv()
 }
 int OeClient::Impl::Init()
 {
-    domainSocket = std::make_shared<DomainSocket>(DEFAULT_RUN_PATH + "/sdk.sock");
-    domainSocket->SetRemotePath(DEFAULT_RUN_PATH + "/oeAware-sock");
+    domainSocket = std::make_shared<DomainSocket>(DEFAULT_SDK_CONN_PATH);
+    domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
     int sock = domainSocket->Socket();
     if (sock < 0) {
         return -1;

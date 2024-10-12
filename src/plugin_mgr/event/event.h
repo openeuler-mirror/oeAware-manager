@@ -14,6 +14,7 @@
 #include <vector>
 #include "error_code.h"
 #include "message_protocol.h"
+#include "safe_queue.h"
 
 namespace oeaware {
 enum class EventType {
@@ -90,6 +91,9 @@ private:
     Opt opt;
     std::vector<std::string> payload;
 };
+
+using EventQueue = std::shared_ptr<SafeQueue<Event>>;
+using EventResultQueue = std::shared_ptr<SafeQueue<EventResult>>;
 }
 
 #endif

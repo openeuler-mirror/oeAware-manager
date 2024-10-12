@@ -13,7 +13,8 @@
 #include "plugin_manager.h"
 #include "utils.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     oeaware::Logger::GetInstance().Register("Main");
     auto logger = oeaware::Logger::GetInstance().Get("Main");
     if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR ||
@@ -52,9 +53,13 @@ int main(int argc, char **argv) {
     INFO(logger, "log path: " << config->GetLogPath() << ", log level: " << config->GetLogLevel());
     auto recvMessage = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
     auto sendMessage = std::make_shared<oeaware::SafeQueue<oeaware::EventResult>>();
+    auto recvData = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
     INFO(logger, "Start message manager!");
     oeaware::MessageManager &messageManager = oeaware::MessageManager::GetInstance();
-    messageManager.Init(recvMessage, sendMessage);
+    if (!messageManager.Init(recvMessage, sendMessage, recvData)) {
+        ERROR(logger, "MessageManager init failed!");
+        exit(EXIT_FAILURE);
+    }
     messageManager.Run();
     INFO(logger, "Start plugin manager!");
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();

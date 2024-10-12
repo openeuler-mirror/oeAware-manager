@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "domain_socket.h"
-#include <sys/socket.h>
 #include <unistd.h>
 #include <securec.h>
 #include "default_path.h"
@@ -70,9 +69,9 @@ int DomainSocket::Connect()
     return 0;
 }
 
-int DomainSocket::Accept()
+int DomainSocket::Accept(struct sockaddr_un &addr, socklen_t &len)
 {
-    return accept(sock, nullptr, nullptr);
+    return accept(sock, reinterpret_cast<sockaddr*>(&addr), &len);
 }
 
 void DomainSocket::Close()

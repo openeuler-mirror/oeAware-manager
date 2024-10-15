@@ -9,17 +9,24 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
-#include <string>
-#include <vector>
+#ifndef SDK_OE_CLIENT_H
+#define SDK_OE_CLIENT_H
+#include "data_list.h"
 
 namespace oeaware {
-bool Download(const std::string &url, const std::string &path);
-bool CheckPermission(const std::string &path, int mode);
-bool FileExist(const std::string &fileName);
-bool EndWith(const std::string &s, const std::string &ending);
-std::string Concat(const std::vector<std::string>& strings, const std::string &split);
+class OeClient {
+public:
+    using Callback = std::function<int(const DataList &dataList)>;
+    OeClient();
+    int Init();
+    int Subscribe(const Topic &topic, Callback callback);
+    int Unsubscribe(const Topic &topic);
+    int Publish(const Topic &topic, const DataList &dataList);
+    void Close();
+private:
+    class Impl;
+    std::unique_ptr<Impl> impl;
+};
 }
 
-#endif // !COMMON_UTILS_H
+#endif

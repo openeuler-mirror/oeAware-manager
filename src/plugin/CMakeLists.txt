@@ -1,6 +1,7 @@
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common
     ${CMAKE_CURRENT_SOURCE_DIR}/collect/include
     ${CMAKE_CURRENT_SOURCE_DIR}/scenario/include
     ${CMAKE_CURRENT_SOURCE_DIR}/tune/include

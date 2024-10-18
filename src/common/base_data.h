@@ -20,6 +20,8 @@ public:
     virtual void Serialize(oeaware::OutStream &out) const = 0;
     virtual void Deserialize(oeaware::InStream &in) = 0;
     static void RegisterClass(const std::string &key, std::function<std::shared_ptr<BaseData>()> constructor);
+    static void RegisterClass(const std::vector<std::string> &keys,
+        std::function<std::shared_ptr<BaseData>()> constructor);
     static std::shared_ptr<BaseData> Create(const std::string &type);
 };
 }

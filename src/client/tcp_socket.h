@@ -26,11 +26,11 @@ public:
     bool RecvMsg(Message &res, MessageHeader &header);
     bool SendMsg(Message &msg, MessageHeader &header);
     int FileConnect(const char *name);
-    bool Init();
+    bool Init(const std::string &path);
 private:
     int sock;
     SocketStream stream;
-    const std::string sockPath = DEFAULT_RUN_PATH + "/oeAware-sock";
+    std::string sockPath;
 };
 }
 

@@ -34,8 +34,8 @@ void PrintHelp()
 void SignalHandler(int signum)
 {
     (void)signum;
-    auto &pluginManager = oeaware::PluginManager::GetInstance();
-    pluginManager.SendMsg(oeaware::Event(oeaware::Opt::SHUTDOWN, oeaware::EventType::INTERNAL));
+    oeaware::PluginManager::GetInstance().Exit();
+    oeaware::MessageManager::GetInstance().Exit();
 }
 
 std::shared_ptr<MemoryStore> Handler::memoryStore;
@@ -141,6 +141,7 @@ void PluginManager::Exit()
             INFO(logger, instance->GetName() << " instance disabled.");
         }
     }
+    this->recvMessage->Push(Event(Opt::SHUTDOWN));
 }
 
 int PluginManager::Run()
@@ -159,7 +160,6 @@ int PluginManager::Run()
             sendMessage->Push(eventResult);
         }
     }
-    Exit();
     return 0;
 }
 }

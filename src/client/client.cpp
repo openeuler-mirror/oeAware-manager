@@ -30,7 +30,7 @@ bool Client::Init(int argc, char *argv[])
         return false;
     }
     CmdGroupsInit();
-    return this->tcpSocket.Init();
+    return this->tcpSocket.Init(DEFAULT_SERVER_LISTEN_PATH);
 }
 
 void Client::RunCmd()

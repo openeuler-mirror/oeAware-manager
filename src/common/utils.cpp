@@ -10,9 +10,11 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "utils.h"
-#include <curl/curl.h>
+#include <algorithm>
 #include <fstream>
+#include <curl/curl.h>
 #include <sys/stat.h>
+#include <grp.h>
 
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;
@@ -82,6 +84,37 @@ bool CheckPermission(const std::string &path, int mode)
         return false;
     }
     return true;
+}
+
+bool CheckFileUsers(const std::string &path, const std::vector<uid_t> &users)
+{
+    struct stat st;
+    if (lstat(path.c_str(), &st) < 0) {
+        return false;
+    }
+    return std::any_of(users.begin(), users.end(), [&](uid_t uid) {
+        return uid == st.st_uid;
+    });
+}
+
+bool CheckFileGroups(const std::string &path, const std::vector<gid_t> &groups)
+{
+    struct stat st;
+    if (lstat(path.c_str(), &st) < 0) {
+        return false;
+    }
+    return std::any_of(groups.begin(), groups.end(), [&](gid_t gid) {
+        return gid == st.st_gid;
+    });
+}
+
+int GetGidByGroupName(const std::string &groupName)
+{
+    struct group *grp = getgrnam(groupName.c_str());
+    if (grp == nullptr) {
+        return -1;
+    }
+    return grp->gr_gid;
 }
 
 bool FileExist(const std::string &fileName)

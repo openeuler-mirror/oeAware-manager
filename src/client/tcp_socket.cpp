@@ -54,8 +54,9 @@ int TcpSocket::FileConnect(const char *name)
     return 0;
 }
 
-bool TcpSocket::Init()
+bool TcpSocket::Init(const std::string &path)
 {
+    sockPath = path;
     if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         printf("socket create error!\n");
         return -1;

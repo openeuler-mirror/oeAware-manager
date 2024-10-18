@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <sys/un.h>
+#include <sys/socket.h>
 
 namespace oeaware {
 class DomainSocket {
@@ -24,11 +25,19 @@ public:
     int Bind();
     int Listen();
     int Connect();
-    int Accept();
+    int Accept(struct sockaddr_un &addr, socklen_t &len);
     void Close();
     void SetRemotePath(const std::string &path)
     {
         remotePath = path;
+    }
+    int GetSock()
+    {
+        return sock;
+    }
+    std::string GetLocalPath()
+    {
+        return localPath;
     }
 private:
     int CreateSockAddrUn(struct sockaddr_un &un, const std::string &sunPath);

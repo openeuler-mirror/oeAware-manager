@@ -13,72 +13,116 @@
 #include <thread>
 #include <securec.h>
 #include "default_path.h"
+#include "utils.h"
 
 namespace oeaware {
-int TcpSocket::DomainListen(const char *name)
+static const int CMD_CONN = 1;
+static const int SDK_CONN = 2;
+void Epoll::Close()
 {
-    int len;
-    struct sockaddr_un un;
-    unlink(name);
-    memset_s(&un, sizeof(un), 0, sizeof(un));
-    un.sun_family = AF_UNIX;
-    int maxNameLength = 100;
-    auto ret = strcpy_s(un.sun_path, maxNameLength, name);
-    if (ret != EOK) {
-        ERROR(logger, "sock path too long!");
-        return -1;
-    }
-    len = offsetof(struct sockaddr_un, sun_path)  + strlen(name);
-    if (bind(sock, reinterpret_cast<struct sockaddr*>(&un), len) < 0) {
-        ERROR(logger, "bind error!");
-        return -1;
-    }
-    if (chmod(name, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
-        ERROR(logger, name << " chmod error!");
-    }
-    if (listen(sock, maxRequestNum) < 0) {
-        ERROR(logger, "listen error!");
-        return -1;
-    }
-    INFO(logger, "listen : " << name);
-    return 0;
+    close(epfd);
+    epfd = 0;
+}
+void Epoll::Init()
+{
+    epfd = epoll_create(1);
 }
 
-bool TcpSocket::Init()
+bool Epoll::EventCtl(int op, int eventFd)
 {
-    logger = Logger::GetInstance().Get("MessageManager");
-    CreateDir(DEFAULT_RUN_PATH);
-    std::string path = DEFAULT_RUN_PATH + "/oeAware-sock";
-    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = eventFd;
+    return epoll_ctl(epfd, op, eventFd, &ev) == 0;
+}
+
+int Epoll::EventWait(struct epoll_event *events, int maxEvents, int timeout)
+{
+    return epoll_wait(epfd, events, maxEvents, timeout);
+}
+
+void TcpSocket::InitGroups()
+{
+    std::vector<std::string> groupNames{"oeaware", "root"};
+    for (auto &groupName : groupNames) {
+        auto gid = GetGidByGroupName(groupName);
+        if (gid < 0) {
+            continue;
+        }
+         groups.emplace_back(gid);
+    }
+}
+
+bool TcpSocket::StartListen()
+{
+    std::string path = domainSocket->GetLocalPath();
+    if (domainSocket->Socket() < 0) {
         ERROR(logger, "socket error!");
         return false;
     }
-    if (DomainListen(path.c_str()) < 0) {
+    if (domainSocket->Bind() < 0) {
+        ERROR(logger, "bind error!");
         return false;
     }
-    epfd = epoll_create(1);
-    struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = sock;
-    int ret = epoll_ctl(epfd, EPOLL_CTL_ADD, sock, &ev);
-    if (ret < 0) {
+    if (chmod(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
+        ERROR(logger, path << " chmod error!");
         return false;
     }
+    if (domainSocket->Listen() < 0) {
+        ERROR(logger, "listen error!");
+        return false;
+    }
+    INFO(logger, "listen : " << path);
     return true;
 }
 
-static void SendMsg(Message &msg, std::shared_ptr<SafeQueue<Event>> recvMessage)
+bool TcpSocket::Init(EventQueue newRecvMessage, EventResultQueue newSendMessage, EventQueue newRecvData)
 {
-    Event Event;
-    Event.SetOpt(msg.GetOpt());
-    Event.SetType(EventType::EXTERNAL);
-    for (int i = 0; i < msg.PayloadSize(); ++i) {
-        Event.AddPayload(msg.Payload(i));
+    InitGroups();
+    logger = Logger::GetInstance().Get("MessageManager");
+    tcpMessageHandler.Init(newRecvMessage, newSendMessage, newRecvData);
+    CreateDir(DEFAULT_RUN_PATH);
+    std::string path = DEFAULT_SERVER_LISTEN_PATH;
+    domainSocket = std::make_unique<DomainSocket>(path);
+    if (!StartListen()) {
+        return false;
     }
-    recvMessage->Push(Event);
+    epoll = std::make_unique<Epoll>();
+    epoll->Init();
+    return epoll->EventCtl(EPOLL_CTL_ADD, domainSocket->GetSock());
 }
 
-static void RecvMsg(Message &msg, std::shared_ptr<SafeQueue<EventResult>> sendMessage)
+static bool GetMessageFromRemote(SocketStream &stream, Message &message)
+{
+    MessageProtocol msgProtocol;
+    if (!RecvMessage(stream, msgProtocol)) {
+        return false;
+    }
+    message = msgProtocol.GetMessage();
+    return true;
+}
+
+static bool SendMessageToRemote(SocketStream &stream, const Message &message)
+{
+    MessageHeader header(MessageType::RESPONSE);
+    MessageProtocol resProtocol;
+    resProtocol.SetMessage(message);
+    resProtocol.SetHeader(header);
+    return SendMessage(stream, resProtocol);
+}
+
+static void PushEvent(Message &msg, EventQueue recvMessage)
+{
+    Event event;
+    event.SetOpt(msg.GetOpt());
+    event.SetType(EventType::EXTERNAL);
+    for (int i = 0; i < msg.PayloadSize(); ++i) {
+        event.AddPayload(msg.Payload(i));
+    }
+    recvMessage->Push(event);
+}
+
+static void GetEventResult(Message &msg, EventResultQueue sendMessage)
 {
     EventResult res;
     sendMessage->WaitAndPop(res);
@@ -88,79 +132,192 @@ static void RecvMsg(Message &msg, std::shared_ptr<SafeQueue<EventResult>> sendMe
     }
 }
 
-void TcpSocket::HandleMessage(int curFd, std::shared_ptr<SafeQueue<Event>> recvMessage,
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
+void TcpMessageHandler::Init(EventQueue newRecvMessage, EventResultQueue newSendMessage, EventQueue newRecvData)
 {
-    SocketStream stream(curFd);
-    MessageProtocol msgProtocol;
-    Message clientMsg;
-    Message internalMsg;
-    if (!RecvMessage(stream, msgProtocol)) {
-        epoll_ctl(epfd, EPOLL_CTL_DEL, curFd, NULL);
-        close(curFd);
-        DEBUG(logger, "one client disconnected!");
+    recvMessage = newRecvMessage;
+    sendMessage = newSendMessage;
+    recvData = newRecvData;
+    logger = Logger::GetInstance().Get("MessageManager");
+}
+
+void TcpMessageHandler::AddConn(int conn, int type)
+{
+    if (conns.count(conn)) {
+        WARN(logger, "conn fd already exists!");
         return;
     }
-    clientMsg = msgProtocol.GetMessage();
-    SendMsg(clientMsg, recvMessage);
-    RecvMsg(internalMsg, sendMessage);
-    MessageHeader header(MessageType::RESPONSE);
-    MessageProtocol resProtocol;
-    resProtocol.SetMessage(internalMsg);
-    resProtocol.SetHeader(header);
-    if (!SendMessage(stream, resProtocol)) {
-        WARN(logger, "send msg to client failed!");
+    conns[conn] = type;
+    DEBUG(logger, "sdk connected, fd: " << conn << ".");
+}
+
+Message TcpMessageHandler::GetMessageFromDataEvent(const Event &event)
+{
+    Message msg;
+    std::string data = event.GetPayload(1);
+    msg.SetOpt(Opt::RESPONSE_OK);
+    msg.AddPayload(data);
+    return msg;
+}
+
+void TcpMessageHandler::Close()
+{
+    recvData->Push(Event(Opt::SHUTDOWN));
+    for (auto &conn : conns) {
+        close(conn.first);
     }
 }
 
-void TcpSocket::ServeAccept(std::shared_ptr<SafeQueue<Event>> recvMessage,
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
+bool TcpMessageHandler::IsConn(int fd)
 {
+    return conns.find(fd) != conns.end();
+}
+
+bool TcpMessageHandler::HandleMessage(int fd)
+{
+    SocketStream stream(fd);
+    Message clientMsg;
+    Message internalMsg;
+    if (!GetMessageFromRemote(stream, clientMsg)) {
+        return false;
+    }
+    PushEvent(clientMsg, recvMessage);
+    GetEventResult(internalMsg, sendMessage);
+    if (conns[fd] & SDK_CONN) {
+        std::lock_guard<std::mutex> lock(connMutex);
+        return SendMessageToRemote(stream, internalMsg);
+    } else {
+        return SendMessageToRemote(stream, internalMsg);
+    }
+}
+
+void TcpMessageHandler::Start()
+{
+    while (true) {
+        Event event;
+        recvData->WaitAndPop(event);
+        if (event.GetOpt() == Opt::SHUTDOWN) {
+            break;
+        }
+        if (event.GetOpt() != Opt::DATA) {
+            continue;
+        }
+        int fd = atoi(event.GetPayload(0).c_str());
+        if (!conns.count(fd)) {
+            continue;
+        }
+        SocketStream stream(fd);
+        std::lock_guard<std::mutex> lock(connMutex);
+        if (!SendMessageToRemote(stream, GetMessageFromDataEvent(event))) {
+             WARN(logger, "data send failed!");
+        }
+    }
+}
+
+void TcpSocket::SaveConnection()
+{
+    struct sockaddr_un un;
+    socklen_t len;
+    char name[maxNameLength];
+    len = sizeof(un);
+    int conn = domainSocket->Accept(un, len);
+    if (conn < 0) {
+        WARN(logger, "connected failed!");
+        return;
+    }
+    len -= offsetof(struct sockaddr_un, sun_path);
+    memcpy_s(name, maxNameLength, un.sun_path, len);
+    name[len] = 0;
+    bool isSdk = false;
+    if (strcmp(name, DEFAULT_SDK_CONN_PATH.c_str()) == 0) {
+        isSdk = true;
+    }
+    // check permission
+    if (isSdk && !CheckFileGroups(DEFAULT_SDK_CONN_PATH, groups)) {
+        WARN(logger, "sdk permission error");
+        return;
+    }
+    if (!epoll->EventCtl(EPOLL_CTL_ADD, conn)) {
+        WARN(logger, "epoll event add failed");
+        return;
+    }
+    int type = 0;
+    if (isSdk) {
+        type |= SDK_CONN;
+    } else {
+        type |= CMD_CONN;
+    }
+    tcpMessageHandler.AddConn(conn, type);
+    DEBUG(logger, "client connected!");
+}
+
+void TcpSocket::HandleMessage(int fd)
+{
+    if (!tcpMessageHandler.IsConn(fd)) {
+        return;
+    }
+    if (!tcpMessageHandler.HandleMessage(fd)) {
+        epoll->EventCtl(EPOLL_CTL_DEL, fd);
+        close(fd);
+        DEBUG(logger, "one client disconnected!");
+    }
+}
+
+void TcpSocket::HandleEvents(struct epoll_event *events, int num)
+{
+    for (int i = 0; i < num; ++i) {
+        int curFd = events[i].data.fd;
+        if (curFd == domainSocket->GetSock()) {
+            SaveConnection();
+        } else {
+            HandleMessage(curFd);
+        }
+    }
+}
+
+void TcpSocket::Close()
+{
+    epoll->Close();
+    tcpMessageHandler.Close();
+}
+
+void TcpSocket::ServeAccept()
+{
+    std::thread t([&]() {
+        tcpMessageHandler.Start();
+    });
+    t.detach();
     struct epoll_event evs[MAX_EVENT_SIZE];
     int sz = sizeof(evs) / sizeof(struct epoll_event);
     while (true) {
-        int num = epoll_wait(epfd, evs, sz, -1);
-        for (int i = 0; i < num; ++i) {
-            int curFd = evs[i].data.fd;
-            if (curFd == sock) {
-                int conn = accept(curFd, NULL, NULL);
-                struct epoll_event ev;
-                ev.events = EPOLLIN;
-                ev.data.fd = conn;
-                epoll_ctl(epfd, EPOLL_CTL_ADD, conn, &ev);
-                DEBUG(logger, "client connected!");
-            } else {
-                HandleMessage(curFd, recvMessage, sendMessage);
-            }
+        auto num = epoll->EventWait(evs, sz, -1);
+        if (num <= 0) {
+            break;
         }
+        HandleEvents(evs, num);
     }
 }
 
 void MessageManager::TcpStart()
 {
-    if (!tcpSocket.Init()) {
-        return;
-    }
-    tcpSocket.ServeAccept(recvMessage, sendMessage);
+    tcpSocket.ServeAccept();
 }
 
-void MessageManager::Handler()
+bool MessageManager::Init(EventQueue recvMessage, EventResultQueue sendMessage, EventQueue recvData)
 {
-    TcpStart();
-}
-
-void MessageManager::Init(std::shared_ptr<SafeQueue<Event>> recvMessage,
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
-{
-    this->recvMessage = recvMessage;
-    this->sendMessage = sendMessage;
     Logger::GetInstance().Register("MessageManager");
+    logger = Logger::GetInstance().Get("MessageManager");
+    return tcpSocket.Init(recvMessage, sendMessage, recvData);
+}
+
+void MessageManager::Exit()
+{
+    tcpSocket.Close();
 }
 
 void MessageManager::Run()
 {
     std::thread t([this]() {
-        this->Handler();
+        this->TcpStart();
     });
     t.detach();
 }

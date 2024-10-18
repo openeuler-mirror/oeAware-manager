@@ -129,10 +129,10 @@ void PmuCount::UpdateData(const oeaware::DataList &dataList)
     (void)dataList;
 }
 
-std::vector<std::string> PmuCount::GetSupportTopics()
-{
-    return supportTopics;
-}
+//std::vector<std::string> PmuCount::GetSupportTopics()
+//{
+//    return supportTopics;
+//}
 
 int PmuCount::Enable()
 {

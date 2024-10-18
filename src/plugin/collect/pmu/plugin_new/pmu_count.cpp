@@ -156,7 +156,7 @@ void PmuCount::Run()
         dataList.topic.instanceName = name;
         dataList.topic.topicName = it.topicName;
         std::shared_ptr<PmuCountData> data = std::make_shared<PmuCountData>();
-        topics[it.topicName]->Run(data->len, &data->pmuData, data->interval);
+        topics[it.topicName]->Run(data->pmuLen, &data->pmuData, data->interval);
         dataList.data.emplace_back(data);
         Publish(dataList);
     }

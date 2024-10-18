@@ -111,7 +111,7 @@ bool PmuCount::OpenTopic(const oeaware::Topic &topic)
     if (topics.find(topic.instanceName) == topics.end()) {
         return false;
     }
-    if (!topics[topic.instanceName].Open(topic.params)) {
+    if (!topics[topic.instanceName].Open()) {
         return false;
     }
     publishTopics.insert(topic);

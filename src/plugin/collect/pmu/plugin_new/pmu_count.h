@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_set>
 #include "pmu.h"
+#include "pcerrc.h"
 #include <chrono>
 
 class TopicProcessor {

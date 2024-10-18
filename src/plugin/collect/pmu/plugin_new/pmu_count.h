@@ -32,7 +32,7 @@ public:
     int OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override; //
     void UpdateData(const oeaware::DataList &dataList) override; // pmu not use
-    std::vector<std::string> GetSupportTopics() override; // vector ?
+    //std::vector<std::string> GetSupportTopics() override; // vector ?
     int Enable() override; // oeaware -e ins
     void Disable() override; // oeaware -d ins
     void Run() override;    // loop

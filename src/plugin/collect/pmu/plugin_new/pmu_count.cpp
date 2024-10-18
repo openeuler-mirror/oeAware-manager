@@ -30,7 +30,7 @@ protected:
         attr.evtList[0] = new char[topicName.size() + 1];
         std::strcpy(attr.evtList[0], topicName.c_str());
         attr.period = 1;
-        attr.numEvt = static_cast<int>(attr.evtList.size());
+        attr.numEvt = 1;
     }
 };
 
@@ -41,7 +41,7 @@ protected:
         attr.evtList[0] = new char[topicName.size() + 1];
         std::strcpy(attr.evtList[0], topicName.c_str());
         attr.period = 10;
-        attr.numEvt = static_cast<int>(attr.evtList.size());
+        attr.numEvt = 1;
     }
 };
 

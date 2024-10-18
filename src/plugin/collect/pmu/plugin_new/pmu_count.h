@@ -10,7 +10,7 @@
 
 class TopicProcessor {
 public:
-    virtual ~TopicProcessor() = default;
+    virtual ~TopicProcessor();
     bool Open();
     void Close();
     void Run(int &len, PmuData **data, uint64_t &interval);

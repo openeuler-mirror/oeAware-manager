@@ -27,7 +27,8 @@ protected:
     void SetPmuAttr() override
     {
         attr.evtList = new char *[1];
-        attr.evtList[0] = topicName.c_str();
+        attr.evtList[0] = new char[topicName.size() + 1];
+        std::strcpy(attr.evtList[0], topicName.c_str());
         attr.period = 1;
         attr.numEvt = static_cast<int>(attr.evtList.size());
     }
@@ -37,7 +38,8 @@ class NetEventProc : public TopicProcessor {
 protected:
     void SetPmuAttr() override {
         attr.evtList = new char *[1];
-        attr.evtList[0] = topicName.c_str();
+        attr.evtList[0] = new char[topicName.size() + 1];
+        std::strcpy(attr.evtList[0], topicName.c_str());
         attr.period = 10;
         attr.numEvt = static_cast<int>(attr.evtList.size());
     }
@@ -50,6 +52,10 @@ protected:
 //        attr.numEvt = static_cast<int>(attr.evtList.size());
 //    }
 //};
+
+TopicProcessor::~TopicProcessor()
+{
+}
 
 bool TopicProcessor::Open() // open 的时候要不要直接enable，这样是否能保证第一个周期也有数据
 {

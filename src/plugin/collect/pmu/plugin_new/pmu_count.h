@@ -29,7 +29,7 @@ class PmuCount :public oeaware::Interface
 public:
     PmuCount();
     ~PmuCount() noexcept(true) override = default;  // ?
-    bool OpenTopic(const oeaware::Topic &topic) override;
+    int OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override; //
     void UpdateData(const oeaware::DataList &dataList) override; // pmu not use
     std::vector<std::string> GetSupportTopics() override; // vector ?

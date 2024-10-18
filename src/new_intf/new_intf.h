@@ -29,7 +29,7 @@ public:
     int GetType() const { return type; }
     int GetPeriod() const { return period; }
 
-    virtual bool OpenTopic(const Topic &topic) = 0;
+    virtual int OpenTopic(const Topic &topic) = 0;
     virtual void CloseTopic(const Topic &topic) = 0;
     virtual void UpdateData(const DataList &dataList) = 0;
     virtual std::vector<std::string> GetSupportTopics() = 0;

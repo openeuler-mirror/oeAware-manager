@@ -106,16 +106,16 @@ PmuCount::PmuCount()
     }
 }
 
-bool PmuCount::OpenTopic(const oeaware::Topic &topic)
+int PmuCount::OpenTopic(const oeaware::Topic &topic)
 {
     if (topics.find(topic.instanceName) == topics.end()) {
-        return false;
+        return 1;
     }
     if (!topics[topic.instanceName]->Open()) {
-        return false;
+        return 1;
     }
     publishTopics.insert(topic);
-    return true;
+    return 0;
 }
 
 void PmuCount::CloseTopic(const oeaware::Topic &topic)
@@ -137,7 +137,7 @@ std::vector<std::string> PmuCount::GetSupportTopics()
 int PmuCount::Enable()
 {
     //(void)parma;
-    return true;
+    return 0;
 }
 
 void PmuCount::Disable()

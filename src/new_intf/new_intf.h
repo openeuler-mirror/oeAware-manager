@@ -12,6 +12,7 @@
 #ifndef COMMON_INTERFACE_H
 #define COMMON_INTERFACE_H
 #include "manager_callback.h"
+#include "base_data.h"
 namespace oeaware {
 class Interface {
 public:

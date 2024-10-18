@@ -6,6 +6,8 @@
 #include <vector>
 #include <unordered_set>
 #include "pmu.h"
+#include <chrono>
+
 class TopicProcessor {
 public:
     virtual ~TopicProcessor() = default;

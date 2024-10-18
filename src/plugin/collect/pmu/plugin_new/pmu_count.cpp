@@ -24,8 +24,10 @@ static void InitPmuAttr(struct PmuAttr &attr) {
 
 class BaseProc : public TopicProcessor {
 protected:
-    void SetPmuAttr() override {
-        attr.evtList = { topicName.c_str() };
+    void SetPmuAttr() override
+    {
+        attr.evtList = new char *[1];
+        attr.evtList[0] = topicName.c_str();
         attr.period = 1;
         attr.numEvt = static_cast<int>(attr.evtList.size());
     }
@@ -34,19 +36,20 @@ protected:
 class NetEventProc : public TopicProcessor {
 protected:
     void SetPmuAttr() override {
-        attr.evtList = { topicName.c_str() };
+        attr.evtList = new char *[1];
+        attr.evtList[0] = topicName.c_str();
         attr.period = 10;
         attr.numEvt = static_cast<int>(attr.evtList.size());
     }
 };
 
-class UncoreProc : public TopicProcessor {
-protected:
-    void SetPmuAttr() override {
-        attr.evtList = { topicName.c_str() };
-        attr.numEvt = static_cast<int>(attr.evtList.size());
-    }
-};
+//class UncoreProc : public TopicProcessor {
+//protected:
+//    void SetPmuAttr() override {
+//        attr.evtList = { topicName.c_str() };
+//        attr.numEvt = static_cast<int>(attr.evtList.size());
+//    }
+//};
 
 bool TopicProcessor::Open() // open 的时候要不要直接enable，这样是否能保证第一个周期也有数据
 {

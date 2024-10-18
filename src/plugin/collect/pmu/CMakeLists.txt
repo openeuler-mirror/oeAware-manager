@@ -44,3 +44,25 @@ target_link_directories(pmu PUBLIC
 target_link_libraries(pmu kperf boundscheck)
 set_target_properties(pmu PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
+
+# new intf
+
+set(pmu_new_src
+    plugin_new/pmu_count.cpp
+)
+
+add_library(pmu_new SHARED ${pmu_new_src})
+
+include_directories(pmu_new PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugin_new
+    ${LIB_KPERF_INCPATH}
+)
+
+target_link_directories(pmu_new PUBLIC
+    ${LIB_KPERF_LIBPATH}
+)
+
+target_link_libraries(pmu_new kperf boundscheck)
+set_target_properties(pmu_new PROPERTIES
+                      LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

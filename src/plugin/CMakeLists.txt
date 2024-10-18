@@ -4,6 +4,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/collect/include
     ${CMAKE_CURRENT_SOURCE_DIR}/scenario/include
     ${CMAKE_CURRENT_SOURCE_DIR}/tune/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../new_intf
 )
 
 set(PLUGIN_OUTPUT_LIBRARY_DIRECTORY ${CMAKE_BINARY_DIR}/output/plugin/lib)

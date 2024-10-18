@@ -157,7 +157,7 @@ void PmuCount::Run()
         dataList.topic.topicName = it.topicName;
         std::shared_ptr<PmuCountData> data = std::make_shared<PmuCountData>();
         topics[it.topicName]->Run(data->pmuLen, &data->pmuData, data->interval);
-        dataList.data.emplace_back(data);
+        dataList.data.emplace_back(data.get());
         Publish(dataList);
     }
 }

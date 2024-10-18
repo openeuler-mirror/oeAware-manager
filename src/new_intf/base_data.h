@@ -16,7 +16,7 @@ struct BaseData {  // 实际采样时间封装在这里
     static std::shared_ptr<BaseData> Create(const std::string &type);
 };
 
-struct Topic {
+struct Topic { // 要不要补充hash函数适配 unordered_map、set
     std::string instanceName;
     std::string topicName;
     std::string params;

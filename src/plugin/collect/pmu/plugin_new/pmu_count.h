@@ -9,6 +9,18 @@
 #include "pcerrc.h"
 #include <chrono>
 
+namespace std {
+    template <>
+    struct hash<Topic> {
+        size_t operator()(const Topic& topic) const {
+            size_t h1 = std::hash<std::string>{}(topic.instanceName);
+            size_t h2 = std::hash<std::string>{}(topic.topicName);
+            size_t h3 = std::hash<std::string>{}(topic.params);
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
+    };
+}
+
 class TopicProcessor {
 public:
     virtual ~TopicProcessor();
@@ -40,7 +52,7 @@ public:
 private:
     std::unordered_map<std::string, std::unique_ptr<TopicProcessor>> topics {};
     std::vector<std::string> supportTopics{}; // 放在基类？
-    std::unordered_set<oeaware::Topic> publishTopics;
+    std::unordered_set<oeaware::Topic> publishTopics; // 想用unordered_set 需要写hash函数
 };
 
 #endif

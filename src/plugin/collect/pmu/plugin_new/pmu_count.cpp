@@ -162,7 +162,7 @@ void PmuCount::Run()
     }
 }
 
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
+extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<PmuCount>());
 }

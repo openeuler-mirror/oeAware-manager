@@ -33,7 +33,7 @@ public:
     virtual void CloseTopic(const Topic &topic) = 0;
     virtual void UpdateData(const DataList &dataList) = 0;
     virtual std::vector<std::string> GetSupportTopics() = 0;
-    virtual bool Enable(const std::string &parma) = 0;
+    virtual int Enable() = 0;
     virtual void Disable() = 0;
     virtual void Run() = 0;
 

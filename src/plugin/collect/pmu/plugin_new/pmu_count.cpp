@@ -73,7 +73,6 @@ bool TopicProcessor::Open() // open 的时候要不要直接enable，这样是�
 
 void TopicProcessor::Close()
 {
-    interval = 0;
     PmuClose(pmuId);
     pmuId = -1;
 }
@@ -81,7 +80,7 @@ void TopicProcessor::Close()
 void TopicProcessor::Run(int &len, PmuData **data, uint64_t &interval)
 {
     PmuDisable(pmuId);
-    len = RmuRead(pmuId, data);
+    len = PmuRead(pmuId, data);
     PmuEnable(pmuId);
     auto now = std::chrono::high_resolution_clock::now();
     interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();

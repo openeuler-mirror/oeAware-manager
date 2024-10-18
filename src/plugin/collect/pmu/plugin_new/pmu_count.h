@@ -11,8 +11,8 @@
 
 namespace std {
     template <>
-    struct hash<Topic> {
-        size_t operator()(const Topic& topic) const {
+    struct hash<oeaware::Topic> {
+        size_t operator()(const oeaware::Topic& topic) const {
             size_t h1 = std::hash<std::string>{}(topic.instanceName);
             size_t h2 = std::hash<std::string>{}(topic.topicName);
             size_t h3 = std::hash<std::string>{}(topic.params);

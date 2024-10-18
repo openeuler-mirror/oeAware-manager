@@ -7,17 +7,6 @@
 #include <functional>
 #include "../common/serialize.h"
 
-namespace std { // 放在这里？
-    template <>
-    struct hash<oeaware::Topic> {
-        size_t operator()(const oeaware::Topic& topic) const {
-            size_t h1 = std::hash<std::string>{}(topic.instanceName);
-            size_t h2 = std::hash<std::string>{}(topic.topicName);
-            size_t h3 = std::hash<std::string>{}(topic.params);
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
-        }
-    };
-}
 
 namespace oeaware {
 struct BaseData {  // 实际采样时间封装在这里
@@ -83,5 +72,17 @@ struct DataList {
             params == other.params;
     }
 };
+}
+
+namespace std { // 放在这里？
+    template <>
+    struct hash<oeaware::Topic> {
+        size_t operator()(const oeaware::Topic& topic) const {
+            size_t h1 = std::hash<std::string>{}(topic.instanceName);
+            size_t h2 = std::hash<std::string>{}(topic.topicName);
+            size_t h3 = std::hash<std::string>{}(topic.params);
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
+    };
 }
 #endif //OEAWARE_BASE_DATA_H

@@ -25,7 +25,7 @@ struct PmuCountData : oeaware::BaseData {
     {}
     void Deserialize(oeaware::InStream &in)
     {}
-    static oeaware::Register<PmuCountData> pmuCountingReg;
+//    static oeaware::Register<PmuCountData> pmuCountingReg;
 };
 
 #endif // !THREAD_INFO_H

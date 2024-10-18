@@ -14,17 +14,17 @@
 #include <functional>
 #include "base_data.h"
 
-namespace oeaware {
-template <typename T>
-class Register {
-public:
-    Register(const std::string &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
-};
-}
+//namespace oeaware {
+//template <typename T>
+//class Register {
+//public:
+//    Register(const std::string &type)
+//    {
+//        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
+//            return std::make_shared<T>();
+//        });
+//    }
+//};
+//}
 
 #endif

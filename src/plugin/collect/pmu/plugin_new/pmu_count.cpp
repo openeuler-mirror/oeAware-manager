@@ -1,7 +1,7 @@
 #include "pmu_count.h"
 #include <iostream>
 #include "pmu_count_data.h"
-oeaware::Register<PmuCountData> PmuCountData::pmuCountingReg("pmu_count");
+//oeaware::Register<PmuCountData> PmuCountData::pmuCountingReg("pmu_count");
 static void InitPmuAttr(struct PmuAttr &attr) {
     attr.evtList = nullptr;
     attr.numEvt = 0;

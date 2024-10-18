@@ -101,7 +101,7 @@ PmuCount::PmuCount()
     topics["net:netif_rx"] = std::make_unique<NetEventProc>();
 //    topic["rx_outer"] = std::make_unique<UncoreProc>();
 
-    for (auto &i : topic) {
+    for (auto &i : topics) {
         supportTopics.emplace_back(i.first);
     }
 }

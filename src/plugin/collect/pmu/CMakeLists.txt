@@ -15,7 +15,6 @@ add_compile_options(-O2 -fPIC -Wall -Wextra)
 message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")
 message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
 
-
 set(pmu_src
     plugin/plugin_counting.c
     plugin/plugin_sampling.c
@@ -27,6 +26,7 @@ set(pmu_src
     plugin/plugin_napi_gro_receive_entry.c
     plugin/plugin_skb_copy_datagram_iovec.c
     plugin/plugin.c
+    pmu_count_collector.cpp
 )
 
 add_library(pmu SHARED ${pmu_src})

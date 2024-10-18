@@ -22,6 +22,12 @@ add_executable(safe_queue_test
     safe_queue_test.cpp
 )
 
+add_executable(pmu_count_test
+    ${SRC_DIR}/common/base_data.cpp
+    pmu_count_test.cpp
+)
+
 target_link_libraries(serialize_test PRIVATE curl GTest::gtest_main)
 target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus)
 target_link_libraries(safe_queue_test PRIVATE GTest::gtest_main)
+target_link_libraries(pmu_count_test PRIVATE GTest::gtest_main)

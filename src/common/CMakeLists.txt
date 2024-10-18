@@ -18,4 +18,13 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} log4cplus)
 target_link_libraries(${PROJECT_NAME} yaml-cpp)
 target_link_libraries(${PROJECT_NAME} boost_serialization)
-target_link_libraries(${PROJECT_NAME} curl)
+target_link_libraries(${PROJECT_NAME} curl boundscheck)
+
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/base_data.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/data_list.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/data_register.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/interface.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/serialize.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/manager_callback.h"
+DESTINATION "${CMAKE_BINARY_DIR}/include")

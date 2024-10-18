@@ -13,19 +13,24 @@
 #define PLUGIN_MGR_MEMORY_STORE_H
 #include <unordered_map>
 #include "logger.h"
-#include "dep_handler.h"
+#include "plugin.h"
 
 namespace oeaware {
 /* OeAware memory storage, which is used to store plugins and instances in the memory. */
 class MemoryStore {
 public:
+    ~MemoryStore()
+    {
+        instances.clear();
+        plugins.clear();
+    }
     void AddPlugin(const std::string &name, std::shared_ptr<Plugin> plugin)
     {
         this->plugins.insert(std::make_pair(name, plugin));
     }
     void AddInstance(std::shared_ptr<Instance> instance)
     {
-        depHandler.AddInstance(instance);
+        instances.insert(std::make_pair(instance->name, instance));
     }
     std::shared_ptr<Plugin> GetPlugin(const std::string &name) const
     {
@@ -33,7 +38,7 @@ public:
     }
     std::shared_ptr<Instance> GetInstance(const std::string &name) const
     {
-        return depHandler.GetInstance(name);
+        return instances.at(name);
     }
     void DeletePlugin(const std::string &name)
     {
@@ -41,7 +46,7 @@ public:
     }
     void DeleteInstance(const std::string &name)
     {
-        depHandler.DeleteInstance(name);
+        instances.erase(name);
     }
     bool IsPluginExist(const std::string &name) const
     {
@@ -49,7 +54,7 @@ public:
     }
     bool IsInstanceExist(const std::string &name)
     {
-        return depHandler.IsInstanceExist(name);
+        return instances.count(name);
     }
     const std::vector<std::shared_ptr<Plugin>> GetAllPlugins()
     {
@@ -59,35 +64,8 @@ public:
         }
         return res;
     }
-    void QueryNodeDependency(const std::string &name, std::vector<std::vector<std::string>> &query)
-    {
-        return depHandler.QueryNodeDependency(name, query);
-    }
-    void QueryAllDependencies(std::vector<std::vector<std::string>> &query)
-    {
-        return depHandler.QueryAllDependencies(query);
-    }
-    bool HaveDep(const std::string &name)
-    {
-        return depHandler.HaveDep(name);
-    }
-    const DepHandler& GetDepHandler() const
-    {
-        return depHandler;
-    }
-    void AddEdge(const std::string &from, const std::string &to)
-    {
-        depHandler.AddEdge(from, to);
-    }
-    void DeleteEdge(const std::string &from, const std::string &to)
-    {
-        depHandler.DeleteEdge(from, to);
-    }
 private:
-    /* instance are stored in the form of DAG.
-     * DepHandler stores instances and manages dependencies.
-     */
-    DepHandler depHandler;
+    std::unordered_map<std::string, std::shared_ptr<Instance>> instances;
     std::unordered_map<std::string, std::shared_ptr<Plugin>> plugins;
 };
 }

@@ -9,19 +9,25 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef PLUGIN_MGR_EVENT_QUERY_DEP_HANDLER_H
-#define PLUGIN_MGR_EVENT_QUERY_DEP_HANDLER_H
-#include "event_handler.h"
+#include "unsubscribe_handler.h"
 
 namespace oeaware {
-class QueryDepHandler : public Handler {
-public:
-    EventResult Handle(const Event &event) override;
-private:
-    ErrorCode QueryDependency(const std::string &name, std::string &res);
-    ErrorCode QueryAllDependencies(std::string &res);
-    std::string GenerateDot(const std::vector<std::vector<std::string>> &query);
-};
+EventResult UnsubscribeHandler::Handle(const Event &event)
+{
+    Topic topic;
+    InStream in(event.payload[0]);
+    topic.Deserialize(in);
+    EventResult eventResult;
+    Result result;
+    if (managerCallback->Unsubscribe(event.payload[1], topic, 0) == 0) {
+        INFO(logger, topic.topicName << " topic unsubscribed.");
+        result.code = 0;
+    } else {
+        WARN(logger, topic.topicName << " topic unsubscribed failed.");
+        result.code = -1;
+    }
+    eventResult.opt = Opt::UNSUBSCRIBE;
+    eventResult.payload.emplace_back(encode(result));
+    return eventResult;
 }
-
-#endif
+}

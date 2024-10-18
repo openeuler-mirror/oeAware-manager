@@ -18,10 +18,10 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
         return ErrorCode::ENABLE_INSTANCE_NOT_LOAD;
     }
     std::shared_ptr<Instance> instance = memoryStore->GetInstance(name);
-    if (!instance->GetState()) {
+    if (!instance->state) {
         return ErrorCode::ENABLE_INSTANCE_UNAVAILABLE;
     }
-    if (instance->GetEnabled()) {
+    if (instance->enabled) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
     std::shared_ptr<InstanceRunMessage> msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, instance);
@@ -29,7 +29,7 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
     instanceRunHandler->RecvQueuePush(msg);
     /* Wait for InstanceRunHandler to finsh this task. */
     msg->Wait();
-    if (msg->GetInstance()->GetEnabled()) {
+    if (msg->GetInstance()->enabled) {
         return ErrorCode::OK;
     } else {
         return ErrorCode::ENABLE_INSTANCE_ENV;
@@ -38,16 +38,16 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
 
 EventResult EnableHandler::Handle(const Event &event)
 {
-    std::string name = event.GetPayload(0);
+    std::string name = event.payload[0];
     auto retCode = InstanceEnabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
         INFO(logger, name << " enabled successful.");
-        eventResult.SetOpt(Opt::RESPONSE_OK);
+        eventResult.opt = Opt::RESPONSE_OK;
     } else {
         WARN(logger, name << " enabled failed. because " << ErrorText::GetErrorText(retCode) << ".");
-        eventResult.SetOpt(Opt::RESPONSE_ERROR);
-        eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+        eventResult.opt = Opt::RESPONSE_ERROR;
+        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }
     return eventResult;
 }

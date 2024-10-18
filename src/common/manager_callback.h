@@ -9,26 +9,24 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_DATA_REGISTER_H
-#define COMMON_DATA_REGISTER_H
-#include "base_data.h"
+#ifndef PLUGIN_MGR_MANAGER_CALLBACK_H
+#define PLUGIN_MGR_MANAGER_CALLBACK_H
+#include <set>
+#include <unordered_map>
+#include "data_list.h"
+#include "event.h"
 
 namespace oeaware {
-template <typename T>
-class Register {
+class ManagerCallback {
 public:
-    explicit Register(const std::string &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
-    explicit Register(const std::vector<std::string> &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
+    int Subscribe(const std::string &name, const Topic &topic, int type);
+    int Unsubscribe(const std::string &name, const Topic &topic, int type);
+    void Publish(const DataList &dataList);
+    void Init(EventQueue newRecvData);
+private:
+    std::unordered_map<std::string, std::set<std::pair<std::string, int>>> subscriber;
+    std::mutex mutex;
+    EventQueue recvData;
 };
 }
 

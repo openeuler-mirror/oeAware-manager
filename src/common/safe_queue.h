@@ -21,7 +21,7 @@ namespace oeaware {
 template<typename T>
 class SafeQueue {
 public:
-    SafeQueue(time_t timeout = 2000):timeout(timeout) { }
+    explicit SafeQueue(std::chrono::seconds timeout = std::chrono::seconds(2)):timeout(timeout) { }
     void Push(T value)
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -31,7 +31,9 @@ public:
     bool TryPop(T &value)
     {
         std::unique_lock<std::mutex> lock(mutex);
-        if (queue.empty()) return false;
+        if (queue.empty()) {
+            return false;
+        }
         value = std::move(queue.front());
         queue.pop_front();
         return true;
@@ -46,21 +48,12 @@ public:
     bool WaitTimeAndPop(T &value)
     {
         std::unique_lock<std::mutex> lock(mutex);
-        auto start = std::chrono::steady_clock::now();
-        int intervalMs = 10;
-        while (true) {
-            if (!queue.empty()) {
-                value = std::move(queue.front());
-                return true;
-            } else {
-                auto now = std::chrono::steady_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-                if (elapsed >= timeout) {
-                    return false;
-                }
-                // sleep 10 ms
-                std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
-            }
+        if (cond.wait_for(lock, timeout, [this] {
+            return !queue.empty();
+        })) {
+            value = std::move(queue.front());
+            queue.pop_front();
+            return true;
         }
         return false;
     }
@@ -73,7 +66,7 @@ private:
     mutable std::mutex mutex;
     std::deque<T> queue;
     std::condition_variable cond;
-    time_t timeout; // Queue timeout interval, in milliseconds.
+    std::chrono::seconds timeout; // Queue timeout interval, in milliseconds.
 };
 }
 

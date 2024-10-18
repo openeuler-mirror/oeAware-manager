@@ -16,11 +16,12 @@
 #include "event/load_handler.h"
 #include "event/remove_handler.h"
 #include "event/query_handler.h"
-#include "event/query_dep_handler.h"
 #include "event/enable_handler.h"
 #include "event/disable_handler.h"
 #include "event/list_handler.h"
 #include "event/download_handler.h"
+#include "event/subscribe_handler.h"
+#include "event/unsubscribe_handler.h"
 
 namespace oeaware {
 void PrintHelp()
@@ -45,24 +46,26 @@ void PluginManager::InitEventHandler()
 {
     Handler::memoryStore = memoryStore;
     Handler::logger = logger;
-    eventHandler[Opt::LOAD] = std::make_shared<LoadHandler>();
+    eventHandler[Opt::LOAD] = std::make_shared<LoadHandler>(managerCallback);
     eventHandler[Opt::REMOVE] = std::make_shared<RemoveHandler>();
     eventHandler[Opt::QUERY_ALL] = std::make_shared<QueryHandler>();
     eventHandler[Opt::QUERY] = eventHandler[Opt::QUERY_ALL];
-    eventHandler[Opt::QUERY_ALL_DEPS] = std::make_shared<QueryDepHandler>();
-    eventHandler[Opt::QUERY_DEP] = eventHandler[Opt::QUERY_ALL_DEPS];
     eventHandler[Opt::ENABLED] = std::make_shared<EnableHandler>(instanceRunHandler);
     eventHandler[Opt::DISABLED] = std::make_shared<DisableHandler>(instanceRunHandler);
     eventHandler[Opt::LIST] = std::make_shared<ListHandler>(config);
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
+    eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback);
+    eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback);
 }
 
-void PluginManager::Init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Event>> recvMessage,
-    std::shared_ptr<SafeQueue<EventResult>> sendMessage)
+void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,
+    EventQueue recvData)
 {
     this->config = config;
     this->recvMessage = recvMessage;
     this->sendMessage = sendMessage;
+    managerCallback = std::make_shared<ManagerCallback>();
+    managerCallback->Init(recvData);
     memoryStore = std::make_shared<MemoryStore>();
     instanceRunHandler = std::make_shared<InstanceRunHandler>(memoryStore);
     Logger::GetInstance().Register("PluginManager");
@@ -74,7 +77,7 @@ void PluginManager::EnablePlugin(const std::string &pluginName)
 {
     std::shared_ptr<Plugin> plugin = memoryStore->GetPlugin(pluginName);
     for (size_t j = 0; j < plugin->GetInstanceLen(); ++j) {
-        std::string name = plugin->GetInstance(j)->GetName();
+        std::string name = plugin->GetInstance(j)->name;
         SendMsg(Event(Opt::ENABLED, EventType::INTERNAL, {name}));
     }
 }
@@ -127,6 +130,7 @@ void PluginManager::PreLoad()
 
 void PluginManager::Exit()
 {
+    this->recvMessage->Push(Event(Opt::SHUTDOWN));
     auto allPlugins = memoryStore->GetAllPlugins();
     auto msg = std::make_shared<InstanceRunMessage>(RunType::SHUTDOWN, nullptr);
     SendMsgToInstancRunHandler(msg);
@@ -134,32 +138,30 @@ void PluginManager::Exit()
     for (auto plugin : allPlugins) {
         for (size_t i = 0; i < plugin->GetInstanceLen(); ++i) {
             auto instance = plugin->GetInstance(i);
-            if (!instance->GetEnabled()) {
+            if (!instance->enabled) {
                 continue;
             }
-            instance->GetInterface()->disable();
-            INFO(logger, instance->GetName() << " instance disabled.");
+            instance->interface->Disable();
+            INFO(logger, instance->name << " instance disabled.");
         }
     }
-    this->recvMessage->Push(Event(Opt::SHUTDOWN));
 }
 
-int PluginManager::Run()
+void PluginManager::Run()
 {
     instanceRunHandler->Run();
     PreLoad();
     while (true) {
-        Event msg;
-        this->recvMessage->WaitAndPop(msg);
-        if (msg.GetOpt() == Opt::SHUTDOWN) {
+        Event event;
+        this->recvMessage->WaitAndPop(event);
+        if (event.opt == Opt::SHUTDOWN) {
             break;
         }
-        auto handler = eventHandler[msg.GetOpt()];
-        auto eventResult = handler->Handle(msg);
-        if (msg.GetType() == EventType::EXTERNAL) {
+        auto handler = eventHandler[event.opt];
+        auto eventResult = handler->Handle(event);
+        if (event.type == EventType::EXTERNAL) {
             sendMessage->Push(eventResult);
         }
     }
-    return 0;
 }
 }

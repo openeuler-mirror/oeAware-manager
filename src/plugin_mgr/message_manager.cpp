@@ -111,13 +111,16 @@ static bool SendMessageToRemote(SocketStream &stream, const Message &message)
     return SendMessage(stream, resProtocol);
 }
 
-static void PushEvent(Message &msg, EventQueue recvMessage)
+static void PushEvent(Message &msg, EventQueue recvMessage, const std::vector<std::string> &extras)
 {
     Event event;
-    event.SetOpt(msg.GetOpt());
-    event.SetType(EventType::EXTERNAL);
-    for (int i = 0; i < msg.PayloadSize(); ++i) {
-        event.AddPayload(msg.Payload(i));
+    event.opt = msg.opt;
+    event.type = EventType::EXTERNAL;
+    for (auto &payload : msg.payload) {
+        event.payload.emplace_back(payload);
+    }
+    for (auto &extra : extras) {
+        event.payload.emplace_back(extra);
     }
     recvMessage->Push(event);
 }
@@ -126,9 +129,9 @@ static void GetEventResult(Message &msg, EventResultQueue sendMessage)
 {
     EventResult res;
     sendMessage->WaitAndPop(res);
-    msg.SetOpt(res.GetOpt());
-    for (int i = 0; i < res.GetPayloadLen(); ++i) {
-        msg.AddPayload(res.GetPayload(i));
+    msg.opt = res.opt;
+    for (auto &payload : res.payload) {
+        msg.payload.emplace_back(payload);
     }
 }
 
@@ -142,7 +145,7 @@ void TcpMessageHandler::Init(EventQueue newRecvMessage, EventResultQueue newSend
 
 void TcpMessageHandler::AddConn(int conn, int type)
 {
-    if (conns.count(conn)) {
+    if (conns.count(conn) && conns[conn] > 0) {
         WARN(logger, "conn fd already exists!");
         return;
     }
@@ -153,9 +156,9 @@ void TcpMessageHandler::AddConn(int conn, int type)
 Message TcpMessageHandler::GetMessageFromDataEvent(const Event &event)
 {
     Message msg;
-    std::string data = event.GetPayload(1);
-    msg.SetOpt(Opt::RESPONSE_OK);
-    msg.AddPayload(data);
+    std::string data = event.payload[1];
+    msg.opt = Opt::DATA;
+    msg.payload.emplace_back(data);
     return msg;
 }
 
@@ -169,7 +172,12 @@ void TcpMessageHandler::Close()
 
 bool TcpMessageHandler::IsConn(int fd)
 {
-    return conns.find(fd) != conns.end();
+    return conns[fd] > 0;
+}
+
+void TcpMessageHandler::CloseConn(int fd)
+{
+    conns[fd] = -1;
 }
 
 bool TcpMessageHandler::HandleMessage(int fd)
@@ -180,7 +188,12 @@ bool TcpMessageHandler::HandleMessage(int fd)
     if (!GetMessageFromRemote(stream, clientMsg)) {
         return false;
     }
-    PushEvent(clientMsg, recvMessage);
+    if (conns[fd] & SDK_CONN) {
+        DEBUG(logger, "sdk message come!");
+        PushEvent(clientMsg, recvMessage, {std::to_string(fd)});
+    } else {
+        PushEvent(clientMsg, recvMessage, {});
+    }
     GetEventResult(internalMsg, sendMessage);
     if (conns[fd] & SDK_CONN) {
         std::lock_guard<std::mutex> lock(connMutex);
@@ -195,13 +208,13 @@ void TcpMessageHandler::Start()
     while (true) {
         Event event;
         recvData->WaitAndPop(event);
-        if (event.GetOpt() == Opt::SHUTDOWN) {
+        if (event.opt == Opt::SHUTDOWN) {
             break;
         }
-        if (event.GetOpt() != Opt::DATA) {
+        if (event.opt != Opt::DATA) {
             continue;
         }
-        int fd = atoi(event.GetPayload(0).c_str());
+        int fd = atoi(event.payload[0].c_str());
         if (!conns.count(fd)) {
             continue;
         }
@@ -256,6 +269,7 @@ void TcpSocket::HandleMessage(int fd)
         return;
     }
     if (!tcpMessageHandler.HandleMessage(fd)) {
+        tcpMessageHandler.CloseConn(fd);
         epoll->EventCtl(EPOLL_CTL_DEL, fd);
         close(fd);
         DEBUG(logger, "one client disconnected!");

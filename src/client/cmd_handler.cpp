@@ -26,24 +26,16 @@ void LoadHandler::Check(const std::string &type)
 void LoadHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    msg.AddPayload(arg);
-    msg.SetOpt(Opt::LOAD);
+    msg.payload.emplace_back(arg);
+    msg.opt = Opt::LOAD;
 }
 
 void LoadHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_OK) {
+    if (msg.opt == Opt::RESPONSE_OK) {
         std::cout << "Plugin loaded successfully.";
-        if (msg.PayloadSize()) {
-            std::cout << "But plugin requires the following dependencies to run.\n";
-            for (int i = 0; i < msg.PayloadSize(); ++i) {
-                std::cout << msg.Payload(i) << '\n';
-            }
-        } else {
-            std::cout << '\n';
-        }
     } else {
-        std::cout << "Plugin loaded failed, because "<< msg.Payload(0) << ".\n";
+        std::cout << "Plugin loaded failed, because "<< msg.payload[0] << ".\n";
     }
 }
 
@@ -51,10 +43,10 @@ void QueryHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (arg.empty()) {
-        msg.SetOpt(Opt::QUERY_ALL);
+        msg.opt = Opt::QUERY_ALL;
     } else {
-        msg.AddPayload(arg);
-        msg.SetOpt(Opt::QUERY);
+        msg.payload.emplace_back(arg);
+        msg.opt = Opt::QUERY;
     }
 }
 
@@ -69,15 +61,14 @@ void QueryHandler::PrintFormat()
 
 void QueryHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
-        std::cout << "Plugin query failed, because " << msg.Payload(0).c_str() <<".\n";
+    if (msg.opt == Opt::RESPONSE_ERROR) {
+        std::cout << "Plugin query failed, because " << msg.payload[0] <<".\n";
         return;
     }
-    int len = msg.PayloadSize();
     std::cout << "Show plugins and instances status.\n";
     std::cout << "------------------------------------------------------------\n";
-    for (int i = 0; i < len; ++i) {
-        std::cout << msg.Payload(i).c_str();
+    for (auto &info : msg.payload) {
+        std::cout << info;
     }
     std::cout << "------------------------------------------------------------\n";
     PrintFormat();
@@ -86,16 +77,16 @@ void QueryHandler::ResHandler(Message &msg)
 void RemoveHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    msg.AddPayload(arg);
-    msg.SetOpt(Opt::REMOVE);
+    msg.payload.emplace_back(arg);
+    msg.opt = Opt::REMOVE;
 }
 
 void RemoveHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_OK) {
+    if (msg.opt == Opt::RESPONSE_OK) {
         std::cout << "Plugin remove successfully.\n";
     } else {
-        std::cout << "Plugin remove failed, because " << msg.Payload(0) << ".\n";
+        std::cout << "Plugin remove failed, because " << msg.payload[0] << ".\n";
     }
 }
 
@@ -117,20 +108,20 @@ void QueryTopHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (arg.empty()) {
-        msg.SetOpt(Opt::QUERY_ALL_DEPS);
+        msg.opt = Opt::QUERY_ALL_DEPS;
     } else {
-        msg.AddPayload(arg);
-        msg.SetOpt(Opt::QUERY_DEP);
+        msg.payload.emplace_back(arg);
+        msg.opt = Opt::QUERY_DEP;
     }
 }
 
 void QueryTopHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
-        std::cout << "Query instance dependencies failed, because "<< msg.Payload(0) << ".\n";
+    if (msg.opt == Opt::RESPONSE_ERROR) {
+        std::cout << "Query instance dependencies failed, because "<< msg.payload[0] << ".\n";
         return;
     }
-    std::string text = msg.Payload(0);
+    std::string text = msg.payload[0];
     write_to_file("dep.dot", text);
     GeneratePngFromDot("dep.dot", "dep.png");
     std::cout << "Generate dependencies graph dep.png.\n";
@@ -139,50 +130,50 @@ void QueryTopHandler::ResHandler(Message &msg)
 void EnabledHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    msg.AddPayload(arg);
-    msg.SetOpt(Opt::ENABLED);
+    msg.payload.emplace_back(arg);
+    msg.opt = Opt::ENABLED;
 }
 
 void EnabledHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_OK) {
+    if (msg.opt == Opt::RESPONSE_OK) {
         std::cout << "Instance enabled successfully.\n";
     } else {
-        std::cout << "Instance enabled failed, because "<< msg.Payload(0) << ".\n";
+        std::cout << "Instance enabled failed, because "<< msg.payload[0] << ".\n";
     }
 }
 
 void DisabledHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    msg.AddPayload(arg);
-    msg.SetOpt(Opt::DISABLED);
+    msg.payload.emplace_back(arg);
+    msg.opt = Opt::DISABLED;
 }
 
 void DisabledHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_OK) {
+    if (msg.opt == Opt::RESPONSE_OK) {
         std::cout << "Instance disabled successfully.\n";
     } else {
-        std::cout << "Instance disabled failed, because "<< msg.Payload(0) << ".\n";
+        std::cout << "Instance disabled failed, because "<< msg.payload[0] << ".\n";
     }
 }
 
 void ListHandler::Handler(Message &msg)
 {
-    msg.SetOpt(Opt::LIST);
+    msg.opt = Opt::LIST;
 }
 
 void ListHandler::ResHandler(Message &msg)
 {
-    if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
-        std::cerr << "Query list failed, because "<< msg.Payload(0) << ".\n";
+    if (msg.opt == Opt::RESPONSE_ERROR) {
+        std::cerr << "Query list failed, because "<< msg.payload[0] << ".\n";
         return;
     }
     std::cout << "Plugin list as follows.\n";
     std::cout << "------------------------------------------------------------\n";
-    for (int i = 0; i < msg.PayloadSize(); ++i) {
-        std::cout << msg.Payload(i);
+    for (auto &info : msg.payload) {
+        std::cout << info;
     }
     std::cout << "------------------------------------------------------------\n";
 }
@@ -190,19 +181,19 @@ void ListHandler::ResHandler(Message &msg)
 void InstallHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    msg.SetOpt(Opt::DOWNLOAD);
-    msg.AddPayload(arg);
+    msg.opt = Opt::DOWNLOAD;
+    msg.payload.emplace_back(arg);
 }
 
 void InstallHandler::ResHandler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
-    if (msg.GetOpt() == Opt::RESPONSE_ERROR) {
-        std::cout << "Download failed, because " << msg.Payload(0) <<": " << arg.c_str() << '\n';
+    if (msg.opt == Opt::RESPONSE_ERROR) {
+        std::cout << "Download failed, because " << msg.payload[0] <<": " << arg.c_str() << '\n';
         return;
     }
     std::string path = arg;
-    std::string url = msg.Payload(0);
+    std::string url = msg.payload[0];
     if (!Download(url, path)) {
         std::cout << "Download failed, please check url or your network.\n";
         return;

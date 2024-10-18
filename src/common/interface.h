@@ -11,51 +11,72 @@
  ******************************************************************************/
 #ifndef COMMON_INTERFACE_H
 #define COMMON_INTERFACE_H
+#include "data_list.h"
 #include "manager_callback.h"
-#include "base_data.h"
+
 namespace oeaware {
 class Interface {
 public:
     Interface() = default;
     virtual ~Interface() = default;
-    void SetCallback(std::shared_ptr<ManagerCallback> callback)
-    {
-        this->managerCallback = std::move(callback);
-    }
-
-    std::string GetName() { return name; }
-    std::string GetDescription() { return description; }
-    int GetPriority() const { return priority; }
-    int GetType() const { return type; }
-    int GetPeriod() const { return period; }
-
-    virtual int OpenTopic(const Topic &topic) = 0;
-    virtual void CloseTopic(const Topic &topic) = 0;
-    virtual void UpdateData(const DataList &dataList) = 0;
-    //virtual std::vector<std::string> GetSupportTopics() = 0;
-    virtual int Enable() = 0;
-    virtual void Disable() = 0;
-    virtual void Run() = 0;
-
-protected:
-    std::string name;
-    std::string version;
-    std::string description;
-    int priority{};
-    int type{};
-    int period{};
     int Subscribe(const Topic &topic)
     {
-        return managerCallback->Subscribe(topic);
+        return managerCallback->Subscribe(name, topic, 1);
     }
-    void Unsubscribe(const Topic &topic)
+    int Unsubscribe(const Topic &topic)
     {
-        return managerCallback->Unsubscribe(topic);
+        return managerCallback->Unsubscribe(name, topic, 1);
     }
     void Publish(const DataList &dataList)
     {
         return managerCallback->Publish(dataList);
     }
+    void SetManagerCallback(std::shared_ptr<ManagerCallback> newManagerCallback)
+    {
+        this->managerCallback = newManagerCallback;
+    }
+    std::string GetName() const
+    {
+        return name;
+    }
+    std::string GetVersion() const
+    {
+        return version;
+    }
+    std::string GetDescription() const
+    {
+        return description;
+    }
+    int GetType() const
+    {
+        return type;
+    }
+    int GetPriority() const
+    {
+        return priority;
+    }
+    int GetPeriod() const
+    {
+        return period;
+    }
+    std::vector<Topic> GetSupportTopics() const
+    {
+        return supportTopics;
+    }
+    virtual int OpenTopic(const Topic &topic) = 0;
+    virtual void CloseTopic(const Topic &topic) = 0;
+    virtual void UpdateData(const DataList &dataList) = 0;
+    virtual int Enable() = 0;
+    virtual void Disable() = 0;
+    virtual void Run() = 0;
+protected:
+    std::string name;
+    std::string version;
+    std::string description;
+    std::vector<Topic> supportTopics;
+    int priority;
+    int type;
+    int period;
 private:
     std::shared_ptr<ManagerCallback> managerCallback;
 };

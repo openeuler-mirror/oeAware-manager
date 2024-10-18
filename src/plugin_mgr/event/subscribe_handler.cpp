@@ -9,27 +9,25 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_DATA_REGISTER_H
-#define COMMON_DATA_REGISTER_H
-#include "base_data.h"
+#include "subscribe_handler.h"
 
 namespace oeaware {
-template <typename T>
-class Register {
-public:
-    explicit Register(const std::string &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
-    explicit Register(const std::vector<std::string> &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
-};
-}
 
-#endif
+EventResult SubscribeHandler::Handle(const Event &event)
+{
+    Topic topic;
+    InStream in(event.payload[0]);
+    topic.Deserialize(in);
+    EventResult eventResult;
+    Result result;
+    if (managerCallback->Subscribe(event.payload[1], topic, 0) == 0) {
+        result.code = 0;
+    } else {
+        WARN(logger, "subscribe failed!");
+        result.code = -1;
+    }
+    eventResult.opt = Opt::SUBSCRIBE;
+    eventResult.payload.emplace_back(encode(result));
+    return eventResult;
+}
+}

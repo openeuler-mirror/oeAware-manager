@@ -64,7 +64,8 @@ class ScheduleInstance {
 public:
     bool operator < (const ScheduleInstance &rhs) const
     {
-        return time > rhs.time || (time == rhs.time && instance->GetPriority() > rhs.instance->GetPriority());
+        return time > rhs.time || (time == rhs.time &&
+            instance->interface->GetPriority() > rhs.instance->interface->GetPriority());
     }
     std::shared_ptr<Instance> instance;
     uint64_t time;
@@ -73,7 +74,7 @@ public:
 /* A handler to schedule instances. */
 class InstanceRunHandler {
 public:
-    using InstanceRun = void (*)(const struct Param*);
+    using InstanceRun = void (*)();
     explicit InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore) : memoryStore(memoryStore), time(0),
         cycle(defaultCycleSize) { }
     void Init();
@@ -102,9 +103,6 @@ public:
     }
 private:
     void Start();
-    void RunInstance(std::vector<std::string> &deps, InstanceRun run);
-    void ChangeInstanceState(const std::string &name, std::vector<std::string> &deps,
-        std::vector<std::string> &after_deps);
     void EnableInstance(const std::string &name);
     void DisableInstance(const std::string &name, bool force);
 private:

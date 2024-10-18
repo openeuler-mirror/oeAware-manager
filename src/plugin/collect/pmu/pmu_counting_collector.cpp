@@ -15,7 +15,7 @@
 #include <iostream>
 #include <securec.h>
 #include "pmu_counting_collector.h"
-#include "pmu_couting_data.h"
+#include "pmu_counting_data.h"
 
 PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
 {
@@ -130,7 +130,7 @@ void PmuCountingCollector::Run()
 {
     for (auto &iter : pmuId) {
         if (iter.second != -1) {
-            std::shared_ptr <CountingData> data = std::make_shared<CountingData>();
+            std::shared_ptr <PmuCountingData> data = std::make_shared<PmuCountingData>();
             PmuDisable(iter.second);
             data->len = PmuRead(iter.second, &(data->pmuData));
             PmuEnable(iter.second);
@@ -142,11 +142,6 @@ void PmuCountingCollector::Run()
             Publish(dataList);
         }
     }
-}
-
-std::vector<oeaware::Topic> PmuCountingCollector::GetSupportTopics()
-{
-    return supportTopics;
 }
 
 void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)

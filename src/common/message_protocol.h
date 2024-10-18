@@ -50,34 +50,9 @@ enum class MessageType {
     RESPONSE,
 };
 
-class Message {
-public:
+struct Message {
     Message() { }
     Message(const Opt &opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) { }
-    int PayloadSize() const
-    {
-        return this->payload.size();
-    }
-    std::string Payload(int id) const
-    {
-        return this->payload[id];
-    }
-    void AddPayload(std::string &context)
-    {
-        this->payload.emplace_back(context);
-    }
-    void AddPayload(std::string &&context)
-    {
-        this->payload.emplace_back(context);
-    }
-    void SetOpt(oeaware::Opt newOpt)
-    {
-        this->opt = newOpt;
-    }
-    oeaware::Opt GetOpt() const
-    {
-        return this->opt;
-    }
     void Serialize(oeaware::OutStream &out) const
     {
         int op = static_cast<int>(opt);
@@ -89,7 +64,6 @@ public:
         in >> op >> payload;
         opt = static_cast<oeaware::Opt>(op);
     }
-private:
     Opt opt;
     std::vector<std::string> payload;
 };

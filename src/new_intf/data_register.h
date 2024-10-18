@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -9,23 +9,22 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef THREAD_INFO_H
-#define THREAD_INFO_H
-#include <string>
+#ifndef COMMON_DATA_REGISTER_H
+#define COMMON_DATA_REGISTER_H
+#include <functional>
 #include "base_data.h"
-#include "pmu.h"
-#include "data_register.h"
 
-struct PmuCountData : oeaware::BaseData {
-    PmuCountData() = default;
-    uint64_t interval = 0; // ms
-    PmuData *pmuData = nullptr;
-    int pmuLen;
-    void Serialize(oeaware::OutStream &out) const
-    {}
-    void Deserialize(oeaware::InStream &in)
-    {}
-    static oeaware::Register<CountingData> pmuCountingReg;
+namespace oeaware {
+template <typename T>
+class Register {
+public:
+    Register(const std::string &type)
+    {
+        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
+            return std::make_shared<T>();
+        });
+    }
 };
+}
 
-#endif // !THREAD_INFO_H
+#endif

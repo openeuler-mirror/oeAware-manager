@@ -24,6 +24,7 @@ struct Instance {
     bool state = true;
     bool enabled;
     std::shared_ptr<Interface> interface;
+    std::unordered_map<std::string, Topic> supportTopics;
     const static std::string pluginEnabled;
     const static std::string pluginDisabled;
     const static std::string pluginStateOn;

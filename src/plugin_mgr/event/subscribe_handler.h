@@ -20,6 +20,8 @@ public:
     explicit SubscribeHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
     EventResult Handle(const Event &event) override;
 private:
+    Result Subscribe(const std::string &name, const Topic &topic);
+private:
     std::shared_ptr<ManagerCallback> managerCallback;
 };
 }

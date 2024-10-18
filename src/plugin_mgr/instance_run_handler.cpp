@@ -60,6 +60,19 @@ bool InstanceRunHandler::HandleMessage()
     return true;
 }
 
+void InstanceRunHandler::UpdateData()
+{
+    for (auto &data : managerCallback->publishData) {
+        auto topic = data.topic;
+        auto type = topic.GetType();
+        for (auto &instanceName : managerCallback->topicInstance[type]) {
+            auto instance = memoryStore->GetInstance(instanceName);
+            instance->interface->UpdateData(data);
+        }
+    }
+    managerCallback->publishData.clear();
+}
+
 void InstanceRunHandler::Schedule()
 {
     while (!scheduleQueue.empty()) {
@@ -73,6 +86,7 @@ void InstanceRunHandler::Schedule()
             continue;
         }
         instance->interface->Run();
+        UpdateData();
         schedule_instance.time += instance->interface->GetPeriod();
         scheduleQueue.push(schedule_instance);
     }

@@ -27,6 +27,17 @@ struct Topic {
     {
         in >> instanceName >> topicName >> params;
     }
+    std::string GetDataType() const
+    {
+        if (topicName.empty()) {
+            return instanceName;
+        }
+        return Concat({instanceName, topicName}, "::");
+    }
+    std::string GetType() const
+    {
+        return Concat({instanceName, topicName, params}, "::");
+    }
 };
 
 struct Result {
@@ -52,7 +63,7 @@ struct DataList {
     void Deserialize(oeaware::InStream &in)
     {
         in >> topic;
-        auto type = Concat({topic.instanceName, topic.topicName}, "::");
+        auto type = topic.GetDataType();
         size_t len;
         in >> len;
         for (size_t i = 0; i < len; ++i) {

@@ -40,7 +40,7 @@ public:
 private:
     std::unordered_map<std::string, std::unique_ptr<TopicProcessor>> topics {};
     std::vector<std::string> supportTopics{}; // 放在基类？
-    std::unordered_set<oeaware::Topic> publishTopics;
+    std::unordered_set<oeaware::Topic> publishTopics{};
 };
 
 #endif

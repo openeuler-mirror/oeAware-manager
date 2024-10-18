@@ -96,9 +96,9 @@ PmuCount::PmuCount()
     period = 100; // 100ms
     priority = 0;
 
-    topic["cycles"] = std::make_unique<BaseProc>();
-    topic["cache-misses"] = std::make_unique<BaseProc>();
-    topic["net:netif_rx"] = std::make_unique<NetEventProc>();
+    topics["cycles"] = std::make_unique<BaseProc>();
+    topics["cache-misses"] = std::make_unique<BaseProc>();
+    topics["net:netif_rx"] = std::make_unique<NetEventProc>();
 //    topic["rx_outer"] = std::make_unique<UncoreProc>();
 
     for (auto &i : topic) {

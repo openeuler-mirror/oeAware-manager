@@ -134,7 +134,7 @@ std::vector<std::string> PmuCount::GetSupportTopics()
     return supportTopics;
 }
 
-bool PmuCount::Enable(const std::string &parma)
+int PmuCount::Enable()
 {
     (void)parma;
     return true;

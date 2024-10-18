@@ -30,6 +30,13 @@ struct Topic { // 要不要补充hash函数适配 unordered_map、set
     {
         in >> instanceName >> topicName >> params;
     }
+    // 定义 operator==
+    bool operator==(const Topic &other) const
+    {
+        return instanceName == other.instanceName &&
+            topicName == other.topicName &&
+            params == other.params;
+    }
 };
 
 struct Result {
@@ -63,13 +70,6 @@ struct DataList {
         //            in >> realData;
         //            data.emplace_back(realData);
         //        }
-    }
-    // 定义 operator==
-    bool operator==(const Topic &other) const
-    {
-        return instanceName == other.instanceName &&
-            topicName == other.topicName &&
-            params == other.params;
     }
 };
 }

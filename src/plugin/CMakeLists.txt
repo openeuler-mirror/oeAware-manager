@@ -16,7 +16,7 @@ file(MAKE_DIRECTORY ${PLUGIN_OBJECT_OUTPUT_DIRECTORY})
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     add_subdirectory(collect/pmu)
 endif()
-# add_subdirectory(collect/thread_collector)
+add_subdirectory(collect/system_collector)
 
 # if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 #     add_subdirectory(scenario/analysis)

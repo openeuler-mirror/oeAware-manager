@@ -24,7 +24,7 @@ public:
     int OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override;
     void UpdateData(const oeaware::DataList &dataList) override;
-    int Enable() override;
+    int Enable(const std::string &parma = "") override;
     void Disable() override;
     void Run() override;
 private:

@@ -111,7 +111,7 @@ void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuCountingCollector::Enable()
+int PmuCountingCollector::Enable(const std::string &parma)
 {
     return 0;
 }

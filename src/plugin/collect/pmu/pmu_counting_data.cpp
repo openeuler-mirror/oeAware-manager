@@ -1,7 +1,6 @@
-/*
- * Copyright (c) 2024-2024 Huawei Technologies Co., Ltd. All rights reserved.
- *
- * numafast is licensed under Mulan PSL v2.
+/******************************************************************************
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *          http://license.coscl.org.cn/MulanPSL2
@@ -9,7 +8,7 @@
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- */
+ ******************************************************************************/
 
 #include <securec.h>
 #include <iostream>
@@ -20,7 +19,7 @@ oeaware::Register<PmuCountingData> PmuCountingData::pmuCountingReg("pmu_counting
 
 void PmuCountingData::Serialize(oeaware::OutStream &out) const
 {
-    out << len;
+    out << interval << len;
     for (int i = 0; i < len; i++) {
         int count = 0;
         auto tmp = pmuData[i].stack;
@@ -48,7 +47,7 @@ void PmuCountingData::Serialize(oeaware::OutStream &out) const
 
 void PmuCountingData::Deserialize(oeaware::InStream &in)
 {
-    in >> len;
+    in >> interval >> len;
     pmuData = new struct PmuData[len];
     for (int i = 0; i < len; i++) {
         int count;

@@ -1,7 +1,6 @@
-/*
- * Copyright (c) 2024-2024 Huawei Technologies Co., Ltd. All rights reserved.
- *
- * numafast is licensed under Mulan PSL v2.
+/******************************************************************************
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *          http://license.coscl.org.cn/MulanPSL2
@@ -9,7 +8,7 @@
  * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
- */
+ ******************************************************************************/
 
 #include <algorithm>
 #include <iostream>
@@ -34,7 +33,7 @@ PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
     }
 }
 
-void PmuCountingCollector::InitPmuAttr(struct PmuAttr &attr)
+void PmuCountingCollector::InitCountingAttr(struct PmuAttr &attr)
 {
     attr.pidList = nullptr;
     attr.numPid = 0;
@@ -56,7 +55,7 @@ void PmuCountingCollector::InitPmuAttr(struct PmuAttr &attr)
 int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
 {
     struct PmuAttr attr;
-    InitPmuAttr(attr);
+    InitCountingAttr(attr);
 
     char *evtList[1];
     evtList[0] = new char[topic.topicName.length() + 1];
@@ -92,6 +91,7 @@ int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
                     return -1;
                 }
                 PmuEnable(pmuId[iter]);
+                timestamp = std::chrono::high_resolution_clock::now();
                 return 0;
             }
         }
@@ -134,6 +134,10 @@ void PmuCountingCollector::Run()
             PmuDisable(iter.second);
             data->len = PmuRead(iter.second, &(data->pmuData));
             PmuEnable(iter.second);
+
+            auto now = std::chrono::high_resolution_clock::now();
+            data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
+            timestamp = now;
 
             struct oeaware::DataList dataList;
             dataList.topic.instanceName = this->name;

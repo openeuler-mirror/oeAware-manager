@@ -37,6 +37,4 @@ private:
     int OpenUncore(const oeaware::Topic &topic);
 };
 
-extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface);
-
 #endif

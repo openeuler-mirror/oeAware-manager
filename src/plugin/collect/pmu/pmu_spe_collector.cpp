@@ -139,8 +139,3 @@ void PmuSpeCollector::Run()
         Publish(dataList);
     }
 }
-
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
-{
-    interface.emplace_back(std::make_shared<PmuSpeCollector>());
-}

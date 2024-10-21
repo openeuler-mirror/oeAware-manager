@@ -25,6 +25,7 @@ set(pmu_src
     pmu_uncore_data.cpp
     pmu_uncore_collector.cpp
     ../../../common/base_data.cpp
+    pmu_collector.cpp
 )
 
 add_library(pmu SHARED ${pmu_src})

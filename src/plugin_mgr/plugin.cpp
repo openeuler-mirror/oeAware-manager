@@ -17,10 +17,49 @@ const std::string Instance::pluginDisabled = "close";
 const std::string Instance::pluginStateOn = "available";
 const std::string Instance::pluginStateOff = "unavailable";
 
-int Plugin::Load(const std::string &dl_path)
+int Plugin::LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceList)
+{
+    void (*getInstance)(std::vector<std::shared_ptr<Interface>>) =
+        (void(*)(std::vector<std::shared_ptr<Interface>>))dlsym(handler, "GetInstance");
+    if (getInstance == nullptr) {
+        return -1;
+    }
+    getInstance(interfaceList);
+    return 0;
+}
+
+void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList,
+    std::shared_ptr<ManagerCallback> managerCallback)
+{
+    for (auto &interface : interfaceList) {
+        std::shared_ptr<Instance> instance = std::make_shared<Instance>();
+        std::string instanceName = interface->GetName();
+        interface->SetManagerCallback(managerCallback);
+        instance->interface = interface;
+        instance->name = instanceName;
+        instance->pluginName = GetName();
+        instance->enabled = false;
+        instances.emplace_back(instance);
+    }
+}
+
+bool Plugin::LoadInstance(std::shared_ptr<ManagerCallback> managerCallback)
+{
+    std::vector<std::shared_ptr<Interface>> interfaceList;
+    if (LoadDlInstance(interfaceList) < 0) {
+        return false;
+    }
+    SaveInstance(interfaceList, managerCallback);
+    return true;
+}
+
+int Plugin::Load(const std::string &dl_path, std::shared_ptr<ManagerCallback> managerCallback)
 {
     this->handler = dlopen(dl_path.c_str(), RTLD_LAZY);
     if (handler == nullptr) {
+        return -1;
+    }
+    if (!LoadInstance(managerCallback)) {
         return -1;
     }
     return 0;
@@ -31,27 +70,5 @@ std::string Instance::GetInfo() const
     std::string stateText = this->state ? pluginStateOn : pluginStateOff;
     std::string runText = this->enabled ? pluginEnabled : pluginDisabled;
     return name + "(" + stateText + ", " + runText + ")";
-}
-
-std::vector<std::string> Instance::GetDeps()
-{
-    std::vector<std::string> vec;
-    if (GetInterface()->get_dep == nullptr || GetInterface()->get_dep() == nullptr) {
-        return vec;
-    }
-    std::string deps = GetInterface()->get_dep();
-    std::string dep = "";
-    for (size_t i = 0; i < deps.length(); ++i) {
-        if (deps[i] != '-') {
-            dep += deps[i];
-        } else {
-            vec.emplace_back(dep);
-            dep = "";
-        }
-    }
-    if (!dep.empty()) {
-        vec.emplace_back(dep);
-    }
-    return vec;
 }
 }

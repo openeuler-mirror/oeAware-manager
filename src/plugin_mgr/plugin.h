@@ -18,64 +18,17 @@
 #include "interface.h"
 
 namespace oeaware {
-class Instance {
-public:
-    void SetName(const std::string &name)
-    {
-        this->name = name;
-    }
-    std::string GetName() const
-    {
-        return this->name;
-    }
-    int GetPriority() const
-    {
-        return interface->get_priority();
-    }
-    Interface* GetInterface() const
-    {
-        return this->interface;
-    }
-    void SetPluginName(const std::string &name)
-    {
-        this->pluginName = name;
-    }
-    std::string GetPluginName() const
-    {
-        return this->pluginName;
-    }
-    void SetState(bool newState)
-    {
-        this->state = newState;
-    }
-    bool GetState() const
-    {
-        return this->state;
-    }
-    void SetEnabled(bool newEnabled)
-    {
-        this->enabled = newEnabled;
-    }
-    bool GetEnabled() const
-    {
-        return this->enabled;
-    }
-    void SetInterface(Interface *newInterface)
-    {
-        this->interface = newInterface;
-    }
-    std::string GetInfo() const;
-    std::vector<std::string> GetDeps();
-private:
+struct Instance {
     std::string name;
     std::string pluginName;
-    bool state;
+    bool state = true;
     bool enabled;
-    Interface *interface;
+    std::shared_ptr<Interface> interface;
     const static std::string pluginEnabled;
     const static std::string pluginDisabled;
     const static std::string pluginStateOn;
     const static std::string pluginStateOff;
+    std::string GetInfo() const;
 };
 
 class Plugin {
@@ -83,18 +36,16 @@ public:
     explicit Plugin(const std::string &name) : name(name), handler(nullptr) { }
     ~Plugin()
     {
+        instances.clear();
         if (handler != nullptr) {
             dlclose(handler);
+            handler = nullptr;
         }
     }
-    int Load(const std::string &dl_path);
+    int Load(const std::string &dl_path, std::shared_ptr<ManagerCallback> managerCallback);
     std::string GetName() const
     {
         return this->name;
-    }
-    void AddInstance(std::shared_ptr<Instance> ins)
-    {
-        instances.emplace_back(ins);
     }
     std::shared_ptr<Instance> GetInstance(size_t i) const
     {
@@ -104,10 +55,11 @@ public:
     {
         return instances.size();
     }
-    void* GetHandler() const
-    {
-        return handler;
-    }
+private:
+    bool LoadInstance(std::shared_ptr<ManagerCallback> managerCallback);
+    void SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList,
+        std::shared_ptr<ManagerCallback> managerCallback);
+    int LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceList);
 private:
     std::vector<std::shared_ptr<Instance>> instances;
     std::string name;

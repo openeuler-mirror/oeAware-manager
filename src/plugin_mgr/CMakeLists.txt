@@ -23,3 +23,5 @@ target_link_libraries(oeaware common boundscheck)
 if (${CMAKE_CXX_COMPILER_VERSION} LESS "10.3.1")
     target_link_libraries(oeaware -lpthread -ldl)
 endif()
+
+set_target_properties(oeaware PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

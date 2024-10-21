@@ -11,3 +11,4 @@ add_executable (oeawarectl
                 ${SOURCE}
                 ) 
 target_link_libraries(oeawarectl common boundscheck)
+set_target_properties(oeawarectl PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

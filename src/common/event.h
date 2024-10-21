@@ -12,7 +12,6 @@
 #ifndef PLUGIN_MGR_EVENT_EVENT_H
 #define PLUGIN_MGR_EVENT_EVENT_H
 #include <vector>
-#include "error_code.h"
 #include "message_protocol.h"
 #include "safe_queue.h"
 
@@ -23,71 +22,19 @@ enum class EventType {
 };
 
 /* Event processed by the server. */
-class Event {
-public:
+struct Event {
     Event() : type(EventType::EXTERNAL) {}
     explicit Event(Opt opt) : opt(opt) {}
     Event(Opt opt, EventType type) : opt(opt), type(type) {}
     Event(Opt opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) {}
     Event(Opt opt, EventType type, const std::vector<std::string> &payload) : opt(opt), type(type), payload(payload) {}
-    Opt GetOpt() const
-    {
-        return this->opt;
-    }
-    void SetOpt(Opt newOpt)
-    {
-        this->opt = newOpt;
-    }
-    void SetType(EventType newType)
-    {
-        this->type = newType;
-    }
-    EventType GetType() const
-    {
-        return this->type;
-    }
-    void AddPayload(std::string s)
-    {
-        this->payload.emplace_back(s);
-    }
-    std::string GetPayload(int index) const
-    {
-        return this->payload[index];
-    }
-    int GetPayloadLen() const
-    {
-        return this->payload.size();
-    }
-private:
     Opt opt;
     EventType type;
     std::vector<std::string> payload;
 };
 
-class EventResult {
-public:
+struct EventResult {
     EventResult() { }
-    Opt GetOpt()
-    {
-        return this->opt;
-    }
-    void SetOpt(Opt newOpt)
-    {
-        this->opt = newOpt;
-    }
-    void AddPayload(const std::string &context)
-    {
-        payload.emplace_back(context);
-    }
-    std::string GetPayload(int index) const
-    {
-        return this->payload[index];
-    }
-    int GetPayloadLen() const
-    {
-        return this->payload.size();
-    }
-private:
     Opt opt;
     std::vector<std::string> payload;
 };

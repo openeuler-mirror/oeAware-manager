@@ -18,10 +18,10 @@ ErrorCode DisableHandler::InstanceDisabled(const std::string &name)
         return ErrorCode::DISABLE_INSTANCE_NOT_LOAD;
     }
     std::shared_ptr<Instance> instance = memoryStore->GetInstance(name);
-    if (!instance->GetState()) {
+    if (!instance->state) {
         return ErrorCode::DISABLE_INSTANCE_UNAVAILABLE;
     }
-    if (!instance->GetEnabled()) {
+    if (!instance->enabled) {
         return ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED;
     }
     auto msg = std::make_shared<InstanceRunMessage>(RunType::DISABLED, instance);
@@ -32,16 +32,16 @@ ErrorCode DisableHandler::InstanceDisabled(const std::string &name)
 
 EventResult DisableHandler::Handle(const Event &event)
 {
-    std::string name = event.GetPayload(0);
+    std::string name = event.payload[0];
     auto retCode = InstanceDisabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
         INFO(logger, name << " disabled successful.");
-        eventResult.SetOpt(Opt::RESPONSE_OK);
+        eventResult.opt = Opt::RESPONSE_OK;
     } else {
         WARN(logger, name << "disabled failed, because " << ErrorText::GetErrorText(retCode) << ".");
-        eventResult.SetOpt(Opt::RESPONSE_ERROR);
-        eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+        eventResult.opt = Opt::RESPONSE_ERROR;
+        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }
     return eventResult;
 }

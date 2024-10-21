@@ -16,14 +16,12 @@
 namespace oeaware {
 class LoadHandler : public Handler {
 public:
+    explicit LoadHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
     EventResult Handle(const Event &event) override;
 private:
     ErrorCode LoadPlugin(const std::string &name);
-    std::string InstanceDepCheck(const std::string &name);
-    int LoadDlInstance(std::shared_ptr<Plugin> plugin, Interface **interfaceList);
-    void SaveInstance(std::shared_ptr<Plugin> plugin, Interface *interfaceList, int len);
-    bool LoadInstance(std::shared_ptr<Plugin> plugin);
-    void ConstructLackDep(const std::vector<std::vector<std::string>> &query, std::string &res);
+private:
+    std::shared_ptr<ManagerCallback> managerCallback;
 };
 }
 

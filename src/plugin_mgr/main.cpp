@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     messageManager.Run();
     INFO(logger, "Start plugin manager!");
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
-    pluginManager.Init(config, recvMessage, sendMessage);
+    pluginManager.Init(config, recvMessage, sendMessage, recvData);
     pluginManager.Run();
     return 0;
 }

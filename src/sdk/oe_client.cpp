@@ -34,9 +34,7 @@ private:
     std::shared_ptr<DomainSocket> domainSocket;
     std::shared_ptr<SocketStream> socketStream;
     std::unordered_map<std::string, std::vector<Callback>> topicHandle;
-    std::shared_ptr<SafeQueue<Result>> subscribeQueue;
-    std::shared_ptr<SafeQueue<Result>> unSubscribeQueue;
-    std::shared_ptr<SafeQueue<Result>> publishQueue;
+    std::shared_ptr<SafeQueue<Result>> resultQueue;
     bool finished = false;
 };
 
@@ -49,25 +47,17 @@ void OeClient::Impl::HandleRecv()
         }
         Message message = protocol.GetMessage();
         Result result;
-        switch (message.GetOpt()) {
-            case Opt::SUBSCRIBE: {
-                Decode(result, message.Payload(0));
-                subscribeQueue->Push(result);
-                break;
-            }
-            case Opt::UNSUBSCRIBE: {
-                Decode(result, message.Payload(0));
-                unSubscribeQueue->Push(result);
-                break;
-            }
+        switch (message.opt) {
+            case Opt::SUBSCRIBE:
+            case Opt::UNSUBSCRIBE:
             case Opt::PUBLISH: {
-                Decode(result, message.Payload(0));
-                publishQueue->Push(result);
+                Decode(result, message.payload[0]);
+                resultQueue->Push(result);
                 break;
             }
             case Opt::DATA: {
                 DataList messageList;
-                Decode(messageList, message.Payload(0));
+                Decode(messageList, message.payload[0]);
                 auto topic = messageList.topic;
                 for (auto handle : topicHandle[Concat({topic.instanceName, topic.topicName, topic.params}, "::")]) {
                     handle(messageList);
@@ -83,6 +73,7 @@ int OeClient::Impl::Init()
 {
     domainSocket = std::make_shared<DomainSocket>(DEFAULT_SDK_CONN_PATH);
     domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
+    resultQueue = std::make_shared<SafeQueue<Result>>();
     int sock = domainSocket->Socket();
     if (sock < 0) {
         return -1;
@@ -106,7 +97,7 @@ int OeClient::Impl::HandleRequest(const Opt &opt, const std::vector<std::string>
     MessageProtocol protocol(MessageHeader(MessageType::REQUEST), Message(opt, payload));
     SendMessage(*socketStream, protocol);
     Result result;
-    if (!subscribeQueue->WaitTimeAndPop(result)) {
+    if (!resultQueue->WaitTimeAndPop(result)) {
         return -1;
     }
     return result.code;

@@ -57,12 +57,12 @@ EventResult ListHandler::Handle(const Event &event)
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
         INFO(logger, "query plugin_list.");
-        eventResult.SetOpt(Opt::RESPONSE_OK);
-        eventResult.AddPayload(resText);
+        eventResult.opt = Opt::RESPONSE_OK;
+        eventResult.payload.emplace_back(resText);
     } else {
         WARN(logger, "query plugin_list failed, because " << ErrorText::GetErrorText(retCode) << ".");
-        eventResult.SetOpt(Opt::RESPONSE_ERROR);
-        eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+        eventResult.opt = Opt::RESPONSE_ERROR;
+        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }
     return eventResult;
 }

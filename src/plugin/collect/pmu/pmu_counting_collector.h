@@ -27,14 +27,12 @@ public:
     int Enable() override;
     void Disable() override;
     void Run() override;
-    std::vector<oeaware::Topic> GetSupportTopics() override;
 private:
     std::unordered_map<std::string, int> pmuId;
     std::vector<std::string> topicStr = {"cycles", "net:netif_rx", "L1-dcache-load-misses", "L1-dcache-loads",
         "L1-icache-load-misses", "L1-icache-loads", "branch-load-misses", "branch-loads", "dTLB-load-misses",
         "dTLB-loads", "iTLB-load-misses", "iTLB-loads", "cache-references", "cache-misses", "l2d_tlb_refill",
         "l2d_cache_refill", "l1d_tlb_refill", "l1d_cache_refill", "inst_retired", "instructions"};
-    std::vector<oeaware::Topic> supportTopics;
     void InitPmuAttr(struct PmuAttr &attr);
     int OpenCounting(const oeaware::Topic &topic);
 };

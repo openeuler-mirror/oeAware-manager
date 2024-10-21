@@ -9,22 +9,18 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_DATA_REGISTER_H
-#define COMMON_DATA_REGISTER_H
-#include <functional>
-#include "base_data.h"
+#ifndef PLUGIN_MGR_EVENT_UNSUBSCRIBE_HANDLER_H
+#define PLUGIN_MGR_EVENT_UNSUBSCRIBE_HANDLER_H
+#include "event_handler.h"
+#include "manager_callback.h"
 
-//namespace oeaware {
-//template <typename T>
-//class Register {
-//public:
-//    Register(const std::string &type)
-//    {
-//        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-//            return std::make_shared<T>();
-//        });
-//    }
-//};
-//}
-
+namespace oeaware {
+class UnsubscribeHandler : public Handler {
+public:
+    explicit UnsubscribeHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
+    EventResult Handle(const Event &event) override;
+private:
+    std::shared_ptr<ManagerCallback> managerCallback;
+};
+}
 #endif

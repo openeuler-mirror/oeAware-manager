@@ -19,7 +19,7 @@
 #include "message_protocol.h"
 #include "logger.h"
 #include "config.h"
-#include "event/event.h"
+#include "event.h"
 #include "domain_socket.h"
 
 namespace oeaware {
@@ -41,6 +41,7 @@ public:
     void Start();
     void Close();
     bool IsConn(int fd);
+    void CloseConn(int fd);
 private:
     Message GetMessageFromDataEvent(const Event &event);
 private:

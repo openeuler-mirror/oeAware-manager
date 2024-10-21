@@ -24,17 +24,17 @@ ErrorCode DownloadHandler::Download(const std::string &name, std::string &res)
 EventResult DownloadHandler::Handle(const Event &event)
 {
     std::string resText;
-    std::string name = event.GetPayload(0);
+    std::string name = event.payload[0];
     auto retCode = Download(name, resText);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
         INFO(logger, "download " << name << " from " << resText << ".");
-        eventResult.SetOpt(Opt::RESPONSE_OK);
-        eventResult.AddPayload(resText);
+        eventResult.opt = Opt::RESPONSE_OK;
+        eventResult.payload.emplace_back(resText);
     } else {
         WARN(logger, "download " << name << " failed, because " << ErrorText::GetErrorText(retCode) + ".");
-        eventResult.SetOpt(Opt::RESPONSE_ERROR);
-        eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+        eventResult.opt = Opt::RESPONSE_ERROR;
+        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }
     return eventResult;
 }

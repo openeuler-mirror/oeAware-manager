@@ -22,15 +22,11 @@ ErrorCode RemoveHandler::Remove(const std::string &name)
     std::vector<std::string> instanceNames;
     for (size_t i = 0; i < plugin->GetInstanceLen(); ++i) {
         std::shared_ptr<Instance> instance = plugin->GetInstance(i);
-        std::string iname = instance->GetName();
-        if (instance->GetEnabled()) {
+        std::string iname = instance->name;
+        if (instance->enabled) {
             WARN(logger, iname << " " <<
                 ErrorText::GetErrorText(ErrorCode::REMOVE_INSTANCE_IS_RUNNING) << ".");
             return ErrorCode::REMOVE_INSTANCE_IS_RUNNING;
-        }
-        if (memoryStore->HaveDep(iname)) {
-            WARN(logger, iname << " " << ErrorText::GetErrorText(ErrorCode::REMOVE_INSTANCE_HAVE_DEP) << ".");
-            return ErrorCode::REMOVE_INSTANCE_HAVE_DEP;
         }
         instanceNames.emplace_back(iname);
     }
@@ -43,15 +39,15 @@ ErrorCode RemoveHandler::Remove(const std::string &name)
 
 EventResult RemoveHandler::Handle(const Event &event)
 {
-    std::string name = event.GetPayload(0);
+    std::string name = event.payload[0];
     auto retCode = Remove(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
         INFO(logger, name << " plugin removed.");
-        eventResult.SetOpt(Opt::RESPONSE_OK);
+        eventResult.opt = Opt::RESPONSE_OK;
     } else {
-        eventResult.SetOpt(Opt::RESPONSE_ERROR);
-        eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+        eventResult.opt = Opt::RESPONSE_ERROR;
+        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }
     return eventResult;
 }

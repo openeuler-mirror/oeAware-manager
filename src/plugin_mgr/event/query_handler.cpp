@@ -43,22 +43,22 @@ EventResult QueryHandler::Handle(const Event &event)
 {
     EventResult eventResult;
     std::string resText;
-    if (event.GetOpt() == Opt::QUERY_ALL) {
+    if (event.opt == Opt::QUERY_ALL) {
         INFO(logger, "query all plugins information.");
         QueryAllPlugins(resText);
-        eventResult.SetOpt(Opt::RESPONSE_OK);
-        eventResult.AddPayload(resText);
+        eventResult.opt = Opt::RESPONSE_OK;
+        eventResult.payload.emplace_back(resText);
     } else {
-        auto name = event.GetPayload(0);
+        auto name = event.payload[0];
         auto retCode = QueryPlugin(name, resText);
         if (retCode == ErrorCode::OK) {
             INFO(logger, name << " plugin query successfully.");
-            eventResult.SetOpt(Opt::RESPONSE_OK);
-            eventResult.AddPayload(resText);
+            eventResult.opt = Opt::RESPONSE_OK;
+            eventResult.payload.emplace_back(resText);
         } else {
             WARN(logger, name << " " << ErrorText::GetErrorText(retCode) + ".");
-            eventResult.SetOpt(Opt::RESPONSE_ERROR);
-            eventResult.AddPayload(ErrorText::GetErrorText(retCode));
+            eventResult.opt = Opt::RESPONSE_ERROR;
+            eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
         }
     }
     return eventResult;

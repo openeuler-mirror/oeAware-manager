@@ -14,6 +14,7 @@
 #include "event.h"
 #include "memory_store.h"
 #include "logger.h"
+#include "error_code.h"
 
 namespace oeaware {
 class Handler {

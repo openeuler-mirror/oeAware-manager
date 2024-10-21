@@ -31,3 +31,7 @@ target_link_libraries(serialize_test PRIVATE curl GTest::gtest_main)
 target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus)
 target_link_libraries(safe_queue_test PRIVATE GTest::gtest_main)
 target_link_libraries(pmu_count_test PRIVATE GTest::gtest_main)
+
+set_target_properties(serialize_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests")
+set_target_properties(logger_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests")
+set_target_properties(safe_queue_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/tests")

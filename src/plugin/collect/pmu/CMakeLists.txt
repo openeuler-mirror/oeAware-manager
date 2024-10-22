@@ -20,7 +20,12 @@ set(pmu_src
     pmu_counting_collector.cpp
     pmu_sampling_data.cpp
     pmu_sampling_collector.cpp
+    pmu_spe_data.cpp
+    pmu_spe_collector.cpp
+    pmu_uncore_data.cpp
+    pmu_uncore_collector.cpp
     ../../../common/base_data.cpp
+    pmu_collector.cpp
 )
 
 add_library(pmu SHARED ${pmu_src})

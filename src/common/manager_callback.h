@@ -11,7 +11,7 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_MANAGER_CALLBACK_H
 #define PLUGIN_MGR_MANAGER_CALLBACK_H
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include "data_list.h"
 #include "event.h"
@@ -19,12 +19,17 @@
 namespace oeaware {
 class ManagerCallback {
 public:
+    // type : 0 sdk, 1 instance
     int Subscribe(const std::string &name, const Topic &topic, int type);
     int Unsubscribe(const std::string &name, const Topic &topic, int type);
     void Publish(const DataList &dataList);
     void Init(EventQueue newRecvData);
+public:
+    // Data to be updated for the instance.
+    std::vector<DataList> publishData;
+    std::unordered_map<std::string, std::unordered_set<std::string>> topicInstance;
 private:
-    std::unordered_map<std::string, std::set<std::pair<std::string, int>>> subscriber;
+    std::unordered_map<std::string, std::unordered_set<std::string>> topicSdk;
     std::mutex mutex;
     EventQueue recvData;
 };

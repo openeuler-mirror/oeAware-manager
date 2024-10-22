@@ -19,8 +19,8 @@ const std::string Instance::pluginStateOff = "unavailable";
 
 int Plugin::LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceList)
 {
-    void (*getInstance)(std::vector<std::shared_ptr<Interface>>) =
-        (void(*)(std::vector<std::shared_ptr<Interface>>))dlsym(handler, "GetInstance");
+    void (*getInstance)(std::vector<std::shared_ptr<Interface>>&) =
+        (void(*)(std::vector<std::shared_ptr<Interface>>&))dlsym(handler, "GetInstance");
     if (getInstance == nullptr) {
         return -1;
     }
@@ -36,6 +36,9 @@ void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList
         std::string instanceName = interface->GetName();
         interface->SetManagerCallback(managerCallback);
         instance->interface = interface;
+        for (auto &topic : interface->GetSupportTopics()) {
+            instance->supportTopics[topic.topicName] = topic;
+        }
         instance->name = instanceName;
         instance->pluginName = GetName();
         instance->enabled = false;

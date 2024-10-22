@@ -19,47 +19,39 @@ void ManagerCallback::Init(EventQueue newRecvData)
 
 int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int type)
 {
-    auto topicName = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
-    auto p = std::make_pair(name, type);
+    auto topicName = topic.GetType();
     std::lock_guard<std::mutex> lock(mutex);
-    if (subscriber[topicName].count(p)) {
-        return -1;
+    if (type) {
+        topicInstance[topicName].insert(name);
+    } else {
+        topicSdk[topicName].insert(name);
     }
-    subscriber[topicName].insert(p);
     return 0;
 }
 
 int ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic, int type)
 {
-    auto topicName = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
+    auto topicName = topic.GetType();
     auto p = std::make_pair(name, type);
     std::lock_guard<std::mutex> lock(mutex);
-    if (!subscriber[topicName].count(p)) {
-        return -1;
+   if (type) {
+        topicInstance[topicName].erase(name);
+    } else {
+        topicSdk[topicName].erase(name);
     }
-    subscriber[topicName].erase(p);
     return 0;
 }
 
 void ManagerCallback::Publish(const DataList &dataList)
 {
     auto &topic = dataList.topic;
-    auto topicName = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
-    if (!subscriber.count(topicName)) {
-        return;
-    }
-    for (auto &p : subscriber[topicName]) {
-        auto name = p.first;
-        auto type = p.second;
+    auto topicName = topic.GetType();
+    for (auto &name : topicSdk[topicName]) {
         // sdk, send message to romte
-        if (type == 0) {
-            OutStream out;
-            dataList.Serialize(out);
-            recvData->Push(Event(Opt::DATA, {out.Str()}));
-        } else {
-            // instance, updateData
-        }
+        OutStream out;
+        dataList.Serialize(out);
+        recvData->Push(Event(Opt::DATA, {name, out.Str()}));
     }
+    publishData.emplace_back(dataList);
 }
-
 }

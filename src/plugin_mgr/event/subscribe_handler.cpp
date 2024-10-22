@@ -12,6 +12,28 @@
 #include "subscribe_handler.h"
 
 namespace oeaware {
+Result SubscribeHandler::Subscribe(const std::string &name, const Topic &topic)
+{
+    Result result;
+    if (!memoryStore->IsInstanceExist(topic.topicName)) {
+        WARN(logger, "The subscribed instance " << topic.instanceName << " does not exist.");
+        result.code = -1;
+        return result;
+    }
+    auto instance = memoryStore->GetInstance(topic.instanceName);
+    if (!instance->supportTopics.count(topic.topicName)) {
+        WARN(logger, "The subscribed topic " << topic.topicName << " does not exist.");
+        result.code = -1;
+        return result;
+    }
+    if (managerCallback->Subscribe(name, topic, 0) < 0) {
+        WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
+        result.code = -1;
+        return result;
+    }
+    result.code = 0;
+    return result;
+}
 
 EventResult SubscribeHandler::Handle(const Event &event)
 {
@@ -19,13 +41,7 @@ EventResult SubscribeHandler::Handle(const Event &event)
     InStream in(event.payload[0]);
     topic.Deserialize(in);
     EventResult eventResult;
-    Result result;
-    if (managerCallback->Subscribe(event.payload[1], topic, 0) == 0) {
-        result.code = 0;
-    } else {
-        WARN(logger, "subscribe failed!");
-        result.code = -1;
-    }
+    Result result = Subscribe(event.payload[1], topic);
     eventResult.opt = Opt::SUBSCRIBE;
     eventResult.payload.emplace_back(encode(result));
     return eventResult;

@@ -75,8 +75,8 @@ public:
 class InstanceRunHandler {
 public:
     using InstanceRun = void (*)();
-    explicit InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore) : memoryStore(memoryStore), time(0),
-        cycle(defaultCycleSize) { }
+    InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore, std::shared_ptr<ManagerCallback> managerCallback)
+        : memoryStore(memoryStore), managerCallback(managerCallback), time(0), cycle(defaultCycleSize) { }
     void Init();
     void Run();
     void Schedule();
@@ -103,6 +103,7 @@ public:
     }
 private:
     void Start();
+    void UpdateData();
     void EnableInstance(const std::string &name);
     void DisableInstance(const std::string &name, bool force);
 private:
@@ -112,6 +113,7 @@ private:
     SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
     std::unordered_map<std::string, int> inDegree;
     std::shared_ptr<MemoryStore> memoryStore;
+    std::shared_ptr<ManagerCallback> managerCallback;
     log4cplus::Logger logger;
     uint64_t time;
     uint64_t cycle;

@@ -13,14 +13,14 @@
 #include <algorithm>
 #include <iostream>
 #include <securec.h>
-#include "pmu_counting_collector.h"
-#include "pmu_counting_data.h"
+#include "pmu_sampling_collector.h"
+#include "pmu_sampling_data.h"
 
-PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
+PmuSamplingCollector::PmuSamplingCollector(): oeaware::Interface()
 {
-    this->name = "pmu_counting_collector";
+    this->name = "pmu_sampling_collector";
     this->version = "1.0.0";
-    this->description = "collect counting information of pmu";
+    this->description = "collect sampling information of pmu";
     this->priority = 0;
     this->type = 0;
     this->period = 100;
@@ -33,15 +33,15 @@ PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
     }
 }
 
-void PmuCountingCollector::InitCountingAttr(struct PmuAttr &attr)
+void PmuSamplingCollector::InitSamplingAttr(struct PmuAttr &attr)
 {
     attr.pidList = nullptr;
     attr.numPid = 0;
     attr.cpuList = nullptr;
     attr.numCpu = 0;
     attr.evtAttr = nullptr;
-    attr.period = 10;
-    attr.useFreq = 0;
+    attr.freq = 100;
+    attr.useFreq = 1;
     attr.excludeUser = 0;
     attr.excludeKernel = 0;
     attr.symbolMode = NO_SYMBOL_RESOLVE;
@@ -52,10 +52,10 @@ void PmuCountingCollector::InitCountingAttr(struct PmuAttr &attr)
     attr.includeNewFork = 0;
 }
 
-int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
+int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
 {
     struct PmuAttr attr;
-    InitCountingAttr(attr);
+    InitSamplingAttr(attr);
 
     char *evtList[1];
     evtList[0] = new char[topic.topicName.length() + 1];
@@ -67,7 +67,7 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     attr.evtList = evtList;
     attr.numEvt = 1;
 
-    int pd = PmuOpen(COUNTING, &attr);
+    int pd = PmuOpen(SAMPLING, &attr);
     if (pd == -1) {
         std::cout << topic.topicName << " open failed" << std::endl;
     }
@@ -75,7 +75,7 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     return pd;
 }
 
-int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
+int PmuSamplingCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name) {
         std::cout << "OpenTopic failed" << std::endl;
@@ -85,7 +85,7 @@ int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
     for (auto &iter : topicStr) {
         if (iter == topic.topicName) {
             if (pmuId[iter] == -1) {
-                pmuId[iter] = OpenCounting(topic);
+                pmuId[iter] = OpenSampling(topic);
                 if (pmuId[iter] == -1) {
                     std::cout << "OpenTopic failed, PmuOpen failed" << std::endl;
                     return -1;
@@ -100,7 +100,7 @@ int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
     return -1;
 }
 
-void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
+void PmuSamplingCollector::CloseTopic(const oeaware::Topic &topic)
 {
     if (pmuId[topic.topicName] == -1) {
         std::cout << "CloseTopic failed" << std::endl;
@@ -111,26 +111,26 @@ void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuCountingCollector::Enable(const std::string &parma)
+int PmuSamplingCollector::Enable(const std::string &parma)
 {
     return 0;
 }
 
-void PmuCountingCollector::Disable()
+void PmuSamplingCollector::Disable()
 {
     return;
 }
 
-void PmuCountingCollector::UpdateData(const oeaware::DataList &dataList)
+void PmuSamplingCollector::UpdateData(const oeaware::DataList &dataList)
 {
     return;
 }
 
-void PmuCountingCollector::Run()
+void PmuSamplingCollector::Run()
 {
     for (auto &iter : pmuId) {
         if (iter.second != -1) {
-            std::shared_ptr <PmuCountingData> data = std::make_shared<PmuCountingData>();
+            std::shared_ptr <PmuSamplingData> data = std::make_shared<PmuSamplingData>();
             PmuDisable(iter.second);
             data->len = PmuRead(iter.second, &(data->pmuData));
             PmuEnable(iter.second);
@@ -150,5 +150,5 @@ void PmuCountingCollector::Run()
 
 void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
-    interface.emplace_back(std::make_shared<PmuCountingCollector>());
+    interface.emplace_back(std::make_shared<PmuSamplingCollector>());
 }

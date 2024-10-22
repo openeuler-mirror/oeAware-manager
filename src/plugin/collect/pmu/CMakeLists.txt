@@ -18,6 +18,8 @@ message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
 set(pmu_src
     pmu_counting_data.cpp
     pmu_counting_collector.cpp
+    pmu_sampling_data.cpp
+    pmu_sampling_collector.cpp
     ../../../common/base_data.cpp
 )
 

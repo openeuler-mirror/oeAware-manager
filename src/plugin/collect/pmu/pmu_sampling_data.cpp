@@ -12,12 +12,12 @@
 
 #include <securec.h>
 #include <iostream>
-#include "pmu_counting_data.h"
+#include "pmu_sampling_data.h"
 #include "symbol.h"
 
-oeaware::Register<PmuCountingData> PmuCountingData::pmuCountingReg("pmu_counting_collector");
+oeaware::Register<PmuSamplingData> PmuSamplingData::pmuSamplingReg("pmu_sampling_collector");
 
-void PmuCountingData::Serialize(oeaware::OutStream &out) const
+void PmuSamplingData::Serialize(oeaware::OutStream &out) const
 {
     out << interval << len;
     for (int i = 0; i < len; i++) {
@@ -39,13 +39,14 @@ void PmuCountingData::Serialize(oeaware::OutStream &out) const
                 << tmp->symbol->codeMapAddr << tmp->symbol->count << tmp->count;
             tmp = tmp->next;
         }
+        std::string rawData(pmuData[i].rawData->data);
         out << pmuData[i].evt << pmuData[i].ts << pmuData[i].pid << pmuData[i].tid << pmuData[i].cpu
             << pmuData[i].cpuTopo->coreId << pmuData[i].cpuTopo->numaId << pmuData[i].cpuTopo->socketId
-            << pmuData[i].comm << pmuData[i].period << pmuData[i].count << pmuData[i].countPercent;
+            << pmuData[i].comm << pmuData[i].period << rawData;
     }
 }
 
-void PmuCountingData::Deserialize(oeaware::InStream &in)
+void PmuSamplingData::Deserialize(oeaware::InStream &in)
 {
     in >> interval >> len;
     pmuData = new struct PmuData[len];
@@ -92,8 +93,15 @@ void PmuCountingData::Deserialize(oeaware::InStream &in)
             tmp = tmp->next;
         }
         pmuData[i].cpuTopo = new CpuTopology();
+        std::string rawData;
         in >> pmuData[i].evt >> pmuData[i].ts >> pmuData[i].pid >> pmuData[i].tid >> pmuData[i].cpu
         >> pmuData[i].cpuTopo->coreId >> pmuData[i].cpuTopo->numaId >> pmuData[i].cpuTopo->socketId
-        >> pmuData[i].comm >> pmuData[i].period >> pmuData[i].count >> pmuData[i].countPercent;
+        >> pmuData[i].comm >> pmuData[i].period >> rawData;
+        pmuData[i].rawData->data = new char[rawData.length() + 1];
+        errno_t ret = strcpy_s(pmuData[i].rawData->data, rawData.length() + 1, rawData.c_str());
+        if (ret != EOK) {
+            std::cout << "Deserialize failed, reason: strcpy_s failed" << std::endl;
+            return;
+        }
     }
 }

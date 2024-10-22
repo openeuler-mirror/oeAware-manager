@@ -20,11 +20,11 @@ using namespace oeaware;
 
 void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
-    interface.emplace_back(std::make_shared<ThreadTune>());
+    interface.emplace_back(std::make_shared<UnixBenchTune>());
 }
 
-ThreadTune::ThreadTune() {
-    name = "thread_tune";
+UnixBenchTune::UnixBenchTune() {
+    name = "unixbench_tune";
     description = "";
     version = "1.0.0";
     period = 500;
@@ -33,16 +33,16 @@ ThreadTune::ThreadTune() {
     depTopic.topicName = "thread_info";
 }
 
-int ThreadTune::OpenTopic(const oeaware::Topic &topic) {
+int UnixBenchTune::OpenTopic(const oeaware::Topic &topic) {
     (void)topic;
     return 0;
 }
 
-void ThreadTune::CloseTopic(const oeaware::Topic &topic) {
+void UnixBenchTune::CloseTopic(const oeaware::Topic &topic) {
     (void)topic;
 }
 
-void ThreadTune::UpdateData(const oeaware::DataList &dataList) {
+void UnixBenchTune::UpdateData(const oeaware::DataList &dataList) {
     int tid;
     // bind numa node0 by default.
     cpu_set_t *newMask = &nodes[DEFAULT_BIND_NODE].cpuMask;
@@ -67,7 +67,7 @@ void ThreadTune::UpdateData(const oeaware::DataList &dataList) {
     }
 }
 
-int ThreadTune::Enable(const std::string &param) {
+int UnixBenchTune::Enable(const std::string &param) {
     (void)param;
     if (!isInit) {
         // The static data such as the number of CPUs and NUMA nodes
@@ -86,7 +86,7 @@ int ThreadTune::Enable(const std::string &param) {
     return 0;
 }
 
-void ThreadTune::Disable() {
+void UnixBenchTune::Disable() {
     Unsubscribe(depTopic);
     cpu_set_t *mask = &allCpuMask;
 
@@ -98,10 +98,10 @@ void ThreadTune::Disable() {
     keyThreadNames.clear();
 }
 
-void ThreadTune::Run() {
+void UnixBenchTune::Run() {
 }
 
-void ThreadTune::ReadKeyThreads(const std::string &file_name)
+void UnixBenchTune::ReadKeyThreads(const std::string &file_name)
 {
     std::ifstream file(file_name);
     if (!file.is_open()) {
@@ -115,7 +115,7 @@ void ThreadTune::ReadKeyThreads(const std::string &file_name)
     file.close();
 }
 
-void ThreadTune::initCpuMap()
+void UnixBenchTune::initCpuMap()
 {
     int nid;
 
@@ -129,7 +129,7 @@ void ThreadTune::initCpuMap()
     }
 }
 
-void ThreadTune::initNodeCpuMask()
+void UnixBenchTune::initNodeCpuMask()
 {
     int cpu_index = 0;
 
@@ -149,7 +149,7 @@ void ThreadTune::initNodeCpuMask()
     }
 }
 
-void ThreadTune::initAllCpumask()
+void UnixBenchTune::initAllCpumask()
 {
     CPU_ZERO(&allCpuMask);
     for (int cpu = 0; cpu < cpuNum; cpu++) {

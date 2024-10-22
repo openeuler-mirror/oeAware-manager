@@ -24,5 +24,5 @@ add_subdirectory(collect/system_collector)
 # add_subdirectory(scenario/thread_aware)
 
 # add_subdirectory(tune/smc_tune)
-# add_subdirectory(tune/stealtask_tune)
-# add_subdirectory(tune/thread_tune)
+add_subdirectory(tune/system)
+add_subdirectory(tune/unixbench)

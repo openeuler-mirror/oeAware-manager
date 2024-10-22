@@ -14,12 +14,9 @@ include_directories(/usr/include/libnl3)
 
 add_subdirectory(kprobe)
 
-add_library(smc_tune SHARED
-    smc_tune.cpp
-    smc_ueid.cpp
-    smc_netlink.cpp
-)
+add_library(smc_tune STATIC
+        smc_tune.cpp
+        smc_ueid.cpp
+        smc_netlink.cpp)
 
 target_link_libraries(smc_tune nl-genl-3 nl-3)
-set_target_properties(smc_tune PROPERTIES
-                      LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

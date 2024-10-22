@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(stealtask_tune)
+project(system_tune)
 
 if (WITH_DEBUG)
     add_compile_options(-g)
@@ -9,11 +9,11 @@ endif()
 add_compile_options(-fPIC -Wall -Wextra)
 
 include_directories(../include)
+add_subdirectory(cpu/stealtask_tune)
+add_subdirectory(network/smc_tune)
+add_library(system_tune SHARED
+        system_tune.cpp)
 
-add_library(stealtask_tune SHARED
-    stealtask_tune.cpp
-)
-
-target_link_libraries(stealtask_tune numa)
-set_target_properties(stealtask_tune PROPERTIES
+target_link_libraries(system_tune stealtask_tune smc_tune)
+set_target_properties(system_tune PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

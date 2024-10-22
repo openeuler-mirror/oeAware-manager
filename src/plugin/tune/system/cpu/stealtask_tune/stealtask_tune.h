@@ -12,15 +12,26 @@
 #ifndef STEALTASK_TUNE_H
 #define STEALTASK_TUNE_H
 
-const char *get_version();
-const char *get_name();
-const char *get_description();
-const char *get_dep();
-int get_priority();
-int get_period();
-bool enable();
-void disable();
-const struct DataRingBuf *get_ring_buf();
-void run(const struct Param *param);
+#include "interface.h"
+
+namespace oeaware {
+class StealTask : public Interface{
+public:
+    StealTask();
+    ~StealTask() override = default;
+    int OpenTopic(const oeaware::Topic &topic) override;
+    void CloseTopic(const oeaware::Topic &topic) override;
+    void UpdateData(const oeaware::DataList &dataList) override;
+    int Enable(const std::string &parma) override;
+    void Disable() override;
+    void Run() override;
+
+private:
+    bool isInit = false;
+    const std::string CMDLINE_PATH = "/proc/cmdline";
+    std::string cmdline {};
+    void ReadConfig();
+};
+}
 
 #endif // !STEALTASK_TUNE_H

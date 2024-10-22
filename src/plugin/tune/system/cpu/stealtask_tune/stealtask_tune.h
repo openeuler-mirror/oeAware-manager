@@ -9,27 +9,29 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef THREAD_TUNE_H
-#define THREAD_TUNE_H
-#include <string>
+#ifndef STEALTASK_TUNE_H
+#define STEALTASK_TUNE_H
 
-const int THREAD_NUM = 65536;
+#include "interface.h"
 
-struct ThreadInfo {
-    int pid;
-    int tid;
-    std::string name;
+namespace oeaware {
+class StealTask : public Interface{
+public:
+    StealTask();
+    ~StealTask() override = default;
+    int OpenTopic(const oeaware::Topic &topic) override;
+    void CloseTopic(const oeaware::Topic &topic) override;
+    void UpdateData(const oeaware::DataList &dataList) override;
+    int Enable(const std::string &parma) override;
+    void Disable() override;
+    void Run() override;
+
+private:
+    bool isInit = false;
+    const std::string CMDLINE_PATH = "/proc/cmdline";
+    std::string cmdline {};
+    void ReadConfig();
 };
+}
 
-const char *get_version();
-const char *get_name();
-const char *get_description();
-const char *get_dep();
-int get_priority();
-int get_period();
-bool enable();
-void disable();
-const struct DataRingBuf *get_ring_buf();
-void run(const struct Param *param);
-
-#endif // !THREAD_TUNE_H
+#endif // !STEALTASK_TUNE_H

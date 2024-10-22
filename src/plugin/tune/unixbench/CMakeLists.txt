@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(stealtask_tune)
+project(ub_tune)
 
 if (WITH_DEBUG)
     add_compile_options(-g)
@@ -10,10 +10,10 @@ add_compile_options(-fPIC -Wall -Wextra)
 
 include_directories(../include)
 
-add_library(stealtask_tune SHARED
-    stealtask_tune.cpp
+add_library(ub_tune SHARED
+        ub_tune.cpp
 )
 
-target_link_libraries(stealtask_tune numa)
-set_target_properties(stealtask_tune PROPERTIES
+target_link_libraries(ub_tune numa)
+set_target_properties(ub_tune PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

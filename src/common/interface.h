@@ -19,18 +19,6 @@ class Interface {
 public:
     Interface() = default;
     virtual ~Interface() = default;
-    int Subscribe(const Topic &topic)
-    {
-        return managerCallback->Subscribe(name, topic, 1);
-    }
-    int Unsubscribe(const Topic &topic)
-    {
-        return managerCallback->Unsubscribe(name, topic, 1);
-    }
-    void Publish(const DataList &dataList)
-    {
-        return managerCallback->Publish(dataList);
-    }
     void SetManagerCallback(std::shared_ptr<ManagerCallback> newManagerCallback)
     {
         this->managerCallback = newManagerCallback;
@@ -66,7 +54,7 @@ public:
     virtual int OpenTopic(const Topic &topic) = 0;
     virtual void CloseTopic(const Topic &topic) = 0;
     virtual void UpdateData(const DataList &dataList) = 0;
-    virtual int Enable() = 0;
+    virtual int Enable(const std::string &parma = "") = 0;
     virtual void Disable() = 0;
     virtual void Run() = 0;
 protected:
@@ -77,6 +65,18 @@ protected:
     int priority;
     int type;
     int period;
+    int Subscribe(const Topic &topic)
+    {
+        return managerCallback->Subscribe(name, topic, 1);
+    }
+    int Unsubscribe(const Topic &topic)
+    {
+        return managerCallback->Unsubscribe(name, topic, 1);
+    }
+    void Publish(const DataList &dataList)
+    {
+        return managerCallback->Publish(dataList);
+    }
 private:
     std::shared_ptr<ManagerCallback> managerCallback;
 };

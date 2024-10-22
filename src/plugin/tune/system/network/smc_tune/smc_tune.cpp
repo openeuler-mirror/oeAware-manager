@@ -16,11 +16,6 @@
 #define SMC_OP SmcOperator::getInstance()
 using namespace oeaware;
 
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
-{
-    interface.emplace_back(std::make_shared<SmcTune>());
-}
-
 SmcTune::SmcTune() {
     name = "smc_tune";
     description = "collect information of key thread";

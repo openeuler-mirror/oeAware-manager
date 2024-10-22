@@ -11,12 +11,11 @@
  ******************************************************************************/
 
 #include "interface.h"
-#include "cpu/stealtask_tune/stealtask_tune.h"
-#include "network/smc_tune/smc_tune.h"
+#include "thread_collector.h"
+
 using namespace oeaware;
 
 void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
-    interface.emplace_back(std::make_shared<StealTask>());
-    interface.emplace_back(std::make_shared<SmcTune>());
+    interface.emplace_back(std::make_shared<ThreadCollector>());
 }

@@ -4,6 +4,6 @@ include_directories(../include)
 add_compile_options(-O2 -fPIC -Wall -Wextra)
 add_library(system_collector SHARED
     thread_collector.cpp
-)
+        system_collector.cpp)
 set_target_properties(system_collector PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

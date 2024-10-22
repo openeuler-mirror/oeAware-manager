@@ -22,13 +22,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
-
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
-{
-    interface.emplace_back(std::make_shared<ThreadCollector>());
-}
-
 ThreadCollector::ThreadCollector() {
     name = "thread_collector";
     description = "collect information of thread";

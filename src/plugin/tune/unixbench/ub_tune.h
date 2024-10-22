@@ -9,6 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+
 #ifndef THREAD_TUNE_H
 #define THREAD_TUNE_H
 #include <set>

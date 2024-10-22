@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -29,8 +29,8 @@ ThreadTune::ThreadTune() {
     version = "1.0.0";
     period = 500;
     priority = 2;
-    depTopic.instanceName = "thread_scenario";
-    depTopic.topicName = "thread_scenario";
+    depTopic.instanceName = "thread_collector";
+    depTopic.topicName = "thread_info";
 }
 
 int ThreadTune::OpenTopic(const oeaware::Topic &topic) {
@@ -77,6 +77,8 @@ int ThreadTune::Enable(const std::string &param) {
         initCpuMap();
         initNodeCpuMask();
         initAllCpumask();
+
+        Subscribe(depTopic);
         isInit = true;
     }
 
@@ -85,6 +87,7 @@ int ThreadTune::Enable(const std::string &param) {
 }
 
 void ThreadTune::Disable() {
+    Unsubscribe(depTopic);
     cpu_set_t *mask = &allCpuMask;
 
     for(const auto &tid : bindTid) {

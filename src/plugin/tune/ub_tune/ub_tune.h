@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -39,7 +39,6 @@ namespace oeaware {
         void Run() override;
 
     private:
-        const std::string SUPPORT_TOPICS = "thread_tune";
         Topic depTopic;
         int cpuNum = 0;
         int maxNode = 0;

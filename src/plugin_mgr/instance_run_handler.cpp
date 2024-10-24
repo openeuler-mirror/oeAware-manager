@@ -142,7 +142,7 @@ void InstanceRunHandler::change_instance_state(const std::string &name, std::vec
         }
         auto instance = memory_store.get_instance(dep);
         if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] ilegal dependency: " << dep);
+            ERROR("[InstanceRunHandler] illegal dependency: " << dep);
             continue;
         }
         memory_store.delete_edge(name, instance->get_name());
@@ -158,7 +158,7 @@ void InstanceRunHandler::change_instance_state(const std::string &name, std::vec
         }
         auto instance = memory_store.get_instance(after_dep);
         if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] ilegal dependency: " << after_dep);
+            ERROR("[InstanceRunHandler] illegal dependency: " << after_dep);
             continue;
         }
         in_degree[instance->get_name()]++;

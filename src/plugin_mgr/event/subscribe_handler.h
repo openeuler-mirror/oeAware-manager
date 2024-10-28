@@ -13,16 +13,19 @@
 #define PLUGIN_MGR_EVENT_SUBSCRIBE_HANDLER_H
 #include "event_handler.h"
 #include "manager_callback.h"
+#include "instance_run_handler.h"
 
 namespace oeaware {
 class SubscribeHandler : public Handler {
 public:
-    explicit SubscribeHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
+    SubscribeHandler(ManagerCallbackPtr managerCallback, InstanceRunHandlerPtr instanceRunHandler)
+        : managerCallback(managerCallback), instanceRunHandler(instanceRunHandler) { }
     EventResult Handle(const Event &event) override;
 private:
     Result Subscribe(const std::string &name, const Topic &topic);
 private:
-    std::shared_ptr<ManagerCallback> managerCallback;
+    ManagerCallbackPtr managerCallback;
+    InstanceRunHandlerPtr instanceRunHandler;
 };
 }
 #endif

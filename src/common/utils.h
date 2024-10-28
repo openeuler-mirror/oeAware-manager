@@ -26,6 +26,8 @@ int GetGidByGroupName(const std::string &groupName);
 bool FileExist(const std::string &fileName);
 bool EndWith(const std::string &s, const std::string &ending);
 std::string Concat(const std::vector<std::string>& strings, const std::string &split);
+// Separate "str" with the separator "split"
+std::vector<std::string> SplitString(const std::string &str, const std::string &split);
 }
 
 #endif // !COMMON_UTILS_H

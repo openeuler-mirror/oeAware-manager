@@ -21,7 +21,6 @@
 namespace oeaware {
 class OeClient::Impl {
 public:
-    using Callback = std::function<int(const DataList &dataList)>;
     int Init();
     int Subscribe(const Topic &topic, Callback callback);
     int Unsubscribe(const Topic &topic);
@@ -105,7 +104,7 @@ int OeClient::Impl::HandleRequest(const Opt &opt, const std::vector<std::string>
 
 int OeClient::Impl::Subscribe(const Topic &topic, Callback callback)
 {
-    if (HandleRequest(Opt::SUBSCRIBE, {encode(topic)}) < 0) {
+    if (HandleRequest(Opt::SUBSCRIBE, {Encode(topic)}) < 0) {
         return -1;
     }
     auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
@@ -115,7 +114,7 @@ int OeClient::Impl::Subscribe(const Topic &topic, Callback callback)
 
 int OeClient::Impl::Unsubscribe(const Topic &topic)
 {
-    if (HandleRequest(Opt::UNSUBSCRIBE, {encode(topic)}) < 0) {
+    if (HandleRequest(Opt::UNSUBSCRIBE, {Encode(topic)}) < 0) {
         return -1;
     }
     auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
@@ -125,7 +124,7 @@ int OeClient::Impl::Unsubscribe(const Topic &topic)
 
 int OeClient::Impl::Publish(const Topic &topic, const DataList &dataList)
 {
-    return HandleRequest(Opt::PUBLISH, {encode(topic), encode(dataList)});
+    return HandleRequest(Opt::PUBLISH, {Encode(topic), Encode(dataList)});
 }
 
 void OeClient::Impl::Close()
@@ -134,8 +133,12 @@ void OeClient::Impl::Close()
     finished = true;
 }
 
-OeClient::OeClient() : impl(std::make_unique<Impl>()) { }
+OeClient::OeClient() : impl(new Impl()) { }
 
+OeClient::~OeClient()
+{
+    delete impl;
+}
 int OeClient::Init()
 {
     return impl->Init();

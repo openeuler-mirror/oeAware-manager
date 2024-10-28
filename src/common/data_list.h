@@ -40,6 +40,9 @@ struct Topic {
     }
 };
 
+const int OK = 0;
+const int FAILED = -1;
+
 struct Result {
     int code;
     std::string payload;
@@ -68,6 +71,9 @@ struct DataList {
         in >> len;
         for (size_t i = 0; i < len; ++i) {
             auto realData = BaseData::Create(type);
+            if (realData == nullptr) {
+                realData = BaseData::Create(topic.instanceName);
+            }
             in >> realData;
             data.emplace_back(realData);
         }

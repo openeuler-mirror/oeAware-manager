@@ -13,14 +13,17 @@
 #define PLUGIN_MGR_EVENT_UNSUBSCRIBE_HANDLER_H
 #include "event_handler.h"
 #include "manager_callback.h"
+#include "instance_run_handler.h"
 
 namespace oeaware {
 class UnsubscribeHandler : public Handler {
 public:
-    explicit UnsubscribeHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
+    explicit UnsubscribeHandler(ManagerCallbackPtr managerCallback, InstanceRunHandlerPtr instanceRunHandler)
+        : managerCallback(managerCallback), instanceRunHandler(instanceRunHandler) { }
     EventResult Handle(const Event &event) override;
 private:
-    std::shared_ptr<ManagerCallback> managerCallback;
+    ManagerCallbackPtr managerCallback;
+    InstanceRunHandlerPtr instanceRunHandler;
 };
 }
 #endif

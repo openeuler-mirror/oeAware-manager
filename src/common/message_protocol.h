@@ -147,22 +147,6 @@ private:
 
 bool RecvMessage(SocketStream &stream, MessageProtocol &msgProtocol);
 bool SendMessage(SocketStream &stream, MessageProtocol &msgProtocol);
-
-template<typename T>
-std::string Encode(const T &msg)
-{
-    OutStream out;
-    out << msg;
-    return out.Str();
-}
-
-template<typename T>
-int Decode(T &msg, const std::string &content)
-{
-    InStream in(content);
-    in >> msg;
-    return 0;
-}
 }
 
 #endif // !COMMON_MESSAGE_PROTOCOL_H

@@ -135,6 +135,9 @@ static void GetEventResult(Message &msg, EventResultQueue sendMessage)
     }
 }
 
+const int DISCONNECTED = -1;
+const int DISCONNECTED_AND_UNSUBCRIBE = -2;
+
 void TcpMessageHandler::Init(EventQueue newRecvMessage, EventResultQueue newSendMessage, EventQueue newRecvData)
 {
     recvMessage = newRecvMessage;
@@ -177,7 +180,7 @@ bool TcpMessageHandler::IsConn(int fd)
 
 void TcpMessageHandler::CloseConn(int fd)
 {
-    conns[fd] = -1;
+    conns[fd] = DISCONNECTED;
 }
 
 bool TcpMessageHandler::HandleMessage(int fd)
@@ -215,7 +218,9 @@ void TcpMessageHandler::Start()
             continue;
         }
         int fd = atoi(event.payload[0].c_str());
-        if (!conns.count(fd)) {
+        if (!conns.count(fd) || conns[fd] == DISCONNECTED) {
+            conns[fd] = DISCONNECTED_AND_UNSUBCRIBE;
+            recvMessage->Push(Event{Opt::UNSUBSCRIBE, EventType::INTERNAL, {std::to_string(fd)}});
             continue;
         }
         SocketStream stream(fd);

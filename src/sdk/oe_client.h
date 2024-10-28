@@ -14,10 +14,12 @@
 #include "data_list.h"
 
 namespace oeaware {
+using Callback = int(*)(const DataList &);
+
 class OeClient {
 public:
-    using Callback = std::function<int(const DataList &dataList)>;
     OeClient();
+    ~OeClient();
     int Init();
     int Subscribe(const Topic &topic, Callback callback);
     int Unsubscribe(const Topic &topic);
@@ -25,7 +27,7 @@ public:
     void Close();
 private:
     class Impl;
-    std::unique_ptr<Impl> impl;
+    Impl *impl;
 };
 }
 

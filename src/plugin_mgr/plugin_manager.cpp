@@ -54,8 +54,8 @@ void PluginManager::InitEventHandler()
     eventHandler[Opt::DISABLED] = std::make_shared<DisableHandler>(instanceRunHandler);
     eventHandler[Opt::LIST] = std::make_shared<ListHandler>(config);
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
-    eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback);
-    eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback);
+    eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback, instanceRunHandler);
+    eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback, instanceRunHandler);
 }
 
 void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,
@@ -132,7 +132,7 @@ void PluginManager::Exit()
 {
     this->recvMessage->Push(Event(Opt::SHUTDOWN));
     auto allPlugins = memoryStore->GetAllPlugins();
-    auto msg = std::make_shared<InstanceRunMessage>(RunType::SHUTDOWN, nullptr);
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::SHUTDOWN);
     SendMsgToInstancRunHandler(msg);
     msg->Wait();
     for (auto plugin : allPlugins) {

@@ -348,7 +348,7 @@ InStream& InStream::operator>>(std::vector<std::shared_ptr<T>> &data)
 }
 
 template<typename T>
-std::string encode(const T &msg)
+std::string Encode(const T &msg)
 {
     oeaware::OutStream out;
     out << msg;
@@ -356,7 +356,7 @@ std::string encode(const T &msg)
 }
 
 template<typename T>
-bool decode(T &msg, const std::string &content)
+bool Decode(T &msg, const std::string &content)
 {
     try {
         oeaware::InStream in(content);

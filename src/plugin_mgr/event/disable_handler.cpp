@@ -17,14 +17,14 @@ ErrorCode DisableHandler::InstanceDisabled(const std::string &name)
     if (!memoryStore->IsInstanceExist(name)) {
         return ErrorCode::DISABLE_INSTANCE_NOT_LOAD;
     }
-    std::shared_ptr<Instance> instance = memoryStore->GetInstance(name);
+    auto instance = memoryStore->GetInstance(name);
     if (!instance->state) {
         return ErrorCode::DISABLE_INSTANCE_UNAVAILABLE;
     }
     if (!instance->enabled) {
         return ErrorCode::DISABLE_INSTANCE_ALREADY_DISABLED;
     }
-    auto msg = std::make_shared<InstanceRunMessage>(RunType::DISABLED, instance);
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::DISABLED, std::vector<std::string>{instance->name});
     instanceRunHandler->RecvQueuePush(msg);
     msg->Wait();
     return ErrorCode::OK;
@@ -32,7 +32,7 @@ ErrorCode DisableHandler::InstanceDisabled(const std::string &name)
 
 EventResult DisableHandler::Handle(const Event &event)
 {
-    std::string name = event.payload[0];
+    auto name = event.payload[0];
     auto retCode = InstanceDisabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {

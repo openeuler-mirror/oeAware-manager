@@ -14,20 +14,21 @@
 namespace oeaware {
 EventResult UnsubscribeHandler::Handle(const Event &event)
 {
-    Topic topic;
-    InStream in(event.payload[0]);
-    topic.Deserialize(in);
     EventResult eventResult;
     Result result;
-    if (managerCallback->Unsubscribe(event.payload[1], topic, 0) == 0) {
-        INFO(logger, topic.topicName << " topic unsubscribed.");
-        result.code = 0;
-    } else {
-        WARN(logger, topic.topicName << " topic unsubscribed failed.");
-        result.code = -1;
+    if (event.payload.size() == 1) {
+        auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE_SDK, event.payload);
+        instanceRunHandler->RecvQueuePush(msg);
+        msg->Wait();
+        INFO(logger, "sdk " << event.payload[0] << " disconnected and has been unsubscribed related topics.");
+        return eventResult;
     }
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE_SDK, event.payload);
+    instanceRunHandler->RecvQueuePush(msg);
+    msg->Wait();
+    result = msg->result;
     eventResult.opt = Opt::UNSUBSCRIBE;
-    eventResult.payload.emplace_back(encode(result));
+    eventResult.payload.emplace_back(Encode(result));
     return eventResult;
 }
 }

@@ -17,19 +17,19 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
     if (!memoryStore->IsInstanceExist(name)) {
         return ErrorCode::ENABLE_INSTANCE_NOT_LOAD;
     }
-    std::shared_ptr<Instance> instance = memoryStore->GetInstance(name);
+    auto instance = memoryStore->GetInstance(name);
     if (!instance->state) {
         return ErrorCode::ENABLE_INSTANCE_UNAVAILABLE;
     }
     if (instance->enabled) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
-    std::shared_ptr<InstanceRunMessage> msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, instance);
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, std::vector<std::string>{instance->name});
     /* Send message to InstanceRunHandler. */
     instanceRunHandler->RecvQueuePush(msg);
     /* Wait for InstanceRunHandler to finsh this task. */
     msg->Wait();
-    if (msg->GetInstance()->enabled) {
+    if (instance->enabled) {
         return ErrorCode::OK;
     } else {
         return ErrorCode::ENABLE_INSTANCE_ENV;
@@ -38,7 +38,7 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
 
 EventResult EnableHandler::Handle(const Event &event)
 {
-    std::string name = event.payload[0];
+    auto name = event.payload[0];
     auto retCode = InstanceEnabled(name);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {

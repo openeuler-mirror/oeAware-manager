@@ -22,6 +22,10 @@ enum class RunType {
     /* Message from PluginManager. */
     ENABLED,
     DISABLED,
+    DISABLED_FORCE,
+    SUBSCRIBE,
+    UNSUBSCRIBE,
+    UNSUBSCRIBE_SDK,
     SHUTDOWN,
  };
 
@@ -29,15 +33,12 @@ enum class RunType {
 class InstanceRunMessage {
 public:
     InstanceRunMessage() {}
-    InstanceRunMessage(RunType type, std::shared_ptr<Instance> instance) : type(type), instance(instance),
+    explicit InstanceRunMessage(RunType type) : type(type) { }
+    InstanceRunMessage(RunType type, const std::vector<std::string> &payload) : payload(payload), type(type),
         finish(false) { }
     RunType GetType()
     {
         return type;
-    }
-    std::shared_ptr<Instance> GetInstance()
-    {
-        return instance;
     }
     void Wait()
     {
@@ -52,9 +53,11 @@ public:
         finish = true;
         cond.notify_one();
     }
+
+    std::vector<std::string> payload;
+    Result result;
 private:
     RunType type;
-    std::shared_ptr<Instance> instance;
     std::mutex mutex;
     std::condition_variable cond;
     bool finish;
@@ -104,14 +107,19 @@ public:
 private:
     void Start();
     void UpdateData();
-    void EnableInstance(const std::string &name);
+    Result Subscribe(const std::vector<std::string> &payload);
+    Result Unsubscribe(const std::vector<std::string> &payload);
+    Result UnsubscribeSdk(const std::vector<std::string> &payload);
+    void UpdateInDegreeIter(InDegree::iterator &pins);
+    void UpdateInstance();
+    Result EnableInstance(const std::string &name);
     void DisableInstance(const std::string &name, bool force);
+    bool CheckInstanceDisable(const std::string &name);
 private:
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> scheduleQueue;
     /* Receives messages from the PluginManager. */
     SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
-    std::unordered_map<std::string, int> inDegree;
     std::shared_ptr<MemoryStore> memoryStore;
     std::shared_ptr<ManagerCallback> managerCallback;
     log4cplus::Logger logger;
@@ -119,6 +127,9 @@ private:
     uint64_t cycle;
     static const uint64_t defaultCycleSize = 10;
 };
+
+using InstanceRunHandlerPtr = std::shared_ptr<InstanceRunHandler>;
+
 }
 
 #endif // !PLUGIN_MGR_INSTANCE_RUN_HANDLER_H

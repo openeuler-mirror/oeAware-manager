@@ -51,7 +51,10 @@ private:
     EventQueue recvMessage;
     /* Event queue stores Events from PluginManager and is consumed by TcpSocket. */
     EventResultQueue sendMessage;
-    /* key:fd, value:type, the first bit of type indicates cmd, the second bit indicates sdk. */
+    /* key:fd, value:type, the first bit of type indicates cmd, the second bit indicates sdk.
+       value == -1 indicates disconnected
+       value == -2 indicates disconnected and unsubscribe related topics
+    */
     std::unordered_map<int, int> conns;
     EventQueue recvData;
     log4cplus::Logger logger;

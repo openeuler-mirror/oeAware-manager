@@ -17,22 +17,27 @@
 #include "event.h"
 
 namespace oeaware {
+using InDegree = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, int>>>;
 class ManagerCallback {
 public:
     // type : 0 sdk, 1 instance
     int Subscribe(const std::string &name, const Topic &topic, int type);
     int Unsubscribe(const std::string &name, const Topic &topic, int type);
+    // Unsubscribe all topics subscribed by "name".
+    std::vector<std::string> Unsubscribe(const std::string &name);
     void Publish(const DataList &dataList);
     void Init(EventQueue newRecvData);
-public:
+    
     // Data to be updated for the instance.
     std::vector<DataList> publishData;
     std::unordered_map<std::string, std::unordered_set<std::string>> topicInstance;
+    InDegree inDegree;
 private:
     std::unordered_map<std::string, std::unordered_set<std::string>> topicSdk;
     std::mutex mutex;
     EventQueue recvData;
 };
+using ManagerCallbackPtr = std::shared_ptr<ManagerCallback>;
 }
 
 #endif

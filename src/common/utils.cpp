@@ -12,6 +12,7 @@
 #include "utils.h"
 #include <algorithm>
 #include <fstream>
+#include <regex>
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include <grp.h>
@@ -132,10 +133,6 @@ bool EndWith(const std::string &s, const std::string &ending)
     }
 }
 
-const unsigned int HASH_VALUE = 0x9e3779b9;
-const int SHIFT_LEFT = 6;
-const int SHIFT_RIGHT = 2;
-
 std::string Concat(const std::vector<std::string>& strings, const std::string &split)
 {
     std::string ret;
@@ -148,4 +145,15 @@ std::string Concat(const std::vector<std::string>& strings, const std::string &s
     return ret;
 }
 
+std::vector<std::string> SplitString(const std::string &str, const std::string &split)
+{
+    std::vector<std::string> tokens;
+    std::regex re(split);
+    std::sregex_token_iterator iter(str.begin(), str.end(), re, -1);
+    std::sregex_token_iterator end;
+    while (iter != end) {
+        tokens.emplace_back(*iter++);
+    }
+    return tokens;
+}
 }

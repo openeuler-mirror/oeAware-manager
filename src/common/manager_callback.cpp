@@ -26,20 +26,41 @@ int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int 
     } else {
         topicSdk[topicName].insert(name);
     }
+    inDegree[topic.instanceName][topic.topicName][topic.params]++;
     return 0;
 }
 
 int ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic, int type)
 {
     auto topicName = topic.GetType();
-    auto p = std::make_pair(name, type);
     std::lock_guard<std::mutex> lock(mutex);
-   if (type) {
+    if (type) {
         topicInstance[topicName].erase(name);
     } else {
         topicSdk[topicName].erase(name);
     }
+    --inDegree[topic.instanceName][topic.topicName][topic.params];
     return 0;
+}
+
+std::vector<std::string> ManagerCallback::Unsubscribe(const std::string &name)
+{
+    std::vector<std::string> ret;
+    std::lock_guard<std::mutex> lock(mutex);
+    for (auto &p : topicSdk) {
+        auto &subscriber = p.second;
+        auto topicType = p.first;
+        auto names = SplitString(topicType, "::");
+        auto instanceName = names[0];
+        auto topicName = names[1];
+        auto params = (names.size() > 2 ? names[2] : "");
+        if (subscriber.count(name)) {
+            subscriber.erase(name);
+            ret.emplace_back(instanceName);
+            --inDegree[instanceName][topicName][params];
+        }
+    }
+    return ret;
 }
 
 void ManagerCallback::Publish(const DataList &dataList)

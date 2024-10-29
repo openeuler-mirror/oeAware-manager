@@ -14,22 +14,106 @@
 #include <unistd.h>
 
 namespace oeaware {
-void InstanceRunHandler::EnableInstance(const std::string &name)
+Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
     auto instance = memoryStore->GetInstance(name);
     if (instance->interface->Enable() < 0) {
         WARN(logger, name << " instance enabled failed!");
-        return;
+        return Result{FAILED};
     }
     instance->enabled = true;
     scheduleQueue.push(ScheduleInstance{instance, time});
+    return Result{OK};
+}
+
+bool InstanceRunHandler::CheckInstanceDisable(const std::string &name)
+{
+    return managerCallback->inDegree[name].empty();
 }
 
 void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
 {
+    if (!force && !CheckInstanceDisable(name)) {
+        return;
+    }
     auto instance = memoryStore->GetInstance(name);
     instance->enabled = false;
     instance->interface->Disable();
+    INFO(logger, "instance " << name << " has been disabled.");
+}
+
+Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
+{
+    Topic topic;
+    Decode(topic, payload[0]);
+    auto instance = memoryStore->GetInstance(topic.instanceName);
+    if (!instance->enabled) {
+        auto result = EnableInstance(instance->name);
+        if (result.code < 0) {
+            WARN(logger, "failed to start the instance of the subscription topic, instance: " << instance->name);
+            return result;
+        }
+    }
+    Result result;
+    if (managerCallback->Subscribe(payload[1], topic, 0) < 0) {
+        WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
+        result.code = FAILED;
+        return result;
+    }
+    instance->interface->OpenTopic(topic);
+    result.code = OK;
+    return result;
+}
+
+void InstanceRunHandler::UpdateInDegreeIter(InDegree::iterator &pins)
+{
+    auto instance = memoryStore->GetInstance(pins->first);
+    for (auto pt = pins->second.begin(); pt != pins->second.end();) {
+        for (auto pa = pt->second.begin(); pa != pt->second.end();) {
+            if (pa->second <= 0) {
+                instance->interface->CloseTopic(Topic{pins->first, pt->first, pa->first});
+                pa = pt->second.erase(pa);
+            } else {
+                pa++;
+            }
+        }
+        if (pt->second.empty()) {
+            pt = pins->second.erase(pt);
+        } else {
+            pt++;
+        }
+    }
+    if (pins->second.empty()) {
+        DisableInstance(pins->first, false);
+        pins = managerCallback->inDegree.erase(pins);
+    } else {
+        pins++;
+    }
+}
+
+void InstanceRunHandler::UpdateInstance()
+{
+    for (auto pins = managerCallback->inDegree.begin(); pins != managerCallback->inDegree.end();) {
+        UpdateInDegreeIter(pins);
+    }
+}
+
+Result InstanceRunHandler::Unsubscribe(const std::vector<std::string> &payload)
+{
+    Result result;
+    Topic topic;
+    Decode(topic, payload[0]);
+    managerCallback->Unsubscribe(payload[1], topic, 0);
+    UpdateInstance();
+    return result;
+}
+
+Result InstanceRunHandler::UnsubscribeSdk(const std::vector<std::string> &payload)
+{
+    Result result;
+    managerCallback->Unsubscribe(payload[0]);
+    UpdateInstance();
+    return result;
 }
 
 bool InstanceRunHandler::HandleMessage()
@@ -37,14 +121,29 @@ bool InstanceRunHandler::HandleMessage()
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
     while (this->RecvQueueTryPop(msg)) {
-        std::shared_ptr<Instance> instance = msg->GetInstance();
         switch (msg->GetType()) {
             case RunType::ENABLED: {
-                EnableInstance(instance->name);
+                EnableInstance(msg->payload[0]);
                 break;
             }
             case RunType::DISABLED: {
-                DisableInstance(instance->name, true);
+                DisableInstance(msg->payload[0], false);
+                break;
+            }
+            case RunType::DISABLED_FORCE: {
+                DisableInstance(msg->payload[0], true);
+                break;
+            }
+            case RunType::SUBSCRIBE: {
+                msg->result = Subscribe(msg->payload);
+                break;
+            }
+            case RunType::UNSUBSCRIBE: {
+                Unsubscribe(msg->payload);
+                break;
+            }
+            case RunType::UNSUBSCRIBE_SDK: {
+                UnsubscribeSdk(msg->payload);
                 break;
             }
             case RunType::SHUTDOWN: {

@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "manager_callback.h"
+#include "data_register.h"
 
 namespace oeaware {
 void ManagerCallback::Init(EventQueue newRecvData)
@@ -19,12 +20,12 @@ void ManagerCallback::Init(EventQueue newRecvData)
 
 int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int type)
 {
-    auto topicName = topic.GetType();
+    auto topicType = topic.GetType();
     std::lock_guard<std::mutex> lock(mutex);
     if (type) {
-        topicInstance[topicName].insert(name);
+        topicInstance[topicType].insert(name);
     } else {
-        topicSdk[topicName].insert(name);
+        topicSdk[topicType].insert(name);
     }
     inDegree[topic.instanceName][topic.topicName][topic.params]++;
     return 0;
@@ -32,12 +33,12 @@ int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int 
 
 int ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic, int type)
 {
-    auto topicName = topic.GetType();
+    auto topicType = topic.GetType();
     std::lock_guard<std::mutex> lock(mutex);
     if (type) {
-        topicInstance[topicName].erase(name);
+        topicInstance[topicType].erase(name);
     } else {
-        topicSdk[topicName].erase(name);
+        topicSdk[topicType].erase(name);
     }
     --inDegree[topic.instanceName][topic.topicName][topic.params];
     return 0;
@@ -65,12 +66,13 @@ std::vector<std::string> ManagerCallback::Unsubscribe(const std::string &name)
 
 void ManagerCallback::Publish(const DataList &dataList)
 {
-    auto &topic = dataList.topic;
+    auto &cTopic = dataList.topic;
+    Topic topic{cTopic.instanceName, cTopic.topicName, cTopic.params};
     auto topicName = topic.GetType();
     for (auto &name : topicSdk[topicName]) {
         // sdk, send message to romte
         OutStream out;
-        dataList.Serialize(out);
+        DataListSerialize(&dataList, out);
         recvData->Push(Event(Opt::DATA, {name, out.Str()}));
     }
     publishData.emplace_back(dataList);

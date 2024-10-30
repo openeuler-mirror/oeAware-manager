@@ -33,6 +33,8 @@ PmuSpeCollector::PmuSpeCollector(): oeaware::Interface()
 
 void PmuSpeCollector::InitSpeAttr(struct PmuAttr &attr)
 {
+    attr.evtList = nullptr;
+    attr.numEvt = 0;
     attr.pidList = nullptr;
     attr.numPid = 0;
     attr.cpuList = nullptr;
@@ -54,17 +56,6 @@ int PmuSpeCollector::OpenSpe(const oeaware::Topic &topic)
 {
     struct PmuAttr attr;
     InitSpeAttr(attr);
-
-    char *evtList[1];
-    evtList[0] = new char[topic.topicName.length() + 1];
-    errno_t ret = strcpy_s(evtList[0], topic.topicName.length() + 1, topic.topicName.c_str());
-    if (ret != EOK) {
-        std::cout << topic.topicName << " open failed, reason: strcpy_s failed" << std::endl;
-        return -1;
-    }
-    attr.evtList = evtList;
-    attr.numEvt = 1;
-
     int pd = PmuOpen(SPE_SAMPLING, &attr);
     if (pd == -1) {
         std::cout << "open spe failed" << std::endl;
@@ -73,25 +64,23 @@ int PmuSpeCollector::OpenSpe(const oeaware::Topic &topic)
     return pd;
 }
 
-int PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
+oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name || topic.topicName != topicStr) {
-        std::cout << "OpenTopic failed" << std::endl;
-        return -1;
+        return oeaware::Result(FAILED, "OpenTopic failed");
     }
 
     if (pmuId == -1) {
         pmuId = OpenSpe(topic);
         if (pmuId == -1) {
-            std::cout << "OpenTopic failed, PmuOpen failed" << std::endl;
-            return -1;
+            return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
         }
         PmuEnable(pmuId);
         timestamp = std::chrono::high_resolution_clock::now();
-        return 0;
+        return oeaware::Result(OK);
     }
 
-    return -1;
+    return oeaware::Result(FAILED);
 }
 
 void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
@@ -105,9 +94,9 @@ void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuSpeCollector::Enable(const std::string &parma)
+oeaware::Result PmuSpeCollector::Enable(const std::string &parma)
 {
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void PmuSpeCollector::Disable()
@@ -115,7 +104,7 @@ void PmuSpeCollector::Disable()
     return;
 }
 
-void PmuSpeCollector::UpdateData(const oeaware::DataList &dataList)
+void PmuSpeCollector::UpdateData(const DataList &dataList)
 {
     return;
 }
@@ -123,7 +112,7 @@ void PmuSpeCollector::UpdateData(const oeaware::DataList &dataList)
 void PmuSpeCollector::Run()
 {
     if (pmuId != -1) {
-        std::shared_ptr <PmuSpeData> data = std::make_shared<PmuSpeData>();
+        PmuSpeData *data = new PmuSpeData();
         PmuDisable(pmuId);
         data->len = PmuRead(pmuId, &(data->pmuData));
         PmuEnable(pmuId);
@@ -132,10 +121,14 @@ void PmuSpeCollector::Run()
         data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
         timestamp = now;
 
-        struct oeaware::DataList dataList;
-        dataList.topic.instanceName = this->name;
-        dataList.topic.topicName = topicStr;
-        dataList.data.push_back(data);
+        DataList dataList;
+        dataList.topic.instanceName = "pmu_spe_collector";
+        dataList.topic.topicName = new char[topicStr.size() + 1];
+        strcpy_s(dataList.topic.topicName, topicStr.size() + 1, topicStr.data());
+        dataList.topic.params = "";
+        dataList.len = 1;
+        dataList.data = new void* [1];
+        dataList.data[0] = data;
         Publish(dataList);
     }
 }

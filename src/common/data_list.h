@@ -11,73 +11,29 @@
  ******************************************************************************/
 #ifndef COMMON_DATA_LIST_H
 #define COMMON_DATA_LIST_H
-#include "data_register.h"
-#include "utils.h"
-
-namespace oeaware {
-struct Topic {
-    std::string instanceName;
-    std::string topicName;
-    std::string params;
-    void Serialize(oeaware::OutStream &out) const
-    {
-        out << instanceName << topicName << params;
-    }
-    void Deserialize(oeaware::InStream &in)
-    {
-        in >> instanceName >> topicName >> params;
-    }
-    std::string GetDataType() const
-    {
-        if (topicName.empty()) {
-            return instanceName;
-        }
-        return Concat({instanceName, topicName}, "::");
-    }
-    std::string GetType() const
-    {
-        return Concat({instanceName, topicName, params}, "::");
-    }
-};
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 const int OK = 0;
 const int FAILED = -1;
 
-struct Result {
-    int code;
-    std::string payload;
-    void Serialize(oeaware::OutStream &out) const
-    {
-        out << code << payload;
-    }
-    void Deserialize(oeaware::InStream &in)
-    {
-        in >> code >> payload;
-    }
-};
+typedef struct {
+    char *instanceName;
+    char *topicName;
+    char *params;
+} CTopic;
 
-struct DataList {
-    Topic topic;
-    std::vector<std::shared_ptr<BaseData>> data;
-    void Serialize(oeaware::OutStream &out) const
-    {
-        out << topic << data;
-    }
-    void Deserialize(oeaware::InStream &in)
-    {
-        in >> topic;
-        auto type = topic.GetDataType();
-        size_t len;
-        in >> len;
-        for (size_t i = 0; i < len; ++i) {
-            auto realData = BaseData::Create(type);
-            if (realData == nullptr) {
-                realData = BaseData::Create(topic.instanceName);
-            }
-            in >> realData;
-            data.emplace_back(realData);
-        }
-    }
-};
+typedef struct {
+    CTopic topic;
+    unsigned long long len;
+    void **data;
+} DataList;
+
+typedef struct {
+    int code;
+    char *payload;
+} Result;
+#ifdef __cplusplus
 }
+#endif
 #endif

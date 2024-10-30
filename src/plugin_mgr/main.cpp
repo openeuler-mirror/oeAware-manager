@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include <csignal>
 #include "plugin_manager.h"
+#include "data_register.h"
 #include "utils.h"
 
 int main(int argc, char **argv)
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     messageManager.Run();
+    oeaware::Register::GetInstance().InitRegisterData();
     INFO(logger, "Start plugin manager!");
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
     pluginManager.Init(config, recvMessage, sendMessage, recvData);

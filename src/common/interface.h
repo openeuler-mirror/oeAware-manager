@@ -13,6 +13,7 @@
 #define COMMON_INTERFACE_H
 #include "data_list.h"
 #include "manager_callback.h"
+#include "logger.h"
 
 namespace oeaware {
 class Interface {
@@ -22,6 +23,10 @@ public:
     void SetManagerCallback(std::shared_ptr<ManagerCallback> newManagerCallback)
     {
         this->managerCallback = newManagerCallback;
+    }
+    void SetLogger(const log4cplus::Logger &newLogger)
+    {
+        logger = newLogger;
     }
     std::string GetName() const
     {
@@ -51,10 +56,10 @@ public:
     {
         return supportTopics;
     }
-    virtual int OpenTopic(const Topic &topic) = 0;
+    virtual Result OpenTopic(const Topic &topic) = 0;
     virtual void CloseTopic(const Topic &topic) = 0;
     virtual void UpdateData(const DataList &dataList) = 0;
-    virtual int Enable(const std::string &parma = "") = 0;
+    virtual Result Enable(const std::string &parma = "") = 0;
     virtual void Disable() = 0;
     virtual void Run() = 0;
 protected:
@@ -62,6 +67,7 @@ protected:
     std::string version;
     std::string description;
     std::vector<Topic> supportTopics;
+    log4cplus::Logger logger;
     int priority;
     int type;
     int period;

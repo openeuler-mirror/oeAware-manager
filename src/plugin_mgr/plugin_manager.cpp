@@ -69,6 +69,7 @@ void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage,
     memoryStore = std::make_shared<MemoryStore>();
     instanceRunHandler = std::make_shared<InstanceRunHandler>(memoryStore, managerCallback);
     Logger::GetInstance().Register("PluginManager");
+    Logger::GetInstance().Register("Plugin");
     logger = Logger::GetInstance().Get("PluginManager");
     InitEventHandler();
 }

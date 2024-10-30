@@ -17,13 +17,14 @@ namespace oeaware {
 Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
     auto instance = memoryStore->GetInstance(name);
-    if (instance->interface->Enable() < 0) {
+    auto result = instance->interface->Enable();
+    if (result.code < 0) {
         WARN(logger, name << " instance enabled failed!");
-        return Result{FAILED};
+        return result;
     }
     instance->enabled = true;
     scheduleQueue.push(ScheduleInstance{instance, time});
-    return Result{OK};
+    return result;
 }
 
 bool InstanceRunHandler::CheckInstanceDisable(const std::string &name)
@@ -44,24 +45,26 @@ void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
 
 Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
 {
-    Topic topic;
-    Decode(topic, payload[0]);
+    Topic topic{payload[0], payload[1], payload[2]};
+    Result result;
     auto instance = memoryStore->GetInstance(topic.instanceName);
     if (!instance->enabled) {
-        auto result = EnableInstance(instance->name);
+        result = EnableInstance(instance->name);
         if (result.code < 0) {
             WARN(logger, "failed to start the instance of the subscription topic, instance: " << instance->name);
             return result;
         }
     }
-    Result result;
-    if (managerCallback->Subscribe(payload[1], topic, 0) < 0) {
+    result = instance->interface->OpenTopic(topic);
+    if (result.code < 0) {
+        DisableInstance(instance->name, false);
+        return result;
+    }
+    if (managerCallback->Subscribe(payload[3], topic, 0) < 0) {
         WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
         result.code = FAILED;
         return result;
     }
-    instance->interface->OpenTopic(topic);
-    result.code = OK;
     return result;
 }
 
@@ -71,7 +74,7 @@ void InstanceRunHandler::UpdateInDegreeIter(InDegree::iterator &pins)
     for (auto pt = pins->second.begin(); pt != pins->second.end();) {
         for (auto pa = pt->second.begin(); pa != pt->second.end();) {
             if (pa->second <= 0) {
-                instance->interface->CloseTopic(Topic{pins->first, pt->first, pa->first});
+                instance->interface->CloseTopic(Topic{pins->first.data(), pt->first.data(), pa->first.data()});
                 pa = pt->second.erase(pa);
             } else {
                 pa++;
@@ -162,7 +165,8 @@ bool InstanceRunHandler::HandleMessage()
 void InstanceRunHandler::UpdateData()
 {
     for (auto &data : managerCallback->publishData) {
-        auto topic = data.topic;
+        auto cTopic = data.topic;
+        Topic topic{cTopic.instanceName, cTopic.topicName, cTopic.params};
         auto type = topic.GetType();
         for (auto &instanceName : managerCallback->topicInstance[type]) {
             auto instance = memoryStore->GetInstance(instanceName);
@@ -186,6 +190,10 @@ void InstanceRunHandler::Schedule()
         }
         instance->interface->Run();
         UpdateData();
+        // static plugin only run once
+        if (instance->interface->GetType() == 1) {
+            continue;
+        }
         schedule_instance.time += instance->interface->GetPeriod();
         scheduleQueue.push(schedule_instance);
     }

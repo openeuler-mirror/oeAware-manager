@@ -16,6 +16,8 @@
 #include <dirent.h>
 #include "pmu_uncore_collector.h"
 #include "pmu_uncore_data.h"
+#include "pmu_uncore.h"
+#include "pcerrc.h"
 
 PmuUncoreCollector::PmuUncoreCollector(): oeaware::Interface()
 {
@@ -66,63 +68,69 @@ void PmuUncoreCollector::InitUncoreAttr(struct PmuAttr &attr)
 int PmuUncoreCollector::OpenUncore(const oeaware::Topic &topic)
 {
     struct PmuAttr attr;
-    InitUncoreAttr(attr);
+    struct UncoreConfig *rxOuter;
+    struct UncoreConfig *rxSccl;
+    struct UncoreConfig *rxOpsNum;
+    int hhaNum;
+    int pd = -1;
+    int ret;
 
-    if (hhaDir.size() == 0) {
-        std::cout << "uncore hha devices don't exist." << std::endl;
-        return -1;
+    // Base on oeAware framework, uncore_open is called within uncore_enable.
+    // If pmu_uncore is not supported, it will generate a large number of error logs.
+    // So temporarily set uncore_is_open = true util oeAware framework provides open API.
+    ret = HhaUncoreConfigInit();
+    if (ret != 0) {
+        printf("This system not support pmu_uncore\n");
+        return pd;
     }
 
-    int evt_num = hhaDir.size() * eventStr.size();
-    char **evtList = new char *[evt_num];
-    for (size_t i = 0; i < hhaDir.size(); ++i) {
-        for (size_t j = 0; j < eventStr.size(); ++j) {
-            int evt_len = hhaDir[i].size() + eventStr[j].size() + 2; // +2 for '/' and '\0'
-            evtList[i * eventStr.size() + j] = new char[evt_len];
-            errno_t ret = snprintf_s(evtList[i * eventStr.size() + j], evt_len, evt_len - 1, "%s%s/",
-                                     hhaDir[i].c_str(), eventStr[j].c_str());
-            if (ret != EOK) {
-                std::cout << "OpenTopic failed, reason: snprintf_s failed" << std::endl;
-                return -1;
-            }
-        }
+    hhaNum = GetUncoreHhaNum();
+    rxOuter = GetRxOuter();
+    rxSccl = GetRxSccl();
+    rxOpsNum = GetRxOpsNum();
+
+    char *evtList[hhaNum * UNCORE_MAX];
+    for (int i = 0; i < hhaNum; i++) {
+        evtList[i + hhaNum * RX_OUTER] = rxOuter[i].uncoreName;
+        evtList[i + hhaNum * RX_SCCL] = rxSccl[i].uncoreName;
+        evtList[i + hhaNum * RX_OPS_NUM] = rxOpsNum[i].uncoreName;
     }
+
+    (void)memset_s(&attr, sizeof(struct PmuAttr), 0, sizeof(struct PmuAttr));
 
     attr.evtList = evtList;
-    attr.numEvt = evt_num;
-    int pd = PmuOpen(COUNTING, &attr);
+    attr.numEvt = hhaNum * UNCORE_MAX;
+    attr.pidList = NULL;
+    attr.numPid = 0;
+    attr.cpuList = NULL;
+    attr.numCpu = 0;
 
-    for (int i = 0; i < evt_num; ++i) {
-        delete[] evtList[i];
-    }
-    delete[] evtList;
-
+    pd = PmuOpen(COUNTING, &attr);
     if (pd == -1) {
-        std::cout << topic.topicName << " open failed" << std::endl;
+        printf("%s\n", Perror());
+        return pd;
     }
 
     return pd;
 }
 
-int PmuUncoreCollector::OpenTopic(const oeaware::Topic &topic)
+oeaware::Result PmuUncoreCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name || topic.topicName != topicStr) {
-        std::cout << "OpenTopic failed" << std::endl;
-        return -1;
+        return oeaware::Result(FAILED, "OpenTopic failed");
     }
 
     if (pmuId == -1) {
         pmuId = OpenUncore(topic);
         if (pmuId == -1) {
-            std::cout << "OpenTopic failed, PmuOpen failed" << std::endl;
-            return -1;
+            return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
         }
         PmuEnable(pmuId);
         timestamp = std::chrono::high_resolution_clock::now();
-        return 0;
+        return oeaware::Result(OK);
     }
 
-    return -1;
+    return oeaware::Result(FAILED);
 }
 
 void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
@@ -136,9 +144,9 @@ void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuUncoreCollector::Enable(const std::string &parma)
+oeaware::Result PmuUncoreCollector::Enable(const std::string &parma)
 {
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void PmuUncoreCollector::Disable()
@@ -146,7 +154,7 @@ void PmuUncoreCollector::Disable()
     return;
 }
 
-void PmuUncoreCollector::UpdateData(const oeaware::DataList &dataList)
+void PmuUncoreCollector::UpdateData(const DataList &dataList)
 {
     return;
 }
@@ -154,7 +162,7 @@ void PmuUncoreCollector::UpdateData(const oeaware::DataList &dataList)
 void PmuUncoreCollector::Run()
 {
     if (pmuId != -1) {
-        std::shared_ptr <PmuUncoreData> data = std::make_shared<PmuUncoreData>();
+        PmuUncoreData *data = new PmuUncoreData();
         PmuDisable(pmuId);
         data->len = PmuRead(pmuId, &(data->pmuData));
         PmuEnable(pmuId);
@@ -163,10 +171,14 @@ void PmuUncoreCollector::Run()
         data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
         timestamp = now;
 
-        struct oeaware::DataList dataList;
-        dataList.topic.instanceName = this->name;
-        dataList.topic.topicName = topicStr;
-        dataList.data.push_back(data);
+        DataList dataList;
+        dataList.topic.instanceName = "pmu_uncore_collector";
+        dataList.topic.topicName = new char[topicStr.size() + 1];
+        strcpy_s(dataList.topic.topicName, topicStr.size() + 1, topicStr.data());
+        dataList.topic.params = "";
+        dataList.len = 1;
+        dataList.data = new void* [1];
+        dataList.data[0] = data;
         Publish(dataList);
     }
 }

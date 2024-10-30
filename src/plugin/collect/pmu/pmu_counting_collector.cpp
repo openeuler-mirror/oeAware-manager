@@ -75,11 +75,10 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     return pd;
 }
 
-int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
+oeaware::Result PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name) {
-        std::cout << "OpenTopic failed" << std::endl;
-        return -1;
+        return oeaware::Result(FAILED, "OpenTopic failed");
     }
 
     for (auto &iter : topicStr) {
@@ -87,17 +86,16 @@ int PmuCountingCollector::OpenTopic(const oeaware::Topic &topic)
             if (pmuId[iter] == -1) {
                 pmuId[iter] = OpenCounting(topic);
                 if (pmuId[iter] == -1) {
-                    std::cout << "OpenTopic failed, PmuOpen failed" << std::endl;
-                    return -1;
+                    return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
                 }
                 PmuEnable(pmuId[iter]);
                 timestamp = std::chrono::high_resolution_clock::now();
-                return 0;
+                return oeaware::Result(OK);
             }
         }
     }
 
-    return -1;
+    return oeaware::Result(FAILED);
 }
 
 void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
@@ -111,9 +109,9 @@ void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuCountingCollector::Enable(const std::string &parma)
+oeaware::Result PmuCountingCollector::Enable(const std::string &parma)
 {
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void PmuCountingCollector::Disable()
@@ -121,7 +119,7 @@ void PmuCountingCollector::Disable()
     return;
 }
 
-void PmuCountingCollector::UpdateData(const oeaware::DataList &dataList)
+void PmuCountingCollector::UpdateData(const DataList &dataList)
 {
     return;
 }
@@ -130,7 +128,7 @@ void PmuCountingCollector::Run()
 {
     for (auto &iter : pmuId) {
         if (iter.second != -1) {
-            std::shared_ptr <PmuCountingData> data = std::make_shared<PmuCountingData>();
+            PmuCountingData* data = new PmuCountingData();
             PmuDisable(iter.second);
             data->len = PmuRead(iter.second, &(data->pmuData));
             PmuEnable(iter.second);
@@ -139,10 +137,14 @@ void PmuCountingCollector::Run()
             data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
             timestamp = now;
 
-            struct oeaware::DataList dataList;
-            dataList.topic.instanceName = this->name;
-            dataList.topic.topicName = iter.first;
-            dataList.data.push_back(data);
+            DataList dataList;
+            dataList.topic.instanceName = "pmu_counting_collector";
+            dataList.topic.topicName = new char[iter.first.size() + 1];
+            strcpy_s(dataList.topic.topicName, iter.first.size() + 1, iter.first.data());
+            dataList.topic.params = "";
+            dataList.data = new void* [1];
+            dataList.len = 1;
+            dataList.data[0] = data;
             Publish(dataList);
         }
     }

@@ -12,10 +12,12 @@
 
 #include "interface.h"
 #include "thread_collector.h"
+#include "kernel_config.h"
 
 using namespace oeaware;
 
 void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<ThreadCollector>());
+    interface.emplace_back(std::make_shared<KernelConfig>());
 }

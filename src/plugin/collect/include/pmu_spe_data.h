@@ -12,18 +12,18 @@
 
 #ifndef PMU_SPE_DATA_H
 #define PMU_SPE_DATA_H
-
-#include "base_data.h"
-#include "data_register.h"
 #include "pmu.h"
-#include "serialize.h"
 
-struct PmuSpeData : public oeaware::BaseData {
-    struct PmuData *pmuData = NULL;
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef struct {
+    struct PmuData *pmuData;
     int len;
-    uint64_t interval = 0;
-    static oeaware::Register<PmuSpeData> pmuSpeReg;
-    void Serialize(oeaware::OutStream &out) const;
-    void Deserialize(oeaware::InStream &in);
-};
+    uint64_t interval;
+} PmuSpeData;
+#ifdef __cplusplus
+}
+#endif
+
 #endif

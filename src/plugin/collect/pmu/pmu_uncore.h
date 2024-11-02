@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2024 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -9,21 +9,28 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_BASE_DATA_H
-#define COMMON_BASE_DATA_H
-#include <functional>
-#include "serialize.h"
+#ifndef __PMU_UNCORE_H__
+#define __PMU_UNCORE_H__
+#include <string>
 
-namespace oeaware {
-class BaseData {
-public:
-    virtual void Serialize(oeaware::OutStream &out) const = 0;
-    virtual void Deserialize(oeaware::InStream &in) = 0;
-    static void RegisterClass(const std::string &key, std::function<std::shared_ptr<BaseData>()> constructor);
-    static void RegisterClass(const std::vector<std::string> &keys,
-        std::function<std::shared_ptr<BaseData>()> constructor);
-    static std::shared_ptr<BaseData> Create(const std::string &type);
+const int UNCORE_NAME_SIZE = 256;
+const int MAX_PATH_LEN = 256;
+const std::string DEVICE_PATH = "/sys/devices/";
+
+struct UncoreConfig {
+    char uncoreName[UNCORE_NAME_SIZE];
 };
-}
+
+const int RX_OUTER = 0;
+const int RX_SCCL = 1;
+const int RX_OPS_NUM = 2;
+const int UNCORE_MAX = 3;
+
+int GetUncoreHhaNum(void);
+UncoreConfig *GetRxOuter(void);
+UncoreConfig *GetRxSccl(void);
+UncoreConfig *GetRxOpsNum(void);
+int HhaUncoreConfigInit(void);
+void UncoreConfigFini(void);
 
 #endif

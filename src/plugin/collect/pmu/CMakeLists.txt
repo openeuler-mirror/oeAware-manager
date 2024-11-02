@@ -16,15 +16,11 @@ message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")
 message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
 
 set(pmu_src
-    pmu_counting_data.cpp
     pmu_counting_collector.cpp
-    pmu_sampling_data.cpp
     pmu_sampling_collector.cpp
-    pmu_spe_data.cpp
     pmu_spe_collector.cpp
-    pmu_uncore_data.cpp
     pmu_uncore_collector.cpp
-    ../../../common/base_data.cpp
+    pmu_uncore.cpp
     pmu_collector.cpp
 )
 
@@ -40,6 +36,8 @@ target_link_directories(pmu PUBLIC
     ${LIB_KPERF_LIBPATH}
 )
 
-target_link_libraries(pmu kperf boundscheck)
+target_link_libraries(pmu boundscheck kperf)
 set_target_properties(pmu PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+    DESTINATION "${CMAKE_BINARY_DIR}/include")

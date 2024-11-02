@@ -11,13 +11,12 @@ include_directories(../common
 
 if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 set(ARCH_SPECIFIC_SOURCES
-../plugin/collect/pmu/pmu_counting_data.cpp
 )
 endif()
 
 add_library(${PROJECT_NAME} SHARED
             oe_client.cpp
-            ../common/base_data.cpp
+            ../common/data_register.cpp
             ${ARCH_SPECIFIC_SOURCES}
 )
 target_link_libraries(${PROJECT_NAME} common)

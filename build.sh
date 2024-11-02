@@ -23,4 +23,4 @@ libkperf_inc=$(pwd)/libkperf/output/include
 libkperf_lib=$(pwd)/libkperf/output/lib
 
 cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${libkperf_inc}
-make
+make -j$(nproc)

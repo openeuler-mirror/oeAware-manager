@@ -75,11 +75,10 @@ int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
     return pd;
 }
 
-int PmuSamplingCollector::OpenTopic(const oeaware::Topic &topic)
+oeaware::Result PmuSamplingCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name) {
-        std::cout << "OpenTopic failed" << std::endl;
-        return -1;
+        return oeaware::Result(FAILED, "OpenTopic failed");
     }
 
     for (auto &iter : topicStr) {
@@ -87,17 +86,16 @@ int PmuSamplingCollector::OpenTopic(const oeaware::Topic &topic)
             if (pmuId[iter] == -1) {
                 pmuId[iter] = OpenSampling(topic);
                 if (pmuId[iter] == -1) {
-                    std::cout << "OpenTopic failed, PmuOpen failed" << std::endl;
-                    return -1;
+                    return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
                 }
                 PmuEnable(pmuId[iter]);
                 timestamp = std::chrono::high_resolution_clock::now();
-                return 0;
+                return oeaware::Result(OK);
             }
         }
     }
 
-    return -1;
+    return oeaware::Result(FAILED);
 }
 
 void PmuSamplingCollector::CloseTopic(const oeaware::Topic &topic)
@@ -111,9 +109,9 @@ void PmuSamplingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-int PmuSamplingCollector::Enable(const std::string &parma)
+oeaware::Result PmuSamplingCollector::Enable(const std::string &parma)
 {
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void PmuSamplingCollector::Disable()
@@ -121,7 +119,7 @@ void PmuSamplingCollector::Disable()
     return;
 }
 
-void PmuSamplingCollector::UpdateData(const oeaware::DataList &dataList)
+void PmuSamplingCollector::UpdateData(const DataList &dataList)
 {
     return;
 }
@@ -130,7 +128,7 @@ void PmuSamplingCollector::Run()
 {
     for (auto &iter : pmuId) {
         if (iter.second != -1) {
-            std::shared_ptr <PmuSamplingData> data = std::make_shared<PmuSamplingData>();
+            PmuSamplingData *data = new PmuSamplingData();
             PmuDisable(iter.second);
             data->len = PmuRead(iter.second, &(data->pmuData));
             PmuEnable(iter.second);
@@ -139,10 +137,14 @@ void PmuSamplingCollector::Run()
             data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
             timestamp = now;
 
-            struct oeaware::DataList dataList;
-            dataList.topic.instanceName = this->name;
-            dataList.topic.topicName = iter.first;
-            dataList.data.push_back(data);
+            DataList dataList;
+            dataList.topic.instanceName = "pmu_sampling_collector";
+            dataList.topic.topicName = new char[iter.first.size() + 1];
+            strcpy_s(dataList.topic.topicName, iter.first.size() + 1, iter.first.data());
+            dataList.topic.params = "";
+            dataList.data = new void* [1];
+            dataList.len = 1;
+            dataList.data[0] = data;
             Publish(dataList);
         }
     }

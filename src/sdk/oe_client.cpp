@@ -17,14 +17,14 @@
 #include "message_protocol.h"
 #include "safe_queue.h"
 #include "default_path.h"
-
+#include "data_register.h"
 namespace oeaware {
-class OeClient::Impl {
+class Impl {
 public:
     int Init();
-    int Subscribe(const Topic &topic, Callback callback);
-    int Unsubscribe(const Topic &topic);
-    int Publish(const Topic &topic, const DataList &dataList);
+    int Subscribe(const CTopic &topic, Callback callback);
+    int Unsubscribe(const CTopic &topic);
+    int Publish(const CTopic &topic, const DataList &dataList);
     void Close();
 private:
     void HandleRecv();
@@ -37,7 +37,7 @@ private:
     bool finished = false;
 };
 
-void OeClient::Impl::HandleRecv()
+void Impl::HandleRecv()
 {
     while (!finished) {
         MessageProtocol protocol;
@@ -50,16 +50,18 @@ void OeClient::Impl::HandleRecv()
             case Opt::SUBSCRIBE:
             case Opt::UNSUBSCRIBE:
             case Opt::PUBLISH: {
-                Decode(result, message.payload[0]);
+                InStream in(message.payload[0]);
+                ResultDeserialize(&result, in);
                 resultQueue->Push(result);
                 break;
             }
             case Opt::DATA: {
-                DataList messageList;
-                Decode(messageList, message.payload[0]);
-                auto topic = messageList.topic;
+                DataList dataList;
+                InStream in(message.payload[0]);
+                DataListDeserialize(&dataList, in);
+                auto topic = dataList.topic;
                 for (auto handle : topicHandle[Concat({topic.instanceName, topic.topicName, topic.params}, "::")]) {
-                    handle(messageList);
+                    handle(&dataList);
                 }
                 break;
             }
@@ -68,7 +70,7 @@ void OeClient::Impl::HandleRecv()
         }
     }
 }
-int OeClient::Impl::Init()
+int Impl::Init()
 {
     domainSocket = std::make_shared<DomainSocket>(DEFAULT_SDK_CONN_PATH);
     domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
@@ -91,7 +93,7 @@ int OeClient::Impl::Init()
     return 0;
 }
 
-int OeClient::Impl::HandleRequest(const Opt &opt, const std::vector<std::string> &payload)
+int Impl::HandleRequest(const Opt &opt, const std::vector<std::string> &payload)
 {
     MessageProtocol protocol(MessageHeader(MessageType::REQUEST), Message(opt, payload));
     SendMessage(*socketStream, protocol);
@@ -102,9 +104,11 @@ int OeClient::Impl::HandleRequest(const Opt &opt, const std::vector<std::string>
     return result.code;
 }
 
-int OeClient::Impl::Subscribe(const Topic &topic, Callback callback)
+int Impl::Subscribe(const CTopic &topic, Callback callback)
 {
-    if (HandleRequest(Opt::SUBSCRIBE, {Encode(topic)}) < 0) {
+    OutStream out;
+    TopicSerialize(&topic, out);
+    if (HandleRequest(Opt::SUBSCRIBE, {out.Str()}) < 0) {
         return -1;
     }
     auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
@@ -112,9 +116,11 @@ int OeClient::Impl::Subscribe(const Topic &topic, Callback callback)
     return 0;
 }
 
-int OeClient::Impl::Unsubscribe(const Topic &topic)
+int Impl::Unsubscribe(const CTopic &topic)
 {
-    if (HandleRequest(Opt::UNSUBSCRIBE, {Encode(topic)}) < 0) {
+    OutStream out;
+    TopicSerialize(&topic, out);
+    if (HandleRequest(Opt::UNSUBSCRIBE, {out.Str()}) < 0) {
         return -1;
     }
     auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
@@ -122,45 +128,45 @@ int OeClient::Impl::Unsubscribe(const Topic &topic)
     return 0;
 }
 
-int OeClient::Impl::Publish(const Topic &topic, const DataList &dataList)
+int Impl::Publish(const CTopic &topic, const DataList &dataList)
 {
-    return HandleRequest(Opt::PUBLISH, {Encode(topic), Encode(dataList)});
+    OutStream out;
+    TopicSerialize(&topic, out);
+    DataListSerialize(&dataList, out);
+    return HandleRequest(Opt::PUBLISH, {out.Str()});
 }
 
-void OeClient::Impl::Close()
+void Impl::Close()
 {
     domainSocket->Close();
     finished = true;
 }
-
-OeClient::OeClient() : impl(new Impl()) { }
-
-OeClient::~OeClient()
-{
-    delete impl;
-}
-int OeClient::Init()
-{
-    return impl->Init();
 }
 
-int OeClient::Subscribe(const Topic &topic, Callback callback)
+static oeaware::Impl impl;
+
+int Init()
 {
-    return impl->Subscribe(topic, callback);
+    oeaware::Register::GetInstance().InitRegisterData();
+    return impl.Init();
 }
 
-int OeClient::Unsubscribe(const Topic &topic)
+int Subscribe(const CTopic *topic, Callback callback)
 {
-    return impl->Unsubscribe(topic);
+    return impl.Subscribe(*topic, callback);
 }
 
-int OeClient::Publish(const Topic &topic, const DataList &dataList)
+int Unsubscribe(const CTopic *topic)
 {
-    return impl->Publish(topic, dataList);
+    return impl.Unsubscribe(*topic);
 }
 
-void OeClient::Close()
+int Publish(const CTopic *topic, const DataList *dataList)
 {
-    impl->Close();
+    return impl.Publish(*topic, *dataList);
 }
+
+void Close()
+{
+    impl.Close();
 }

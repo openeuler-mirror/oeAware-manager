@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include "data_list.h"
+#include "topic.h"
 #include "event.h"
 
 namespace oeaware {

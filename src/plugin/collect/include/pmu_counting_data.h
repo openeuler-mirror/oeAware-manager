@@ -12,18 +12,17 @@
 
 #ifndef PMU_COUNTING_DATA_H
 #define PMU_COUNTING_DATA_H
-
-#include "base_data.h"
-#include "data_register.h"
 #include "pmu.h"
-#include "serialize.h"
 
-struct PmuCountingData : public oeaware::BaseData {
-    struct PmuData *pmuData = NULL;
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef struct {
+    struct PmuData *pmuData;
     int len;
-    uint64_t interval = 0;
-    static oeaware::Register<PmuCountingData> pmuCountingReg;
-    void Serialize(oeaware::OutStream &out) const;
-    void Deserialize(oeaware::InStream &in);
-};
+    uint64_t interval;
+} PmuCountingData;
+#ifdef __cplusplus
+}
+#endif
 #endif

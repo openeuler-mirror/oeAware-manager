@@ -21,10 +21,10 @@ class PmuUncoreCollector : public oeaware::Interface {
 public:
     PmuUncoreCollector();
     ~PmuUncoreCollector() override = default;
-    int OpenTopic(const oeaware::Topic &topic) override;
+    oeaware::Result OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override;
-    void UpdateData(const oeaware::DataList &dataList) override;
-    int Enable(const std::string &parma = "") override;
+    void UpdateData(const DataList &dataList) override;
+    oeaware::Result Enable(const std::string &parma = "") override;
     void Disable() override;
     void Run() override;
 private:

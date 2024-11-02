@@ -35,6 +35,7 @@ void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList
         std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         std::string instanceName = interface->GetName();
         interface->SetManagerCallback(managerCallback);
+        interface->SetLogger(Logger::GetInstance().Get("Plugin"));
         instance->interface = interface;
         for (auto &topic : interface->GetSupportTopics()) {
             instance->supportTopics[topic.topicName] = topic;

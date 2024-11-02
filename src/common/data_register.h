@@ -11,25 +11,35 @@
  ******************************************************************************/
 #ifndef COMMON_DATA_REGISTER_H
 #define COMMON_DATA_REGISTER_H
-#include "base_data.h"
-
+#include <unordered_map>
+#include "serialize.h"
 namespace oeaware {
-template <typename T>
+using DeserializeFunc = int(*)(void**, InStream &in);
+using SerializeFunc = int(*)(const void*, OutStream &out);
 class Register {
 public:
-    explicit Register(const std::string &type)
+    Register(const Register&) = delete;
+    Register& operator=(const Register&) = delete;
+    static Register& GetInstance()
     {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
+        static Register reg;
+        return reg;
     }
-    explicit Register(const std::vector<std::string> &type)
-    {
-        BaseData::RegisterClass(type, []() -> std::shared_ptr<BaseData> {
-            return std::make_shared<T>();
-        });
-    }
+    // Init all data structure
+    void InitRegisterData();
+    DeserializeFunc GetDataDeserialize(const std::string &name);
+    SerializeFunc GetDataSerialize(const std::string &name);
+    void RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func);
+private:
+    Register() { };
+
+    std::unordered_map<std::string, std::pair<SerializeFunc, DeserializeFunc>> deserializeFuncs;
 };
+
+int DataListSerialize(const void *data, OutStream &out);
+int DataListDeserialize(void *data, InStream &in);
+int ResultDeserialize(void *data, InStream &in);
+int TopicSerialize(const void *topic, OutStream &out);
 }
 
 #endif

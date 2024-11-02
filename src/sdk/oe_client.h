@@ -12,23 +12,17 @@
 #ifndef SDK_OE_CLIENT_H
 #define SDK_OE_CLIENT_H
 #include "data_list.h"
-
-namespace oeaware {
-using Callback = int(*)(const DataList &);
-
-class OeClient {
-public:
-    OeClient();
-    ~OeClient();
-    int Init();
-    int Subscribe(const Topic &topic, Callback callback);
-    int Unsubscribe(const Topic &topic);
-    int Publish(const Topic &topic, const DataList &dataList);
-    void Close();
-private:
-    class Impl;
-    Impl *impl;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef int(*Callback)(const DataList *);
+int Init();
+int Subscribe(const CTopic *topic, Callback callback);
+int Unsubscribe(const CTopic *topic);
+int Publish(const CTopic *topic, const DataList *dataList);
+void Close();
+#ifdef __cplusplus
 }
+#endif
 
 #endif

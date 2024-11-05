@@ -11,20 +11,16 @@
  ******************************************************************************/
 #ifndef THREAD_INFO_H
 #define THREAD_INFO_H
-#include <string>
-#include "base_data.h"
-
-struct ThreadInfo : oeaware::BaseData {
-    ThreadInfo() = default;
-    explicit ThreadInfo(const ThreadInfo* ptr): pid(ptr->pid), tid(ptr->tid), name(ptr->name){}
-    ThreadInfo(int pid, int tid, std::string name) : pid(pid), tid(tid), name(name){}
-    int pid = 0;
-    int tid = 0;
-    std::string name {};
-    void Serialize(oeaware::OutStream &out) const
-    {}
-    void Deserialize(oeaware::InStream &in)
-    {}
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef struct {
+    int pid;
+    int tid;
+    char *name;
+} ThreadInfo;
+#ifdef __cplusplus
+}
+#endif
 
 #endif // !THREAD_INFO_H

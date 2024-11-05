@@ -39,5 +39,3 @@ target_link_directories(pmu PUBLIC
 target_link_libraries(pmu boundscheck kperf)
 set_target_properties(pmu PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../include"
-    DESTINATION "${CMAKE_BINARY_DIR}/include")

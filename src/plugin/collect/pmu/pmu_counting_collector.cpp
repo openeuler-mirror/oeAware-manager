@@ -138,10 +138,12 @@ void PmuCountingCollector::Run()
             timestamp = now;
 
             DataList dataList;
-            dataList.topic.instanceName = "pmu_counting_collector";
+            dataList.topic.instanceName = new char[name.size() + 1];
+            strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
             dataList.topic.topicName = new char[iter.first.size() + 1];
             strcpy_s(dataList.topic.topicName, iter.first.size() + 1, iter.first.data());
-            dataList.topic.params = "";
+            dataList.topic.params = new char[1];
+            dataList.topic.params[0] = 0;
             dataList.data = new void* [1];
             dataList.len = 1;
             dataList.data[0] = data;

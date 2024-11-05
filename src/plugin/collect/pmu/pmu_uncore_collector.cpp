@@ -172,10 +172,12 @@ void PmuUncoreCollector::Run()
         timestamp = now;
 
         DataList dataList;
-        dataList.topic.instanceName = "pmu_uncore_collector";
+        dataList.topic.instanceName = new char[name.size() + 1];
+        strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
         dataList.topic.topicName = new char[topicStr.size() + 1];
         strcpy_s(dataList.topic.topicName, topicStr.size() + 1, topicStr.data());
-        dataList.topic.params = "";
+        dataList.topic.params = new char[1];
+        dataList.topic.params[0] = 0;
         dataList.len = 1;
         dataList.data = new void* [1];
         dataList.data[0] = data;

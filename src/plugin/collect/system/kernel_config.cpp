@@ -9,13 +9,12 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "kernel_config.h"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <regex>
 #include <securec.h>
-#include "kernel_config.h"
 
 KernelConfig::KernelConfig(): oeaware::Interface()
 {
@@ -33,13 +32,12 @@ KernelConfig::KernelConfig(): oeaware::Interface()
     }
 }
 
-int KernelConfig::OpenTopic(const oeaware::Topic &topic)
+oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
 {
     params = topic.params;
     FILE *pipe = popen("sysctl -a", "r");
     if (!pipe) {
-        std::cout << "Error: popen() filed" << std::endl;
-        return -1;
+        return oeaware::Result(FAILED, "Error: popen() filed");
     }
 
     char buffer[1024];
@@ -54,7 +52,7 @@ int KernelConfig::OpenTopic(const oeaware::Topic &topic)
     }
 
     pclose(pipe);
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void KernelConfig::CloseTopic(const oeaware::Topic &topic)
@@ -62,9 +60,9 @@ void KernelConfig::CloseTopic(const oeaware::Topic &topic)
     kernelInfo.clear();
 }
 
-int KernelConfig::Enable(const std::string &parma)
+oeaware::Result KernelConfig::Enable(const std::string &parma)
 {
-    return 0;
+    return oeaware::Result(OK);
 }
 
 void KernelConfig::Disable()
@@ -72,12 +70,12 @@ void KernelConfig::Disable()
     return;
 }
 
-void KernelConfig::UpdateData(const oeaware::DataList &dataList)
+void KernelConfig::UpdateData(const DataList &dataList)
 {
     return;
 }
 
-void KernelConfig::searchRegex(const std::string &regexStr, std::shared_ptr <KernelData> &data)
+void KernelConfig::searchRegex(const std::string &regexStr, KernelData *data)
 {
     std::regex regexObj(regexStr);
     std::smatch match;
@@ -102,16 +100,22 @@ void KernelConfig::searchRegex(const std::string &regexStr, std::shared_ptr <Ker
 
 void KernelConfig::Run()
 {
-    std::shared_ptr <KernelData> data = std::make_shared<KernelData>();
+    KernelData *data = new KernelData();
     std::istringstream iss(params);
     std::string token;
     while (getline(iss, token, ' ')) {
         searchRegex(token, data);
     }
 
-    struct oeaware::DataList dataList;
-    dataList.topic.instanceName = this->name;
-    dataList.topic.topicName = "get_kernel_config";
-    dataList.data.push_back(data);
+    DataList dataList;
+    dataList.topic.instanceName = new char[name.size() + 1];
+    strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
+    dataList.topic.topicName = new char[topicStr[0].size() + 1];
+    strcpy_s(dataList.topic.topicName, topicStr[0].size() + 1, topicStr[0].data());
+    dataList.topic.params = new char[params.size() + 1];
+    strcpy_s(dataList.topic.params, params.size() + 1, params.data());
+    dataList.len = 1;
+    dataList.data = new void* [1];
+    dataList.data[0] = data;
     Publish(dataList);
 }

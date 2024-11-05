@@ -9,7 +9,6 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
 #ifndef KERNEL_CONFIG_H
 #define KERNEL_CONFIG_H
 #include <unordered_map>
@@ -21,17 +20,17 @@ class KernelConfig : public oeaware::Interface {
 public:
     KernelConfig();
     ~KernelConfig() override = default;
-    int OpenTopic(const oeaware::Topic &topic) override;
+    oeaware::Result OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override;
-    void UpdateData(const oeaware::DataList &dataList) override;
-    int Enable(const std::string &parma = "") override;
+    void UpdateData(const DataList &dataList) override;
+    oeaware::Result Enable(const std::string &params = "") override;
     void Disable() override;
     void Run() override;
 private:
     std::vector<std::string> topicStr = {"get_kernel_config", "set_kernel_config"};
     std::vector<std::string> kernelInfo;
     std::string params;
-    void searchRegex(const std::string &regexStr, std::shared_ptr <KernelData> &data);
+    void searchRegex(const std::string &regexStr, KernelData *data);
 };
 
 #endif

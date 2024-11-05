@@ -9,12 +9,10 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
 #include <securec.h>
 #include <iostream>
 #include "kernel_data.h"
 
-oeaware::Register<KernelData> KernelData::kernelReg("kernel_config");
 
 KernelDataNode* createNode(const char *key, const char *value)
 {
@@ -27,48 +25,4 @@ KernelDataNode* createNode(const char *key, const char *value)
     node->value = strdup(value);
     node->next = NULL;
     return node;
-}
-
-void KernelData::Serialize(oeaware::OutStream &out) const
-{
-    out << len;
-    auto tmp = kernelData;
-    for (int i = 0; i < len; i++) {
-        std::string key(tmp->key);
-        std::string value(tmp->value);
-        out << key << value;
-        tmp = tmp->next;
-    }
-}
-
-void KernelData::Deserialize(oeaware::InStream &in)
-{
-    in >> len;
-    for (int i = 0; i < len; i++) {
-        KernelDataNode *node = new KernelDataNode;
-        std::string key, value;
-        in >> key >> value;
-
-        node->key = new char[key.length() + 1];
-        errno_t ret = strcpy_s(node->key, key.length() + 1, key.c_str());
-        if (ret != EOK) {
-            std::cout << "Deserialize failed, reason: strcpy_s failed" << std::endl;
-            return;
-        }
-        ret = strcpy_s(node->value, value.length() + 1, value.c_str());
-        if (ret != EOK) {
-            std::cout << "Deserialize failed, reason: strcpy_s failed" << std::endl;
-            return;
-        }
-
-        if (kernelData == NULL) {
-            kernelData = node;
-        } else {
-            auto tmp = kernelData;
-            while (tmp->next != NULL) {
-                tmp = tmp->next;
-            }
-            tmp->next = node;
-        }
-    }
 }

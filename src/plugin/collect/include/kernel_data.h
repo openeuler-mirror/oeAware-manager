@@ -13,24 +13,23 @@
 #ifndef KERNEL_DATA_H
 #define KERNEL_DATA_H
 
-#include "base_data.h"
-#include "data_register.h"
-#include "serialize.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct KernelDataNode{
     char *key;
     char *value;
     struct KernelDataNode *next;
-}KernelDataNode;
+} KernelDataNode;
 
-struct KernelData : public oeaware::BaseData {
-    int len = 0;
-    KernelDataNode *kernelData = NULL;
-    static oeaware::Register<KernelData> kernelReg;
-    void Serialize(oeaware::OutStream &out) const;
-    void Deserialize(oeaware::InStream &in);
-};
+typedef struct {
+    int len;
+    KernelDataNode *kernelData;
+} KernelData;
 
 KernelDataNode* createNode(const char *key, const char *value);
-
+#ifdef __cplusplus
+}
+#endif
 #endif

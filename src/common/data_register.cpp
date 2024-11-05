@@ -9,6 +9,8 @@
 #include "pmu_uncore_data.h"
 #include "symbol.h"
 #endif
+#include "thread_info.h"
+#include "kernel_data.h"
 
 namespace oeaware {
 
@@ -74,7 +76,7 @@ int DataListDeserialize(void *dataList, InStream &in)
     for (int i = 0; i < size; ++i) {
         ((DataList*)dataList)->data[i] = nullptr;
         auto ret = func(&(((DataList*)dataList)->data[i]), in);
-        if (!ret) {
+        if (ret) {
             return ret;
         }
     }
@@ -451,6 +453,74 @@ int PmuUncoreDataDeserialize(void **data, InStream &in)
     return 0;
 }
 #endif
+
+int ThreadInfoSerialize(const void *data, OutStream &out)
+{
+    auto threadInfo = static_cast<const ThreadInfo*>(data);
+    out << threadInfo->pid << threadInfo->tid;
+    std::string name(threadInfo->name);
+    out << name;
+    return 0;
+}
+
+int ThreadInfoDeserialize(void **data, InStream &in)
+{
+    *data = new ThreadInfo();
+    auto threadInfo = static_cast<ThreadInfo*>(*data);
+    std::string name;
+    in >> threadInfo->pid >> threadInfo->tid >> name;
+    threadInfo->name = new char[name.size() + 1];
+    strcpy_s(threadInfo->name, name.size() + 1, name.data());
+    return 0;
+}
+
+int KernelDataSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const KernelData*>(data);
+    out << tmpData->len;
+    auto node = tmpData->kernelData;
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key(node->key);
+        std::string value(node->value);
+        out << key << value;
+        node = node->next;
+    }
+    return 0;
+}
+
+int KernelDataDeserialize(void **data, InStream &in)
+{
+    *data = new KernelData();
+    KernelData *tmpData = static_cast<KernelData*>(*data);
+
+    in >> tmpData->len;
+    KernelDataNode *kernelDataNode = nullptr;
+    for (int i = 0; i < tmpData->len; i++) {
+        KernelDataNode *node = new KernelDataNode;
+        std::string key, value;
+        in >> key >> value;
+        node->key = new char[key.length() + 1];
+        errno_t ret = strcpy_s(node->key, key.length() + 1, key.c_str());
+        if (ret != EOK) {
+            return -1;
+        }
+         node->value = new char[value.size() + 1];
+        ret = strcpy_s(node->value, value.length() + 1, value.c_str());
+        if (ret != EOK) {
+            return -1;
+        }
+
+        if (tmpData->kernelData == NULL) {
+            tmpData->kernelData = node;
+            kernelDataNode = node;
+        } else {
+            kernelDataNode->next = node;
+            kernelDataNode = kernelDataNode->next;
+        }
+    }
+    return 0;
+}
+
 void Register::RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func)
 {
     deserializeFuncs[name] = func;
@@ -467,6 +537,9 @@ void Register::InitRegisterData()
 
     RegisterData("pmu_uncore_collector", std::make_pair(PmuUncoreDataSerialize, PmuUncoreDataDeserialize));
 #endif
+    RegisterData("thread_collector", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
+
+    RegisterData("kernel_config::get_kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

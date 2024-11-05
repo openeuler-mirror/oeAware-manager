@@ -33,6 +33,7 @@ ErrorCode LoadHandler::LoadPlugin(const std::string &name)
     auto plugin = std::make_shared<Plugin>(name);
     int error = plugin->Load(plugin_path, managerCallback);
     if (error) {
+        WARN(logger, dlerror());
         return ErrorCode::LOAD_PLUGIN_DLOPEN_FAILED;
     }
     memoryStore->AddPlugin(name, plugin);

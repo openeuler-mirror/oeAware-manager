@@ -115,6 +115,7 @@ private:
     Result EnableInstance(const std::string &name);
     void DisableInstance(const std::string &name, bool force);
     bool CheckInstanceDisable(const std::string &name);
+    void UpdateState();
 private:
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> scheduleQueue;
@@ -122,6 +123,7 @@ private:
     SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
     std::shared_ptr<MemoryStore> memoryStore;
     std::shared_ptr<ManagerCallback> managerCallback;
+    std::vector<std::pair<Topic, std::string>> topicRunOnce;
     log4cplus::Logger logger;
     uint64_t time;
     uint64_t cycle;

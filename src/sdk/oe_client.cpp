@@ -58,7 +58,9 @@ void Impl::HandleRecv()
             case Opt::DATA: {
                 DataList dataList;
                 InStream in(message.payload[0]);
-                DataListDeserialize(&dataList, in);
+                if (DataListDeserialize(&dataList, in) < 0) {
+                    continue;
+                }
                 auto topic = dataList.topic;
                 for (auto handle : topicHandle[Concat({topic.instanceName, topic.topicName, topic.params}, "::")]) {
                     handle(&dataList);

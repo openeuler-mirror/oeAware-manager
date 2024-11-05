@@ -9,9 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
 #include "thread_collector.h"
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -21,8 +19,10 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <securec.h>
 
-ThreadCollector::ThreadCollector() {
+ThreadCollector::ThreadCollector()
+{
     name = "thread_collector";
     description = "collect information of thread";
     version = "1.0.0";
@@ -35,40 +35,55 @@ ThreadCollector::ThreadCollector() {
     supportTopics.push_back(topic);
 }
 
-int ThreadCollector::OpenTopic(const oeaware::Topic &topic) {
+oeaware::Result ThreadCollector::OpenTopic(const oeaware::Topic &topic)
+{
     openStatus = true;
-    return 0;
+    return oeaware::Result(OK);
 }
 
-void ThreadCollector::CloseTopic(const oeaware::Topic &topic) {
+void ThreadCollector::CloseTopic(const oeaware::Topic &topic)
+{
     openStatus = false;
 }
 
-void ThreadCollector::UpdateData(const oeaware::DataList &dataList) {
+void ThreadCollector::UpdateData(const DataList &dataList)
+{
     (void)dataList;
 }
 
-int ThreadCollector::Enable(const std::string &param) {
+oeaware::Result ThreadCollector::Enable(const std::string &param)
+{
     (void)param;
-    return 0;
+    return oeaware::Result(OK);
 }
 
-void ThreadCollector::Disable() {
+void ThreadCollector::Disable()
+{
     openStatus = false;
 }
 
-void ThreadCollector::Run() {
+void ThreadCollector::Run()
+{
     if (!openStatus) return;
     GetAllThreads();
-    oeaware::DataList dataList;
-    dataList.topic = supportTopics[0];
+    DataList dataList;
+    dataList.topic.instanceName = new char[name.size() + 1];
+    strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
+    dataList.topic.topicName = new char[name.size() + 1];
+    strcpy_s(dataList.topic.topicName, name.size() + 1, name.data());
+    dataList.topic.params = new char[1];
+    dataList.topic.params[0] = 0;
+    dataList.data = new void* [threads.size()];
+    uint64_t i = 0;
     for (auto &it : threads) {
-        dataList.data.push_back(it.second);
+        dataList.data[i++] = it.second;
     }
+    dataList.len = i;
     Publish(dataList);
 }
 
-void ThreadCollector::GetAllThreads() {
+void ThreadCollector::GetAllThreads()
+{
     DIR *proc_dir = opendir("/proc");
     if (proc_dir == nullptr) {
         return ;
@@ -101,38 +116,47 @@ void ThreadCollector::GetAllThreads() {
     closedir(proc_dir);
 }
 
-bool ThreadCollector::IsNotChange(struct stat *task_stat, const std::string &task_path, int pid) {
-    return stat(task_path.c_str(), task_stat) != 0 || (taskTime.count(pid) && taskTime[pid] == task_stat->st_mtime);
+bool ThreadCollector::IsNotChange(struct stat *taskStat, const std::string &taskPath, int pid)
+{
+    return stat(taskPath.c_str(), taskStat) != 0 || (taskTime.count(pid) && taskTime[pid] == taskStat->st_mtime);
 }
 
-void ThreadCollector::CollectThreads(int pid, DIR *task_dir) {
-    struct dirent *task_entry;
-    while ((task_entry = readdir(task_dir)) != nullptr) {
-        if (!isdigit(task_entry->d_name[0])) {
+void ThreadCollector::CollectThreads(int pid, DIR *taskDir)
+{
+    struct dirent *taskEntry;
+    while ((taskEntry = readdir(taskDir)) != nullptr) {
+        if (!isdigit(taskEntry->d_name[0])) {
             continue;
         }
-        int tid = atoi(task_entry->d_name);
+        int tid = atoi(taskEntry->d_name);
         /* Update if the thread exists. */
         threads[tid] = GetThreadInfo(pid, tid);
     }
 }
 
-std::shared_ptr<ThreadInfo> ThreadCollector::GetThreadInfo(int pid, int tid) {
+ThreadInfo* ThreadCollector::GetThreadInfo(int pid, int tid)
+{
     std::string s_path = "/proc/" + std::to_string(pid) + "/task/" + std::to_string(tid) + "/comm";
-    std::ifstream input_file(s_path);
-    if (!input_file) {
+    std::ifstream inputFile(s_path);
+    if (!inputFile) {
         return nullptr;
     }
+    auto threadInfo = new ThreadInfo();
+    threadInfo->pid = pid;
+    threadInfo->tid = tid;
     std::string name;
-    input_file >> name;
-    return std::make_shared<ThreadInfo>(pid, tid, name);
+    inputFile >> name;
+    threadInfo->name = new char[name.size() + 1];
+    strcpy_s(threadInfo->name, name.size() + 1, name.data());
+    return threadInfo;
 }
 
-void ThreadCollector::ClearInvalidThread() {
+void ThreadCollector::ClearInvalidThread()
+{
     for (auto it = threads.begin(); it != threads.end(); ) {
         auto tid = it->first;
-        std::string task_path = "/proc/" + std::to_string(it->second->pid) + "/task/" + std::to_string(it->second->tid);
-        if (access(task_path.c_str(), F_OK) < 0) {
+        std::string taskPath = "/proc/" + std::to_string(it->second->pid) + "/task/" + std::to_string(it->second->tid);
+        if (access(taskPath.c_str(), F_OK) < 0) {
             if (taskTime.count(tid)) {
                 taskTime.erase(tid);
             }

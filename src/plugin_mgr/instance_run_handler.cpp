@@ -14,6 +14,8 @@
 #include <unistd.h>
 
 namespace oeaware {
+constexpr int INSTANCE_RUN_ONCE = 2;
+constexpr int INSTANCE_RUN_ALWAYS = 1;
 Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
     auto instance = memoryStore->GetInstance(name);
@@ -64,6 +66,9 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
         WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
         result.code = FAILED;
         return result;
+    }
+    if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
+        topicRunOnce.emplace_back(std::make_pair(topic, payload[3]));
     }
     return result;
 }
@@ -191,12 +196,21 @@ void InstanceRunHandler::Schedule()
         instance->interface->Run();
         UpdateData();
         // static plugin only run once
-        if (instance->interface->GetType() == 1) {
+        if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
             continue;
         }
         schedule_instance.time += instance->interface->GetPeriod();
         scheduleQueue.push(schedule_instance);
     }
+}
+
+void InstanceRunHandler::UpdateState()
+{
+    for (auto &p : topicRunOnce) {
+        managerCallback->Unsubscribe(p.second, p.first, 0);
+    }
+    UpdateInstance();
+    topicRunOnce.clear();
 }
 
 void InstanceRunHandler::Start()
@@ -211,6 +225,7 @@ void InstanceRunHandler::Start()
         Schedule();
         usleep(GetCycle() * millisecond);
         AddTime(GetCycle());
+        UpdateState();
     }
 }
 

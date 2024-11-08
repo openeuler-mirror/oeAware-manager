@@ -109,8 +109,9 @@ void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-oeaware::Result PmuCountingCollector::Enable(const std::string &parma)
+oeaware::Result PmuCountingCollector::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -121,6 +122,7 @@ void PmuCountingCollector::Disable()
 
 void PmuCountingCollector::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

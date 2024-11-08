@@ -11,15 +11,29 @@
  ******************************************************************************/
 #ifndef THREAD_AWARE_H
 #define THREAD_AWARE_H
-#include <string>
+#include "interface.h"
+#include "thread_info.h"
 
-const int THREAD_NUM = 65536;
+namespace oeaware {
+class ThreadAware : public Interface {
+public:
+    ThreadAware();
+    ~ThreadAware() override = default;
+    Result OpenTopic(const oeaware::Topic &topic) override;
+    void CloseTopic(const oeaware::Topic &topic) override;
+    void UpdateData(const DataList &dataList) override;
+    Result Enable(const std::string &param) override;
+    void Disable() override;
+    void Run() override;
+private:
+    bool ReadKeyList(const std::string &fileName);
 
-struct ThreadInfo {
-    int pid;
-    int tid;
-    std::string name;
+    const int awarePeriod{1000};
+    const std::string configPath{"/usr/lib64/oeAware-plugin/thread_scenario.conf"};
+    std::vector<ThreadInfo> threadWhite;
+    std::vector<ThreadInfo> tmpData;
+    std::vector<std::string> keyList;
 };
-
+}
 
 #endif // !THREAD_AWARE_H

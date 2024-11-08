@@ -16,6 +16,30 @@
 namespace oeaware {
 constexpr int INSTANCE_RUN_ONCE = 2;
 constexpr int INSTANCE_RUN_ALWAYS = 1;
+
+void InstanceRunHandler::OpenTopic()
+{
+    for (auto pi : managerCallback->topicInstance) {
+        auto name = SplitString(pi.first, "::");
+        auto instanceName = name[0];
+        auto topicName = name[1];
+        auto params = (name.size() > 2 ? name[2] : "");
+        auto instance = memoryStore->GetInstance(instanceName);
+        if (!instance->enabled) {
+            instance->enabled = true;
+            instance->interface->Enable();
+            scheduleQueue.push(ScheduleInstance{instance, time});
+        }
+        instance->interface->OpenTopic(Topic{instanceName, topicName, params});
+    }
+    for (auto pi : managerCallback->topicSdk) {
+        auto name = SplitString(pi.first, "::");
+        auto instanceName = name[0];
+        auto topicName = name[1];
+        auto params = (name.size() > 2 ? name[2] : "");
+        memoryStore->GetInstance(instanceName)->interface->OpenTopic(Topic{instanceName, topicName, params});
+    }
+}
 Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
     auto instance = memoryStore->GetInstance(name);
@@ -24,8 +48,11 @@ Result InstanceRunHandler::EnableInstance(const std::string &name)
         WARN(logger, name << " instance enabled failed!");
         return result;
     }
+    // Open instance subscribed topic after enabled.
+    OpenTopic();
     instance->enabled = true;
     scheduleQueue.push(ScheduleInstance{instance, time});
+    INFO(logger, name << " instance enabled.");
     return result;
 }
 
@@ -59,17 +86,21 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
     }
     result = instance->interface->OpenTopic(topic);
     if (result.code < 0) {
+        WARN(logger, "topic open failed.");
         DisableInstance(instance->name, false);
         return result;
     }
-    if (managerCallback->Subscribe(payload[3], topic, 0) < 0) {
+    constexpr int subscriberIndex = 3;
+    result = managerCallback->Subscribe(payload[subscriberIndex], topic, 0);
+    if (result.code < 0) {
         WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
-        result.code = FAILED;
         return result;
     }
     if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
         topicRunOnce.emplace_back(std::make_pair(topic, payload[3]));
     }
+    INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
+    LogText(topic.params) << "} has been subscribed.");
     return result;
 }
 
@@ -111,8 +142,14 @@ Result InstanceRunHandler::Unsubscribe(const std::vector<std::string> &payload)
     Result result;
     Topic topic;
     Decode(topic, payload[0]);
-    managerCallback->Unsubscribe(payload[1], topic, 0);
+    result = managerCallback->Unsubscribe(payload[1], topic, 0);
+    if (result.code < 0) {
+        WARN(logger, result.payload);
+        return result;
+    }
     UpdateInstance();
+    INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
+    LogText(topic.params) << "} has been unsubscribed.");
     return result;
 }
 
@@ -173,6 +210,9 @@ void InstanceRunHandler::UpdateData()
         auto cTopic = data.topic;
         Topic topic{cTopic.instanceName, cTopic.topicName, cTopic.params};
         auto type = topic.GetType();
+        if (!managerCallback->topicInstance.count(type)) {
+            continue;
+        }
         for (auto &instanceName : managerCallback->topicInstance[type]) {
             auto instance = memoryStore->GetInstance(instanceName);
             instance->interface->UpdateData(data);

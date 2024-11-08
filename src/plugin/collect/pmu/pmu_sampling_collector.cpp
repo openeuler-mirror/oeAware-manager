@@ -109,8 +109,9 @@ void PmuSamplingCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-oeaware::Result PmuSamplingCollector::Enable(const std::string &parma)
+oeaware::Result PmuSamplingCollector::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -121,6 +122,7 @@ void PmuSamplingCollector::Disable()
 
 void PmuSamplingCollector::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

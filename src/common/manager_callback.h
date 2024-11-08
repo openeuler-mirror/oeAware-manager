@@ -21,10 +21,27 @@ namespace oeaware {
 using InDegree = std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, int>>>;
 class ManagerCallback {
 public:
-    // type : 0 sdk, 1 instance
-    int Subscribe(const std::string &name, const Topic &topic, int type);
-    int Unsubscribe(const std::string &name, const Topic &topic, int type);
-    // Unsubscribe all topics subscribed by "name".
+    /**
+     * @brief
+     * @param name          Subscriber name.
+     * @param topic         Subscribed topic.
+     * @param type          0 sdk, 1 instance.
+     */
+    Result Subscribe(const std::string &name, const Topic &topic, int type);
+    /**
+     * @brief
+     * @param name          Unsubscriber name.
+     * @param topic         Unsubscribed topic.
+     * @param type          0 sdk, 1 instance.
+     */
+    Result Unsubscribe(const std::string &name, const Topic &topic, int type);
+    /**
+     * @brief Unsubscribe all topics subscribed by "name".
+     * @param name          Unsubscriber name.
+     * @param topic         Unsubscribed topic.
+     * @param type          0 sdk, 1 instance.
+     * @return Instances subscribed by the subscribers.
+     */
     std::vector<std::string> Unsubscribe(const std::string &name);
     void Publish(const DataList &dataList);
     void Init(EventQueue newRecvData);
@@ -32,9 +49,9 @@ public:
     // Data to be updated for the instance.
     std::vector<DataList> publishData;
     std::unordered_map<std::string, std::unordered_set<std::string>> topicInstance;
+    std::unordered_map<std::string, std::unordered_set<std::string>> topicSdk;
     InDegree inDegree;
 private:
-    std::unordered_map<std::string, std::unordered_set<std::string>> topicSdk;
     std::mutex mutex;
     EventQueue recvData;
 };

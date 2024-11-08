@@ -15,8 +15,9 @@
 
 #define SMC_OP SmcOperator::getInstance()
 using namespace oeaware;
-
-SmcTune::SmcTune() {
+int log_level = 0;
+SmcTune::SmcTune()
+{
     name = "smc_tune";
     description = "collect information of key thread";
     version = "1.0.0";
@@ -25,32 +26,37 @@ SmcTune::SmcTune() {
     type = 2;
 }
 
-int SmcTune::OpenTopic(const oeaware::Topic &topic) {
+oeaware::Result SmcTune::OpenTopic(const oeaware::Topic &topic)
+{
     (void)topic;
-    return 0;
+    return oeaware::Result(OK);
 }
 
-void SmcTune::CloseTopic(const oeaware::Topic &topic) {
+void SmcTune::CloseTopic(const oeaware::Topic &topic)
+{
     (void)topic;
 }
 
-void SmcTune::UpdateData(const oeaware::DataList &dataList) {
+void SmcTune::UpdateData(const DataList &dataList)
+{
     (void)dataList;
 }
 
-int SmcTune::Enable(const std::string &param) {
+oeaware::Result SmcTune::Enable(const std::string &param)
+{
     (void)param;
-    return SMC_OP->enable_smc_acc() == EXIT_SUCCESS ? 0: -1;
+    int ret = (SMC_OP->enable_smc_acc() == EXIT_SUCCESS ? OK: FAILED);
+    return oeaware::Result(ret);
 }
 
-void SmcTune::Disable() {
+void SmcTune::Disable()
+{
     if (SMC_OP->disable_smc_acc() == EXIT_FAILURE) {
-        log_err("failed to disable smc acc\n");
-    } else {
-        log_info("success to disable smc_acc \n");
+        WARN(logger, "failed to disable smc acc");
     }
 }
 
-void SmcTune::Run() {
+void SmcTune::Run()
+{
 
 }

@@ -28,14 +28,14 @@ struct Node {
     int cpuNum;
 };
 
-class UnixBenchTune : public Interface{
+class UnixBenchTune : public Interface {
 public:
     UnixBenchTune();
     ~UnixBenchTune() override = default;
-    int OpenTopic(const oeaware::Topic &topic) override;
+    Result OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override;
-    void UpdateData(const oeaware::DataList &dataList) override;
-    int Enable(const std::string &parma) override;
+    void UpdateData(const DataList &dataList) override;
+    Result Enable(const std::string &param) override;
     void Disable() override;
     void Run() override;
 

@@ -65,7 +65,7 @@ void PmuUncoreCollector::InitUncoreAttr(struct PmuAttr &attr)
     }
 }
 
-int PmuUncoreCollector::OpenUncore(const oeaware::Topic &topic)
+int PmuUncoreCollector::OpenUncore()
 {
     struct PmuAttr attr;
     struct UncoreConfig *rxOuter;
@@ -80,7 +80,7 @@ int PmuUncoreCollector::OpenUncore(const oeaware::Topic &topic)
     // So temporarily set uncore_is_open = true util oeAware framework provides open API.
     ret = HhaUncoreConfigInit();
     if (ret != 0) {
-        printf("This system not support pmu_uncore\n");
+        WARN(logger, "This system not support pmu_uncore");
         return pd;
     }
 
@@ -121,7 +121,7 @@ oeaware::Result PmuUncoreCollector::OpenTopic(const oeaware::Topic &topic)
     }
 
     if (pmuId == -1) {
-        pmuId = OpenUncore(topic);
+        pmuId = OpenUncore();
         if (pmuId == -1) {
             return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
         }
@@ -135,6 +135,7 @@ oeaware::Result PmuUncoreCollector::OpenTopic(const oeaware::Topic &topic)
 
 void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
 {
+    (void)topic;
     if (pmuId == -1) {
         std::cout << "CloseTopic failed" << std::endl;
     } else {
@@ -144,8 +145,9 @@ void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-oeaware::Result PmuUncoreCollector::Enable(const std::string &parma)
+oeaware::Result PmuUncoreCollector::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -156,6 +158,7 @@ void PmuUncoreCollector::Disable()
 
 void PmuUncoreCollector::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

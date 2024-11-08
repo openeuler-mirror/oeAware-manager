@@ -251,6 +251,8 @@ void Deserialize(InStream &is, std::string &data)
     is.Deserialize(&data[0], len);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 /* Serialize for char* */
 template<>
 void Serialize(OutStream &buf, const char* const &data)
@@ -270,6 +272,7 @@ void Deserialize(InStream &is, const char* &data)
     tmp_data[len] = 0;
     data = tmp_data;
 }
+#pragma GCC diagnostic pop
 
 template<typename T>
  OutStream& OutStream::operator<<(const T& data)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -9,22 +9,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#ifndef PLUGIN_MGR_EVENT_PUBLISH_HANDLER_H
+#define PLUGIN_MGR_EVENT_PUBLISH_HANDLER_H
+#include "event_handler.h"
 
-#ifndef MPSTAT_COLLECTOR_H
-#define MPSTAT_COLLECTOR_H
-
-#include "command_base.h"
-#include "command_data.h"
-
-class MpstatCollector : public CommandBase {
-protected:
-    bool ValidateArgs(const std::string& args) override;
-    void ParseLine(const std::string& line) override;
-    std::string GetCommand(const std::string& params) override;
-    void* CreateDataStruct() override;
-    bool FillDataStruct(void* dataStruct) override;
-private:
-    std::vector<std::string> names;
+namespace oeaware {
+class PublishHandler : public Handler {
+public:
+    EventResult Handle(const Event &event) override;
 };
+}
 
 #endif

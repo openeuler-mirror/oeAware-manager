@@ -13,9 +13,8 @@
 #ifndef COMMAND_COLLECTOR_H
 #define COMMAND_COLLECTOR_H
 
-#include "mpstat_collector.h"
-#include "iostat_collector.h"
-#include "vmstat_collector.h"
+#include "command_base.h"
+#include "interface.h"
 
 class CommandCollector : public oeaware::Interface {
 public:
@@ -33,6 +32,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<CommandBase>> collectors;
     std::unordered_map<std::string, std::thread> collectThreads;
     std::unordered_map<std::string, std::thread> publishThreads;
+    std::unordered_map<std::string, std::mutex> topicMutex;
     void CollectThread(const oeaware::Topic &topic, CommandBase* collector);
     void PublishThread(const oeaware::Topic &topic, CommandBase* collector);
 };

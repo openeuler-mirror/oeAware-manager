@@ -24,7 +24,7 @@ public:
     int Init();
     int Subscribe(const CTopic &topic, Callback callback);
     int Unsubscribe(const CTopic &topic);
-    int Publish(const CTopic &topic, const DataList &dataList);
+    int Publish(const DataList &dataList);
     void Close();
 private:
     void HandleRecv();
@@ -130,10 +130,9 @@ int Impl::Unsubscribe(const CTopic &topic)
     return 0;
 }
 
-int Impl::Publish(const CTopic &topic, const DataList &dataList)
+int Impl::Publish(const DataList &dataList)
 {
     OutStream out;
-    TopicSerialize(&topic, out);
     DataListSerialize(&dataList, out);
     return HandleRequest(Opt::PUBLISH, {out.Str()});
 }
@@ -163,9 +162,9 @@ int Unsubscribe(const CTopic *topic)
     return impl.Unsubscribe(*topic);
 }
 
-int Publish(const CTopic *topic, const DataList *dataList)
+int Publish(const DataList *dataList)
 {
-    return impl.Publish(*topic, *dataList);
+    return impl.Publish(*dataList);
 }
 
 void Close()

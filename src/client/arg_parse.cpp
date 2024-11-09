@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "arg_parse.h"
 #include <iostream>
+#include <cstring>
 
 namespace oeaware {
 const std::string ArgParse::optString = "Qqd:l:r:e:i:";
@@ -82,6 +83,14 @@ int ArgParse::InitCmd(int &cmd, int opt)
 
 int ArgParse::Init(int argc, char *argv[])
 {
+    constexpr int START_OR_STOP = 2;
+    if (argc == START_OR_STOP) {
+        if (strcmp(argv[1], "start") == 0) {
+            return START;
+        } else if (strcmp(argv[1], "stop") == 0) {
+            return STOP;
+        }
+    }
     int cmd = -1;
     int opt;
     bool help = false;

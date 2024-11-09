@@ -42,6 +42,7 @@ public:
     void Close();
     bool IsConn(int fd);
     void CloseConn(int fd);
+    bool shutdown{false};
 private:
     Message GetMessageFromDataEvent(const Event &event);
 private:
@@ -52,8 +53,9 @@ private:
     /* Event queue stores Events from PluginManager and is consumed by TcpSocket. */
     EventResultQueue sendMessage;
     /* key:fd, value:type, the first bit of type indicates cmd, the second bit indicates sdk.
+       value == 1 indicates cmd connection
+       value == 2 indicates sdk connection
        value == -1 indicates disconnected
-       value == -2 indicates disconnected and unsubscribe related topics
     */
     std::unordered_map<int, int> conns;
     EventQueue recvData;

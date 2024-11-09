@@ -522,117 +522,50 @@ int KernelDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
-int MpstatDataSerialize(const void *data, OutStream &out)
+int CommandDataSerialize(const void *data, OutStream &out)
 {
-    auto tmpData = static_cast<const MpstatData*>(data);
-    out << tmpData->len;
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key(tmpData->mpstatArray[i].key);
-        out << key << tmpData->mpstatArray[i].value;
+    auto sarData = (SarData*)data;
+    out << sarData->attrLen << sarData->itemLen;
+    for (int i = 0; i < sarData->attrLen; ++i) {
+        std::string attr(sarData->itemAttr[i]);
+        out << attr;
+    }
+    for (int i = 0; i < sarData->itemLen; ++i) {
+        for (int j = 0; j < sarData->attrLen; ++j) {
+            std::string item(sarData->items[i].value[j]);
+            out << item;
+        }
     }
     return 0;
 }
 
-int MpstatDataDeserialize(void **data, InStream &in)
+int CommandDataDeserialize(void **data, InStream &in)
 {
-    *data = new MpstatData();
-    auto *tmpData = static_cast<MpstatData*>(*data);
-    in >> tmpData->len;
-    tmpData->mpstatArray = new CommandArray[tmpData->len];
-
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key;
-        in >> key >> tmpData->mpstatArray[i].value;
-
-        tmpData->mpstatArray[i].key = new char[key.length() + 1];
-        errno_t ret = strcpy_s(tmpData->mpstatArray[i].key, key.length() + 1, key.c_str());
+    *data = new SarData();
+    auto sarData = static_cast<SarData*>(*data);
+    in >> sarData->attrLen >> sarData->itemLen;
+    int ret;
+    for (int i = 0; i < sarData->attrLen; ++i) {
+        std::string attr;
+        in >> attr;
+        sarData->itemAttr[i] = new char[attr.size() + 1];
+        ret = strcpy_s(sarData->itemAttr[i], attr.size() + 1, attr.data());
         if (ret != EOK) {
-            for (int j = 0; j < i; j++) {
-                delete[] tmpData->mpstatArray[j].key;
-            }
-            delete[] tmpData->mpstatArray;
-            delete tmpData;
-            *data = nullptr;
             return -1;
         }
     }
-
-    return 0;
-}
-
-int IostatDataSerialize(const void *data, OutStream &out)
-{
-    auto tmpData = static_cast<const IostatData*>(data);
-    out << tmpData->len;
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key(tmpData->iostatArray[i].key);
-        out << key << tmpData->iostatArray[i].value;
-    }
-    return 0;
-}
-
-int IostatDataDeserialize(void **data, InStream &in)
-{
-    *data = new IostatData();
-    auto *tmpData = static_cast<IostatData*>(*data);
-    in >> tmpData->len;
-    tmpData->iostatArray = new CommandArray[tmpData->len];
-
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key;
-        in >> key >> tmpData->iostatArray[i].value;
-
-        tmpData->iostatArray[i].key = new char[key.length() + 1];
-        errno_t ret = strcpy_s(tmpData->iostatArray[i].key, key.length() + 1, key.c_str());
-        if (ret != EOK) {
-            for (int j = 0; j < i; j++) {
-                delete[] tmpData->iostatArray[j].key;
+    sarData->items = new CommandIter[sarData->itemLen];
+    for (int i = 0; i < sarData->itemLen; ++i) {
+        for (int j = 0; j < sarData->attrLen; ++j) {
+            std::string item;
+            in >> item;
+            sarData->items[i].value[j] = new char[item.size() + 1];
+            ret = strcpy_s(sarData->items[i].value[j], item.size() + 1, item.data());
+            if (ret != EOK) {
+                return -1;
             }
-            delete[] tmpData->iostatArray;
-            delete tmpData;
-            *data = nullptr;
-            return -1;
         }
     }
-
-    return 0;
-}
-
-int VmstatDataSerialize(const void *data, OutStream &out)
-{
-    auto tmpData = static_cast<const VmstatData*>(data);
-    out << tmpData->len;
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key(tmpData->vmstatArray[i].key);
-        out << key << tmpData->vmstatArray[i].value;
-    }
-    return 0;
-}
-
-int VmstatDataDeserialize(void **data, InStream &in)
-{
-    *data = new VmstatData();
-    auto *tmpData = static_cast<VmstatData*>(*data);
-    in >> tmpData->len;
-    tmpData->vmstatArray = new CommandArray[tmpData->len];
-
-    for (int i = 0; i < tmpData->len; i++) {
-        std::string key;
-        in >> key >> tmpData->vmstatArray[i].value;
-
-        tmpData->vmstatArray[i].key = new char[key.length() + 1];
-        errno_t ret = strcpy_s(tmpData->vmstatArray[i].key, key.length() + 1, key.c_str());
-        if (ret != EOK) {
-            for (int j = 0; j < i; j++) {
-                delete[] tmpData->vmstatArray[j].key;
-            }
-            delete[] tmpData->vmstatArray;
-            delete tmpData;
-            *data = nullptr;
-            return -1;
-        }
-    }
-
     return 0;
 }
 
@@ -656,12 +589,9 @@ void Register::InitRegisterData()
 
     RegisterData("kernel_config::get_kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
 
-    RegisterData("command_collector::mpstat", std::make_pair(MpstatDataSerialize, MpstatDataDeserialize));
-
-    RegisterData("command_collector::iostat", std::make_pair(IostatDataSerialize, IostatDataDeserialize));
-
-    RegisterData("command_collector::vmstat", std::make_pair(VmstatDataSerialize, VmstatDataDeserialize));
     RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
+
+    RegisterData("command_collector", std::make_pair(CommandDataSerialize, CommandDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

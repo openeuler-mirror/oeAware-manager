@@ -19,7 +19,7 @@ typedef int(*Callback)(const DataList *);
 int Init();
 int Subscribe(const CTopic *topic, Callback callback);
 int Unsubscribe(const CTopic *topic);
-int Publish(const CTopic *topic, const DataList *dataList);
+int Publish(const DataList *dataList);
 void Close();
 #ifdef __cplusplus
 }

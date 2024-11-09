@@ -13,28 +13,20 @@
 #ifndef COMMAND_DATA_H
 #define COMMAND_DATA_H
 
+#define ATTR_MAX_LENGTH 20
 #ifdef __cplusplus
 extern "C" {
 #endif
 typedef struct {
-    char *key;
-    double value;
-} CommandArray;
+    char *value[ATTR_MAX_LENGTH];
+} CommandIter;
 
 typedef struct {
-    int len;
-    CommandArray *mpstatArray;
-} MpstatData;
-
-typedef struct {
-    int len;
-    CommandArray *iostatArray;
-} IostatData;
-
-typedef struct {
-    int len;
-    CommandArray *vmstatArray;
-} VmstatData;
+    int itemLen;
+    int attrLen;
+    char *itemAttr[ATTR_MAX_LENGTH];
+    CommandIter *items;
+} SarData, CommandData;
 #ifdef __cplusplus
 }
 #endif

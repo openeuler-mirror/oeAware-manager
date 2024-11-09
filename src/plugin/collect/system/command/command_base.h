@@ -12,25 +12,37 @@
 
 #ifndef COMMAND_BASE_H
 #define COMMAND_BASE_H
-
+#include <vector>
 #include <unordered_map>
 #include <securec.h>
+#include <mutex>
+#include <atomic>
 #include "data_list.h"
-#include "interface.h"
+#include "topic.h"
+#include "command_data.h"
 
 class CommandBase {
 public:
     std::mutex dataMutex;
     std::atomic<bool> isRunning{false};
     std::atomic<bool> hasNewData{false};
-    std::unordered_map<std::string, double> data;
-
+    // key: attribute row type(topic type + attrsFirst), value: attribute row.
+    std::unordered_map<std::string, std::vector<std::string>> dataTypes;
+    std::unordered_map<std::string, std::vector<std::vector<std::string>>> datas;
+    std::vector<std::string> names;
+    // Current attribute row.
+    std::string nowType;
+    oeaware::Topic topic;
+    std::unordered_map<std::string, std::vector<std::string>> attrsFirst;
+    std::vector<std::string> skipLine{"---swap--"};
+    CommandBase();
     virtual ~CommandBase() = default;
-    virtual bool ValidateArgs(const std::string& args) = 0;
-    virtual void ParseLine(const std::string& line) = 0;
-    virtual std::string GetCommand(const std::string& params) = 0;
-    virtual void* CreateDataStruct() = 0;
-    virtual bool FillDataStruct(void* dataStruct) = 0;
+    static bool ValidateArgs(const oeaware::Topic& topic);
+    void ParseLine(const std::string& line);
+    static std::string GetCommand(const oeaware::Topic& topic);
+    bool FillDataStruct(void* dataStruct);
+    bool FreeData(void *dataList);
+    void Close();
 };
 
 #endif

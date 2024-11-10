@@ -21,11 +21,10 @@ add_subdirectory(collect/system)
 # if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 #     add_subdirectory(scenario/analysis)
 # endif()
-# add_subdirectory(scenario/thread_aware)
+add_subdirectory(scenario/thread_aware)
 
-# add_subdirectory(tune/smc_tune)
-# add_subdirectory(tune/system)
-# add_subdirectory(tune/unixbench)
+add_subdirectory(tune/system)
+add_subdirectory(tune/unixbench)
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_counting_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_sampling_data.h"

@@ -41,7 +41,6 @@ oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
     }
 
     char buffer[1024];
-    size_t pos;
     while (fgets(buffer, sizeof(buffer), pipe)) {
         size_t len = strlen(buffer);
         if (len > 0 && buffer[len - 1] == '\n') {
@@ -57,11 +56,13 @@ oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
 
 void KernelConfig::CloseTopic(const oeaware::Topic &topic)
 {
+    (void)topic;
     kernelInfo.clear();
 }
 
-oeaware::Result KernelConfig::Enable(const std::string &parma)
+oeaware::Result KernelConfig::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -72,6 +73,7 @@ void KernelConfig::Disable()
 
 void KernelConfig::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

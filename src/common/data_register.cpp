@@ -54,7 +54,7 @@ int DataListSerialize(const void *dataList, OutStream &out)
      if (func == nullptr) {
         func = reg.GetDataSerialize(tmpList->topic.instanceName);
     }
-    for (int i = 0; i < tmpList->len; ++i) {
+    for (uint64_t i = 0; i < tmpList->len; ++i) {
         func(tmpList->data[i], out);
     }
     return 0;
@@ -74,7 +74,7 @@ int DataListDeserialize(void *dataList, InStream &in)
     if (func == nullptr) {
         func = reg.GetDataDeserialize(topic.instanceName);
     }
-    for (int i = 0; i < size; ++i) {
+    for (uint64_t i = 0; i < size; ++i) {
         ((DataList*)dataList)->data[i] = nullptr;
         auto ret = func(&(((DataList*)dataList)->data[i]), in);
         if (ret) {
@@ -661,6 +661,7 @@ void Register::InitRegisterData()
     RegisterData("command_collector::iostat", std::make_pair(IostatDataSerialize, IostatDataDeserialize));
 
     RegisterData("command_collector::vmstat", std::make_pair(VmstatDataSerialize, VmstatDataDeserialize));
+    RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

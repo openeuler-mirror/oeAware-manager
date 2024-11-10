@@ -116,6 +116,7 @@ private:
     void DisableInstance(const std::string &name, bool force);
     bool CheckInstanceDisable(const std::string &name);
     void UpdateState();
+    void OpenTopic();
 private:
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> scheduleQueue;

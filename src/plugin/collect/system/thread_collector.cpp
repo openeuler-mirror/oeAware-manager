@@ -37,12 +37,14 @@ ThreadCollector::ThreadCollector()
 
 oeaware::Result ThreadCollector::OpenTopic(const oeaware::Topic &topic)
 {
+    (void)topic;
     openStatus = true;
     return oeaware::Result(OK);
 }
 
 void ThreadCollector::CloseTopic(const oeaware::Topic &topic)
 {
+    (void)topic;
     openStatus = false;
 }
 

@@ -11,7 +11,6 @@
  ******************************************************************************/
 
 #include <algorithm>
-#include <iostream>
 #include <securec.h>
 #include "pmu_spe_collector.h"
 #include "pmu_spe_data.h"
@@ -52,13 +51,13 @@ void PmuSpeCollector::InitSpeAttr(struct PmuAttr &attr)
     attr.includeNewFork = 0;
 }
 
-int PmuSpeCollector::OpenSpe(const oeaware::Topic &topic)
+int PmuSpeCollector::OpenSpe()
 {
     struct PmuAttr attr;
     InitSpeAttr(attr);
     int pd = PmuOpen(SPE_SAMPLING, &attr);
     if (pd == -1) {
-        std::cout << "open spe failed" << std::endl;
+        WARN(logger, "open spe failed.");
     }
 
     return pd;
@@ -71,7 +70,7 @@ oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
     }
 
     if (pmuId == -1) {
-        pmuId = OpenSpe(topic);
+        pmuId = OpenSpe();
         if (pmuId == -1) {
             return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
         }
@@ -85,6 +84,7 @@ oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
 
 void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
 {
+    (void)topic;
     if (pmuId == -1) {
         std::cout << "CloseTopic failed" << std::endl;
     } else {
@@ -94,8 +94,9 @@ void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
     }
 }
 
-oeaware::Result PmuSpeCollector::Enable(const std::string &parma)
+oeaware::Result PmuSpeCollector::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -106,6 +107,7 @@ void PmuSpeCollector::Disable()
 
 void PmuSpeCollector::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

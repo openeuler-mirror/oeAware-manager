@@ -18,7 +18,7 @@
 
 using namespace oeaware;
 
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
+extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<UnixBenchTune>());
 }
@@ -33,23 +33,26 @@ UnixBenchTune::UnixBenchTune() {
     depTopic.topicName = "thread_info";
 }
 
-int UnixBenchTune::OpenTopic(const oeaware::Topic &topic) {
+oeaware::Result UnixBenchTune::OpenTopic(const oeaware::Topic &topic)
+{
     (void)topic;
-    return 0;
+    return oeaware::Result(OK);
 }
 
-void UnixBenchTune::CloseTopic(const oeaware::Topic &topic) {
+void UnixBenchTune::CloseTopic(const oeaware::Topic &topic)
+{
     (void)topic;
 }
 
-void UnixBenchTune::UpdateData(const oeaware::DataList &dataList) {
+void UnixBenchTune::UpdateData(const DataList &dataList)
+{
     int tid;
     // bind numa node0 by default.
     cpu_set_t *newMask = &nodes[DEFAULT_BIND_NODE].cpuMask;
     cpu_set_t currentMask;
 
-    for (auto &data: dataList.data) {
-        auto *tmp = (ThreadInfo*)data.get();
+    for (uint64_t i = 0; i < dataList.len; ++i) {
+        auto *tmp = (ThreadInfo*)dataList.data[i];
         if (std::find(keyThreadNames.begin(), keyThreadNames.end(), tmp->name) == keyThreadNames.end()) {
             continue;
         }
@@ -67,7 +70,8 @@ void UnixBenchTune::UpdateData(const oeaware::DataList &dataList) {
     }
 }
 
-int UnixBenchTune::Enable(const std::string &param) {
+oeaware::Result UnixBenchTune::Enable(const std::string &param)
+{
     (void)param;
     if (!isInit) {
         // The static data such as the number of CPUs and NUMA nodes
@@ -83,10 +87,11 @@ int UnixBenchTune::Enable(const std::string &param) {
     }
 
     ReadKeyThreads(CONFIG_PATH);
-    return 0;
+    return oeaware::Result(OK);
 }
 
-void UnixBenchTune::Disable() {
+void UnixBenchTune::Disable()
+{
     Unsubscribe(depTopic);
     cpu_set_t *mask = &allCpuMask;
 
@@ -98,7 +103,8 @@ void UnixBenchTune::Disable() {
     keyThreadNames.clear();
 }
 
-void UnixBenchTune::Run() {
+void UnixBenchTune::Run()
+{
 }
 
 void UnixBenchTune::ReadKeyThreads(const std::string &file_name)

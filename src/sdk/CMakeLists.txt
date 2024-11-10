@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.16)
-project(sdk)
+project(oeaware-sdk)
 
 aux_source_directory(. SOURCE)
 SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -fPIC -O2")

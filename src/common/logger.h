@@ -23,7 +23,6 @@ namespace oeaware {
 #define WARN(logger, fmt) LOG4CPLUS_WARN(logger, fmt)
 #define ERROR(logger, fmt) LOG4CPLUS_ERROR(logger, fmt)
 #define FATAL(logger, fmt) LOG4CPLUS_FATAL(logger, fmt)
-
 class Logger {
 public:
     Logger(const Logger&) = delete;
@@ -53,6 +52,7 @@ private:
     const int LOG_LEVELS[6] = {log4cplus::TRACE_LOG_LEVEL, log4cplus::DEBUG_LOG_LEVEL, log4cplus::INFO_LOG_LEVEL,
         log4cplus::WARN_LOG_LEVEL, log4cplus::ERROR_LOG_LEVEL, log4cplus::FATAL_LOG_LEVEL};
 };
+std::string LogText(const std::string &text);
 }
 
 #endif

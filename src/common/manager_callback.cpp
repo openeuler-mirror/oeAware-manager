@@ -18,7 +18,7 @@ void ManagerCallback::Init(EventQueue newRecvData)
     recvData = newRecvData;
 }
 
-int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int type)
+Result ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int type)
 {
     auto topicType = topic.GetType();
     std::lock_guard<std::mutex> lock(mutex);
@@ -28,29 +28,32 @@ int ManagerCallback::Subscribe(const std::string &name, const Topic &topic, int 
         topicSdk[topicType].insert(name);
     }
     inDegree[topic.instanceName][topic.topicName][topic.params]++;
-    return 0;
+    return Result(OK);
 }
 
-int ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic, int type)
+Result ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic, int type)
 {
     auto topicType = topic.GetType();
     std::lock_guard<std::mutex> lock(mutex);
+    if (inDegree[topic.instanceName][topic.topicName][topic.params] <= 0) {
+        return Result(FAILED, "already unsubscribed");
+    }
     if (type) {
         topicInstance[topicType].erase(name);
     } else {
         topicSdk[topicType].erase(name);
     }
     --inDegree[topic.instanceName][topic.topicName][topic.params];
-    return 0;
+    return Result(OK);
 }
 
 std::vector<std::string> ManagerCallback::Unsubscribe(const std::string &name)
 {
     std::vector<std::string> ret;
     std::lock_guard<std::mutex> lock(mutex);
-    for (auto &p : topicSdk) {
-        auto &subscriber = p.second;
-        auto topicType = p.first;
+    for (auto p = topicSdk.begin(); p != topicSdk.end();) {
+        auto &subscriber = p->second;
+        auto topicType = p->first;
         auto names = SplitString(topicType, "::");
         auto instanceName = names[0];
         auto topicName = names[1];
@@ -59,6 +62,11 @@ std::vector<std::string> ManagerCallback::Unsubscribe(const std::string &name)
             subscriber.erase(name);
             ret.emplace_back(instanceName);
             --inDegree[instanceName][topicName][params];
+        }
+        if (subscriber.empty()) {
+            p = topicSdk.erase(p);
+        } else {
+            p++;
         }
     }
     return ret;

@@ -46,7 +46,7 @@ struct Result {
     std::string payload;
     Result() { }
     explicit Result(int code) : code(code) { }
-    Result(int code, const std::string &payload) : payload(payload) { }
+    Result(int code, const std::string &payload) : code(code), payload(payload) { }
     void Serialize(oeaware::OutStream &out) const
     {
         out << code << payload;

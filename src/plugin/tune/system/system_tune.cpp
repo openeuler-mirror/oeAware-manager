@@ -15,7 +15,7 @@
 #include "network/smc_tune/smc_tune.h"
 using namespace oeaware;
 
-void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
+extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<StealTask>());
     interface.emplace_back(std::make_shared<SmcTune>());

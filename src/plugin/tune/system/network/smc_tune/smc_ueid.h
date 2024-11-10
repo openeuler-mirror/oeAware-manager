@@ -18,9 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
-
 #include "smc_common.h"
-
 #include "smc_netlink.h"
 
 class SmcOperator {

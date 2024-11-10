@@ -45,4 +45,12 @@ int Logger::Init(const std::string &path, const int level)
     logPath = path;
     return 0;
 }
+
+std::string LogText(const std::string &text)
+{
+    if (text.empty()) {
+        return "nullptr";
+    }
+    return text;
+}
 }

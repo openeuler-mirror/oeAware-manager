@@ -71,11 +71,11 @@ protected:
     int priority;
     int type;
     int period;
-    int Subscribe(const Topic &topic)
+    Result Subscribe(const Topic &topic)
     {
         return managerCallback->Subscribe(name, topic, 1);
     }
-    int Unsubscribe(const Topic &topic)
+    Result Unsubscribe(const Topic &topic)
     {
         return managerCallback->Unsubscribe(name, topic, 1);
     }
@@ -86,8 +86,6 @@ protected:
 private:
     std::shared_ptr<ManagerCallback> managerCallback;
 };
-
-void GetInstance(std::vector<std::shared_ptr<Interface>> &interface);
 }
 
 #endif

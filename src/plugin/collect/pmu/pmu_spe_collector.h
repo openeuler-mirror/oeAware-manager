@@ -24,7 +24,7 @@ public:
     oeaware::Result OpenTopic(const oeaware::Topic &topic) override;
     void CloseTopic(const oeaware::Topic &topic) override;
     void UpdateData(const DataList &dataList) override;
-    oeaware::Result Enable(const std::string &parma = "") override;
+    oeaware::Result Enable(const std::string &param = "") override;
     void Disable() override;
     void Run() override;
 private:
@@ -32,7 +32,7 @@ private:
     std::string topicStr = "spe";
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     void InitSpeAttr(struct PmuAttr &attr);
-    int OpenSpe(const oeaware::Topic &topic);
+    int OpenSpe();
 };
 
 #endif

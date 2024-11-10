@@ -16,33 +16,37 @@
 
 using namespace oeaware;
 
-StealTask::StealTask() {
+StealTask::StealTask()
+{
     name = "stealtask_tune";
     description = "";
     version = "1.0.0";
     period = -1;
     priority = 2;
     type = 1;
-
 }
 
-int StealTask::OpenTopic(const oeaware::Topic &topic) {
+oeaware::Result StealTask::OpenTopic(const oeaware::Topic &topic)
+{
     (void)topic;
-    return true;
+    return oeaware::Result(OK);
 }
 
-void StealTask::CloseTopic(const oeaware::Topic &topic) {
+void StealTask::CloseTopic(const oeaware::Topic &topic)
+{
     (void)topic;
 }
 
-void StealTask::UpdateData(const oeaware::DataList &dataList) {
+void StealTask::UpdateData(const DataList &dataList)
+{
     (void)dataList;
 }
 
-int StealTask::Enable(const std::string &param) {
+oeaware::Result StealTask::Enable(const std::string &param)
+{
     (void)param;
     if (system("zcat /proc/config.gz | grep CONFIG_SCHED_STEAL=y > /dev/null") == 1) {
-        return false;
+        return oeaware::Result(FAILED);
     }
 
     if (!isInit) {
@@ -55,24 +59,27 @@ int StealTask::Enable(const std::string &param) {
 
     std::string::size_type pos = cmdline.find("sched_steal_node_limit");
     if (pos == std::string::npos) {
-        return false;
+        return oeaware::Result(FAILED);
     }
 
-    return true;
+    return oeaware::Result(OK);
 }
 
-void StealTask::Disable() {
+void StealTask::Disable()
+{
     std::ofstream file("/sys/kernel/debug/sched_features");
     file << "NO_STEAL";
     file.close();
     isInit = false;
 }
 
-void StealTask::Run() {
+void StealTask::Run()
+{
 
 }
 
-void StealTask::ReadConfig() {
+void StealTask::ReadConfig()
+{
     std::ifstream file(CMDLINE_PATH);
     if (!file.is_open()) {
         return;

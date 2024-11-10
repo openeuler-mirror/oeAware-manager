@@ -11,6 +11,7 @@
 #endif
 #include "thread_info.h"
 #include "kernel_data.h"
+#include "command_data.h"
 
 namespace oeaware {
 
@@ -521,6 +522,120 @@ int KernelDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
+int MpstatDataSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const MpstatData*>(data);
+    out << tmpData->len;
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key(tmpData->mpstatArray[i].key);
+        out << key << tmpData->mpstatArray[i].value;
+    }
+    return 0;
+}
+
+int MpstatDataDeserialize(void **data, InStream &in)
+{
+    *data = new MpstatData();
+    auto *tmpData = static_cast<MpstatData*>(*data);
+    in >> tmpData->len;
+    tmpData->mpstatArray = new CommandArray[tmpData->len];
+
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key;
+        in >> key >> tmpData->mpstatArray[i].value;
+
+        tmpData->mpstatArray[i].key = new char[key.length() + 1];
+        errno_t ret = strcpy_s(tmpData->mpstatArray[i].key, key.length() + 1, key.c_str());
+        if (ret != EOK) {
+            for (int j = 0; j < i; j++) {
+                delete[] tmpData->mpstatArray[j].key;
+            }
+            delete[] tmpData->mpstatArray;
+            delete tmpData;
+            *data = nullptr;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int IostatDataSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const IostatData*>(data);
+    out << tmpData->len;
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key(tmpData->iostatArray[i].key);
+        out << key << tmpData->iostatArray[i].value;
+    }
+    return 0;
+}
+
+int IostatDataDeserialize(void **data, InStream &in)
+{
+    *data = new IostatData();
+    auto *tmpData = static_cast<IostatData*>(*data);
+    in >> tmpData->len;
+    tmpData->iostatArray = new CommandArray[tmpData->len];
+
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key;
+        in >> key >> tmpData->iostatArray[i].value;
+
+        tmpData->iostatArray[i].key = new char[key.length() + 1];
+        errno_t ret = strcpy_s(tmpData->iostatArray[i].key, key.length() + 1, key.c_str());
+        if (ret != EOK) {
+            for (int j = 0; j < i; j++) {
+                delete[] tmpData->iostatArray[j].key;
+            }
+            delete[] tmpData->iostatArray;
+            delete tmpData;
+            *data = nullptr;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int VmstatDataSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const VmstatData*>(data);
+    out << tmpData->len;
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key(tmpData->vmstatArray[i].key);
+        out << key << tmpData->vmstatArray[i].value;
+    }
+    return 0;
+}
+
+int VmstatDataDeserialize(void **data, InStream &in)
+{
+    *data = new VmstatData();
+    auto *tmpData = static_cast<VmstatData*>(*data);
+    in >> tmpData->len;
+    tmpData->vmstatArray = new CommandArray[tmpData->len];
+
+    for (int i = 0; i < tmpData->len; i++) {
+        std::string key;
+        in >> key >> tmpData->vmstatArray[i].value;
+
+        tmpData->vmstatArray[i].key = new char[key.length() + 1];
+        errno_t ret = strcpy_s(tmpData->vmstatArray[i].key, key.length() + 1, key.c_str());
+        if (ret != EOK) {
+            for (int j = 0; j < i; j++) {
+                delete[] tmpData->vmstatArray[j].key;
+            }
+            delete[] tmpData->vmstatArray;
+            delete tmpData;
+            *data = nullptr;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 void Register::RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func)
 {
     deserializeFuncs[name] = func;
@@ -541,6 +656,11 @@ void Register::InitRegisterData()
 
     RegisterData("kernel_config::get_kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
 
+    RegisterData("command_collector::mpstat", std::make_pair(MpstatDataSerialize, MpstatDataDeserialize));
+
+    RegisterData("command_collector::iostat", std::make_pair(IostatDataSerialize, IostatDataDeserialize));
+
+    RegisterData("command_collector::vmstat", std::make_pair(VmstatDataSerialize, VmstatDataDeserialize));
     RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
 }
 

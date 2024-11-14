@@ -22,6 +22,7 @@
 #include "event/download_handler.h"
 #include "event/subscribe_handler.h"
 #include "event/unsubscribe_handler.h"
+#include "event/publish_handler.h"
 
 namespace oeaware {
 void PrintHelp()
@@ -35,8 +36,7 @@ void PrintHelp()
 void SignalHandler(int signum)
 {
     (void)signum;
-    oeaware::PluginManager::GetInstance().Exit();
-    oeaware::MessageManager::GetInstance().Exit();
+    oeaware::PluginManager::GetInstance().SendMsg(Event(Opt::SHUTDOWN));
 }
 
 std::shared_ptr<MemoryStore> Handler::memoryStore;
@@ -56,6 +56,7 @@ void PluginManager::InitEventHandler()
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
     eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback, instanceRunHandler);
     eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback, instanceRunHandler);
+    eventHandler[Opt::PUBLISH] = std::make_shared<PublishHandler>();
 }
 
 void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,
@@ -131,7 +132,6 @@ void PluginManager::PreLoad()
 
 void PluginManager::Exit()
 {
-    this->recvMessage->Push(Event(Opt::SHUTDOWN));
     auto allPlugins = memoryStore->GetAllPlugins();
     auto msg = std::make_shared<InstanceRunMessage>(RunType::SHUTDOWN);
     SendMsgToInstancRunHandler(msg);
@@ -149,6 +149,7 @@ void PluginManager::Exit()
             INFO(logger, instance->name << " instance disabled.");
         }
     }
+    INFO(logger, "oeaware shutdown.");
 }
 
 void PluginManager::Run()

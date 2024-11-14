@@ -18,8 +18,7 @@ int main(int argc, char **argv)
 {
     oeaware::Logger::GetInstance().Register("Main");
     auto logger = oeaware::Logger::GetInstance().Get("Main");
-    if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR ||
-        signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+    if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR) {
         ERROR(logger, "Sig Error!");
         exit(EXIT_FAILURE);
     }
@@ -67,5 +66,7 @@ int main(int argc, char **argv)
     oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
     pluginManager.Init(config, recvMessage, sendMessage, recvData);
     pluginManager.Run();
+    pluginManager.Exit();
+    messageManager.Exit();
     return 0;
 }

@@ -17,6 +17,8 @@
 #include <getopt.h>
 
 namespace oeaware {
+const int START = 0;
+const int STOP = 1;
 class ArgParse {
 public:
     using Option = struct option;

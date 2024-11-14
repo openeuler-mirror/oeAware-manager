@@ -74,6 +74,19 @@ public:
     void Handler(Message &msg) override;
     void ResHandler(Message &msg) override;
 };
+
+class StartHandler : public CmdHandler {
+public:
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
+};
+
+class StopHandler : public CmdHandler {
+public:
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
+};
+
 }
 
 #endif // !CLIENT_CMD_Handler_H

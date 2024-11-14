@@ -22,6 +22,8 @@ void Client::CmdGroupsInit()
     cmdHandlerGroups.insert(std::make_pair('d', std::make_shared<DisabledHandler>()));
     cmdHandlerGroups.insert(std::make_pair('L', std::make_shared<ListHandler>()));
     cmdHandlerGroups.insert(std::make_pair('i', std::make_shared<InstallHandler>()));
+    cmdHandlerGroups.insert(std::make_pair(START, std::make_shared<StartHandler>()));
+    cmdHandlerGroups.insert(std::make_pair(STOP, std::make_shared<StopHandler>()));
 }
 
 bool Client::Init(int argc, char *argv[])
@@ -30,6 +32,9 @@ bool Client::Init(int argc, char *argv[])
         return false;
     }
     CmdGroupsInit();
+    if (cmd == START) {
+        return true;
+    }
     return this->tcpSocket.Init(DEFAULT_SERVER_LISTEN_PATH);
 }
 

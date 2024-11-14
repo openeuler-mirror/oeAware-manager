@@ -86,7 +86,7 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
     }
     result = instance->interface->OpenTopic(topic);
     if (result.code < 0) {
-        WARN(logger, "topic open failed.");
+        WARN(logger, "topic open failed, " << result.payload);
         DisableInstance(instance->name, false);
         return result;
     }
@@ -166,6 +166,7 @@ bool InstanceRunHandler::HandleMessage()
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
     while (this->RecvQueueTryPop(msg)) {
+        DEBUG(logger, "handle message");
         switch (msg->GetType()) {
             case RunType::ENABLED: {
                 EnableInstance(msg->payload[0]);

@@ -8,9 +8,7 @@ add_library(system_collector SHARED
             kernel_config.cpp
             kernel_data.cpp
             ./command/command_collector.cpp
-            ./command/mpstat_collector.cpp
-            ./command/iostat_collector.cpp
-            ./command/vmstat_collector.cpp
+            ./command/command_base.cpp
             )
 set_target_properties(system_collector PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

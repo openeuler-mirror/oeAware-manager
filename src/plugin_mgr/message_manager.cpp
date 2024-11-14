@@ -148,6 +148,7 @@ void TcpMessageHandler::Init(EventQueue newRecvMessage, EventResultQueue newSend
 
 void TcpMessageHandler::AddConn(int conn, int type)
 {
+    std::lock_guard<std::mutex> lock(connMutex);
     if (conns.count(conn) && conns[conn] > 0) {
         WARN(logger, "conn fd already exists!");
         return;
@@ -180,6 +181,10 @@ bool TcpMessageHandler::IsConn(int fd)
 
 void TcpMessageHandler::CloseConn(int fd)
 {
+    std::lock_guard<std::mutex> lock(connMutex);
+    if (conns[fd] & SDK_CONN) {
+        recvMessage->Push(Event{Opt::UNSUBSCRIBE, EventType::INTERNAL, {std::to_string(fd)}});
+    }
     conns[fd] = DISCONNECTED;
 }
 
@@ -198,8 +203,14 @@ bool TcpMessageHandler::HandleMessage(int fd)
         PushEvent(clientMsg, recvMessage, {});
     }
     GetEventResult(internalMsg, sendMessage);
+    if (internalMsg.opt == Opt::SHUTDOWN) {
+        shutdown = true;
+        recvData->Push(Event(Opt::SHUTDOWN));
+    }
+    DEBUG(logger, "message handle.");
     if (conns[fd] & SDK_CONN) {
         std::lock_guard<std::mutex> lock(connMutex);
+        DEBUG(logger, "send response to sdk.");
         return SendMessageToRemote(stream, internalMsg);
     } else {
         return SendMessageToRemote(stream, internalMsg);
@@ -218,13 +229,11 @@ void TcpMessageHandler::Start()
             continue;
         }
         int fd = atoi(event.payload[0].c_str());
+        std::lock_guard<std::mutex> lock(connMutex);
         if (!conns.count(fd) || conns[fd] == DISCONNECTED) {
-            conns[fd] = DISCONNECTED_AND_UNSUBCRIBE;
-            recvMessage->Push(Event{Opt::UNSUBSCRIBE, EventType::INTERNAL, {std::to_string(fd)}});
             continue;
         }
         SocketStream stream(fd);
-        std::lock_guard<std::mutex> lock(connMutex);
         if (!SendMessageToRemote(stream, GetMessageFromDataEvent(event))) {
              WARN(logger, "data send failed!");
         }
@@ -309,7 +318,7 @@ void TcpSocket::ServeAccept()
     int sz = sizeof(evs) / sizeof(struct epoll_event);
     while (true) {
         auto num = epoll->EventWait(evs, sz, -1);
-        if (num <= 0) {
+        if (num <= 0 || tcpMessageHandler.shutdown) {
             break;
         }
         HandleEvents(evs, num);

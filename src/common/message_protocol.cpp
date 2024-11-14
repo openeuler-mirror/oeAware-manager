@@ -71,7 +71,7 @@ ssize_t SocketStream::Read(char buf[], size_t size)
 
 ssize_t SocketStream::Write(const char buf[], size_t size)
 {
-    return SendSocket(sock, buf, size, 0);
+    return SendSocket(sock, buf, size, MSG_NOSIGNAL);
 }
 
 std::string MessageProtocol::GetProtocolStr()

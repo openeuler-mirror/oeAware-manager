@@ -19,12 +19,8 @@ CommandCollector::CommandCollector(): oeaware::Interface()
     this->description = "collect information of command";
     this->priority = 0;
     this->type = 0;
-    this->period = 0;
-
-    collectors["mpstat"] = std::make_unique<MpstatCollector>();
-    collectors["iostat"] = std::make_unique<IostatCollector>();
-    collectors["vmstat"] = std::make_unique<VmstatCollector>();
-
+    constexpr int RUN_PERIOD = 10;
+    this->period = RUN_PERIOD;
     for (const auto &iter : topicStr) {
         oeaware::Topic topic;
         topic.instanceName = this->name;
@@ -35,37 +31,25 @@ CommandCollector::CommandCollector(): oeaware::Interface()
 
 void CommandCollector::CollectThread(const oeaware::Topic &topic, CommandBase* collector)
 {
-    while (collector->isRunning) {
-        std::string cmd = collector->GetCommand(topic.params);
-        FILE* pipe = popen(cmd.c_str(), "r");
-        if (!pipe) {
-            std::cerr << "Error: Failed to execute command: " << cmd << std::endl;
-            return;
-        }
-
-        char buffer[256];
-        while (collector->isRunning && fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            collector->ParseLine(std::string(buffer));
-        }
-
-        pclose(pipe);
+    std::string cmd = collector->GetCommand(topic);
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        std::cerr << "Error: Failed to execute command: " << cmd << std::endl;
+        return;
     }
+    char buffer[256];
+    while (collector->isRunning && fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        collector->ParseLine(std::string(buffer));
+    }
+    pclose(pipe);
+    
+    collector->Close();
 }
 
 void CommandCollector::PublishThread(const oeaware::Topic &topic, CommandBase* collector)
 {
     while (collector->isRunning) {
         if (collector->hasNewData.exchange(false)) {
-            void* data = collector->CreateDataStruct();
-            if (!data) {
-                continue;
-            }
-
-            std::lock_guard<std::mutex> lock(collector->dataMutex);
-            if (!collector->FillDataStruct(data)) {
-                continue;
-            }
-
             DataList dataList;
             dataList.topic.instanceName = new char[name.size() + 1];
             if (strcpy_s(dataList.topic.instanceName, name.size() + 1, name.c_str()) != EOK) {
@@ -79,10 +63,12 @@ void CommandCollector::PublishThread(const oeaware::Topic &topic, CommandBase* c
             if (strcpy_s(dataList.topic.params, topic.params.length() + 1, topic.params.c_str()) != EOK) {
                 continue;
             }
-            dataList.data = new void* [1];
-            dataList.len = 1;
-            dataList.data[0] = data;
+            if (!collector->FillDataStruct(&dataList)) {
+                continue;
+            }
+            SarData *pdata = (SarData *)dataList.data[0];
             Publish(dataList);
+            collector->FreeData(&dataList);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -90,36 +76,45 @@ void CommandCollector::PublishThread(const oeaware::Topic &topic, CommandBase* c
 
 oeaware::Result CommandCollector::OpenTopic(const oeaware::Topic &topic)
 {
-    auto it = collectors.find(topic.topicName);
-    if (it != collectors.end() && it->second->ValidateArgs(topic.params)) {
-        it->second->isRunning = true;
-        collectThreads[topic.topicName] = std::thread(&CommandCollector::CollectThread,
-                                                      this, topic, it->second.get());
-        publishThreads[topic.topicName] = std::thread(&CommandCollector::PublishThread,
-                                                      this, topic, it->second.get());
-        return oeaware::Result(0);
+    if (!CommandBase::ValidateArgs(topic)) {
+        return oeaware::Result(FAILED, "params invalid.");
     }
-    return oeaware::Result(-1, "Unsupported topic");
+    auto topicType = topic.GetType();
+    std::lock_guard<std::mutex> lock(topicMutex[topicType]);
+    auto it = collectors.find(topicType);
+    if (it == collectors.end()) {
+        collectors[topicType] = std::make_unique<CommandBase>();
+        collectors[topicType]->topic = topic;
+    }
+    auto &cmd = collectors[topicType];
+    if (cmd->isRunning) {
+        return oeaware::Result(OK);
+    }
+    cmd->isRunning = true;
+    collectThreads[topicType] = std::thread(&CommandCollector::CollectThread, this, topic, cmd.get());
+    publishThreads[topicType] = std::thread(&CommandCollector::PublishThread, this, topic, cmd.get());
+    return oeaware::Result(OK);
 }
 
 void CommandCollector::CloseTopic(const oeaware::Topic &topic)
 {
-    auto it = collectors.find(topic.topicName);
-    if (it != collectors.end()) {
-        it->second->isRunning = false;
-        std::lock_guard<std::mutex> lock(it->second->dataMutex);
-        it->second->data.clear();
-        it->second->hasNewData = false;
-
-        if (collectThreads[topic.topicName].joinable()) {
-            collectThreads[topic.topicName].join();
-            collectThreads.erase(topic.topicName);
+    std::thread t([this, topic] {
+        auto topicType = topic.GetType();
+        std::lock_guard<std::mutex> lock(topicMutex[topicType]);
+        auto it = collectors.find(topicType);
+        if (it != collectors.end() && it->second->isRunning) {
+            it->second->isRunning = false;
+            if (collectThreads[topicType].joinable()) {
+                collectThreads[topicType].join();
+                collectThreads.erase(topicType);
+            }
+            if (publishThreads[topicType].joinable()) {
+                publishThreads[topicType].join();
+                publishThreads.erase(topicType);
+            }
         }
-        if (publishThreads[topic.topicName].joinable()) {
-            publishThreads[topic.topicName].join();
-            publishThreads.erase(topic.topicName);
-        }
-    }
+    });
+    t.detach();
 }
 
 oeaware::Result CommandCollector::Enable(const std::string &parma)

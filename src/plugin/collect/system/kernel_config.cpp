@@ -34,90 +34,130 @@ KernelConfig::KernelConfig(): oeaware::Interface()
 
 oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
 {
-    params = topic.params;
+    if (find(topicStr.begin(), topicStr.end(), topic.topicName) == topicStr.end()) {
+        return oeaware::Result(FAILED, "topic{" + topic.topicName + "} invalid.");
+    }
+    std::stringstream ss(topic.params);
+    std::string word;
+    while (ss >> word) {
+        if (kernelParams.count(word)) {
+            if (topic.topicName == "get_kernel_config") {
+                getTopics[topic.GetType()].insert(word);
+            } else {
+                setTopics[topic.GetType()].insert(word);
+            }
+        }
+    }
+    return oeaware::Result(OK);
+}
+
+void KernelConfig::CloseTopic(const oeaware::Topic &topic)
+{
+    getTopics.erase(topic.GetType());
+    setTopics.clear();
+}
+
+oeaware::Result KernelConfig::Enable(const std::string &param)
+{
+    (void)param;
     FILE *pipe = popen("sysctl -a", "r");
     if (!pipe) {
         return oeaware::Result(FAILED, "Error: popen() filed");
     }
 
     char buffer[1024];
-    while (fgets(buffer, sizeof(buffer), pipe)) {
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         size_t len = strlen(buffer);
         if (len > 0 && buffer[len - 1] == '\n') {
             buffer[len - 1] = '\0';
         }
         std::string str = buffer;
-        kernelInfo.push_back(str);
+        auto values = oeaware::SplitString(str, " = ");
+        constexpr int paramsCnt = 2;
+        if (values.size() != paramsCnt) {
+            continue;
+        }
+        kernelParams[values[0]] = values[1];
     }
-
     pclose(pipe);
-    return oeaware::Result(OK);
-}
-
-void KernelConfig::CloseTopic(const oeaware::Topic &topic)
-{
-    (void)topic;
-    kernelInfo.clear();
-}
-
-oeaware::Result KernelConfig::Enable(const std::string &param)
-{
-    (void)param;
     return oeaware::Result(OK);
 }
 
 void KernelConfig::Disable()
 {
+    kernelParams.clear();
+    setTopics.clear();
+    getTopics.clear();
     return;
 }
 
 void KernelConfig::UpdateData(const DataList &dataList)
 {
-    (void)dataList;
+    for (int i = 0; i < dataList.len; ++i) {
+        KernelData *kernelData = (KernelData*)dataList.data[i];
+        auto tmp = kernelData->kernelData;
+        for (int j = 0; j < kernelData->len; ++j) {
+            std::string key(tmp->key);
+            std::string value(tmp->value);
+            setTopics[key].insert(value);
+            tmp = tmp->next;
+        }
+    }
     return;
 }
 
-void KernelConfig::searchRegex(const std::string &regexStr, KernelData *data)
+void KernelConfig::PublishKernelConfig()
 {
-    std::regex regexObj(regexStr);
-    std::smatch match;
-
-    for (auto &iter : kernelInfo) {
-        if (regex_search(iter, match, regexObj)) {
-            size_t pos = iter.find("=");
-            KernelDataNode *newNode = createNode(iter.substr(0, pos - 1).c_str(), iter.substr(pos + 2).c_str());
+    if (getTopics.empty()) {
+        return;
+    }
+    for (auto &p : getTopics) {
+        oeaware::Topic topic = oeaware::Topic::GetTopicFromType(p.first);
+        DataList dataList;
+        dataList.topic.instanceName = new char[topic.instanceName.size() + 1];
+        strcpy_s(dataList.topic.instanceName, topic.instanceName.size() + 1, topic.instanceName.data());
+        dataList.topic.topicName = new char[topic.topicName.size() + 1];
+        strcpy_s(dataList.topic.topicName, topic.topicName.size() + 1, topic.topicName.data());
+        dataList.topic.params = new char[topic.params.size() + 1];
+        strcpy_s(dataList.topic.params, topic.params.size() + 1, topic.params.data());
+        KernelData *data = new KernelData();
+        KernelDataNode *tmp = nullptr;
+        for (auto &name : p.second) {
+            KernelDataNode *newNode = createNode(name.data(), kernelParams[name].data());
             if (data->kernelData == NULL) {
                 data->kernelData = newNode;
+                tmp = newNode;
             } else {
-                auto tmp = data->kernelData;
-                while (tmp->next != NULL) {
-                    tmp = tmp->next;
-                }
                 tmp->next = newNode;
+                tmp = tmp->next;
             }
             data->len++;
+        }
+
+        dataList.len = 1;
+        dataList.data = new void* [1];
+        dataList.data[0] = data;
+        Publish(dataList);
+    }
+}
+
+void KernelConfig::SetKernelConfig()
+{
+    for (auto &p : setTopics) {
+        for (auto &value : p.second) {
+            std::string cmd = "sysctl -w " + p.first + "=" + value;
+            FILE *pipe = popen(cmd.data(), "r");
+            if (!pipe) {
+                WARN(logger, "set kernel config{" << p.first << "=" << value << "} failed.");
+                continue;
+            }
+            pclose(pipe);
         }
     }
 }
 
 void KernelConfig::Run()
 {
-    KernelData *data = new KernelData();
-    std::istringstream iss(params);
-    std::string token;
-    while (getline(iss, token, ' ')) {
-        searchRegex(token, data);
-    }
-
-    DataList dataList;
-    dataList.topic.instanceName = new char[name.size() + 1];
-    strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
-    dataList.topic.topicName = new char[topicStr[0].size() + 1];
-    strcpy_s(dataList.topic.topicName, topicStr[0].size() + 1, topicStr[0].data());
-    dataList.topic.params = new char[params.size() + 1];
-    strcpy_s(dataList.topic.params, params.size() + 1, params.data());
-    dataList.len = 1;
-    dataList.data = new void* [1];
-    dataList.data[0] = data;
-    Publish(dataList);
+    PublishKernelConfig();
+    SetKernelConfig();
 }

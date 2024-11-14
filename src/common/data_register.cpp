@@ -510,7 +510,7 @@ int KernelDataDeserialize(void **data, InStream &in)
         if (ret != EOK) {
             return -1;
         }
-
+        node->next = nullptr;
         if (tmpData->kernelData == NULL) {
             tmpData->kernelData = node;
             kernelDataNode = node;
@@ -587,7 +587,7 @@ void Register::InitRegisterData()
 #endif
     RegisterData("thread_collector", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
 
-    RegisterData("kernel_config::get_kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
+    RegisterData("kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
 
     RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
 

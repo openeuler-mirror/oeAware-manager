@@ -27,10 +27,12 @@ public:
     void Disable() override;
     void Run() override;
 private:
+    void PublishKernelConfig();
+    void SetKernelConfig();
     std::vector<std::string> topicStr = {"get_kernel_config", "set_kernel_config"};
-    std::vector<std::string> kernelInfo;
-    std::string params;
-    void searchRegex(const std::string &regexStr, KernelData *data);
+    std::unordered_map<std::string, std::unordered_set<std::string>> getTopics;
+    std::unordered_map<std::string, std::unordered_set<std::string>> setTopics;
+    std::unordered_map<std::string, std::string> kernelParams;
 };
 
 #endif

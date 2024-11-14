@@ -56,7 +56,7 @@ void PluginManager::InitEventHandler()
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
     eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback, instanceRunHandler);
     eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback, instanceRunHandler);
-    eventHandler[Opt::PUBLISH] = std::make_shared<PublishHandler>();
+    eventHandler[Opt::PUBLISH] = std::make_shared<PublishHandler>(instanceRunHandler);
 }
 
 void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,

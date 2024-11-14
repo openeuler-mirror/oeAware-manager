@@ -28,11 +28,16 @@ public:
     void Disable() override;
     void Run() override;
 private:
-    int pmuId;
-    std::string topicStr = "spe";
-    std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    void DynamicAdjustPeriod(uint64_t interval);
     void InitSpeAttr(struct PmuAttr &attr);
     int OpenSpe();
+
+    int pmuId;
+    int attrPeriod = 2048;
+    std::string topicStr = "spe";
+    std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    const int timeout = 50;
+    const int periodThreshold = 2;
 };
 
 #endif

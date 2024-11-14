@@ -39,7 +39,7 @@ void PmuSpeCollector::InitSpeAttr(struct PmuAttr &attr)
     attr.cpuList = nullptr;
     attr.numCpu = 0;
     attr.evtAttr = nullptr;
-    attr.period = 2048;
+    attr.period = attrPeriod;
     attr.useFreq = 0;
     attr.excludeUser = 0;
     attr.excludeKernel = 0;
@@ -61,6 +61,17 @@ int PmuSpeCollector::OpenSpe()
     }
 
     return pd;
+}
+
+void PmuSpeCollector::DynamicAdjustPeriod(uint64_t interval)
+{
+    if (interval > timeout) {
+        PmuDisable(pmuId);
+        PmuClose(pmuId);
+        attrPeriod *= periodThreshold;
+        pmuId = OpenSpe();
+        PmuEnable(pmuId);
+    }
 }
 
 oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
@@ -121,7 +132,8 @@ void PmuSpeCollector::Run()
 
         auto now = std::chrono::high_resolution_clock::now();
         data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
-        timestamp = now;
+        DynamicAdjustPeriod(data->interval);
+        timestamp = std::chrono::high_resolution_clock::now();
 
         DataList dataList;
         dataList.topic.instanceName = new char[name.size() + 1];

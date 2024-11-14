@@ -17,6 +17,8 @@
 #include "data_list.h"
 #include "interface.h"
 
+constexpr int NET_RECEIVE_TRACE_SAMPLE_PERIOD = 10;
+constexpr int CYCLES_FREQ = 100;
 class PmuSamplingCollector : public oeaware::Interface {
 public:
     PmuSamplingCollector();
@@ -29,7 +31,7 @@ public:
     void Run() override;
 private:
     std::unordered_map<std::string, int> pmuId;
-    std::vector<std::string> topicStr = {"cycles"};
+    std::vector<std::string> topicStr = {"cycles", "skb:skb_copy_datagram_iovec", "net:napi_gro_receive_entry"};
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     void InitSamplingAttr(struct PmuAttr &attr);
     int OpenSampling(const oeaware::Topic &topic);

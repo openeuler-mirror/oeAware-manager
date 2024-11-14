@@ -40,8 +40,6 @@ void PmuSamplingCollector::InitSamplingAttr(struct PmuAttr &attr)
     attr.cpuList = nullptr;
     attr.numCpu = 0;
     attr.evtAttr = nullptr;
-    attr.freq = 100;
-    attr.useFreq = 1;
     attr.excludeUser = 0;
     attr.excludeKernel = 0;
     attr.symbolMode = NO_SYMBOL_RESOLVE;
@@ -66,7 +64,12 @@ int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
     }
     attr.evtList = evtList;
     attr.numEvt = 1;
-
+    if (topic.topicName == "cycles") {
+        attr.freq = CYCLES_FREQ;
+        attr.useFreq = 1;
+    } else {
+        attr.period = NET_RECEIVE_TRACE_SAMPLE_PERIOD;
+    }
     int pd = PmuOpen(SAMPLING, &attr);
     if (pd == -1) {
         std::cout << topic.topicName << " open failed" << std::endl;

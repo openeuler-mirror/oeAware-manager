@@ -12,12 +12,21 @@
 #include "publish_handler.h"
 
 namespace oeaware {
+Result PublishHandler::Publish(const Event &event)
+{
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::PUBLISH, event.payload);
+    instanceRunHandler->RecvQueuePush(msg);
+    msg->Wait();
+    auto result = msg->result;
+    return result;
+}
+
 EventResult PublishHandler::Handle(const Event &event)
 {
     EventResult eventResult;
-    std::string resText;
+    auto result = Publish(event);
     eventResult.opt = Opt::PUBLISH;
-    eventResult.payload.emplace_back(Encode(Result(OK)));
+    eventResult.payload.emplace_back(Encode(result));
     return eventResult;
 }
 }

@@ -16,6 +16,7 @@
 #include "plugin.h"
 #include "logger.h"
 #include "memory_store.h"
+#include "data_register.h"
 
 namespace oeaware {
 enum class RunType {
@@ -26,6 +27,7 @@ enum class RunType {
     SUBSCRIBE,
     UNSUBSCRIBE,
     UNSUBSCRIBE_SDK,
+    PUBLISH,
     SHUTDOWN,
  };
 
@@ -117,6 +119,8 @@ private:
     bool CheckInstanceDisable(const std::string &name);
     void UpdateState();
     void OpenTopic();
+    Result Publish(const std::vector<std::string> &payload);
+    void CloseInstance(std::shared_ptr<Instance> instance);
 private:
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> scheduleQueue;

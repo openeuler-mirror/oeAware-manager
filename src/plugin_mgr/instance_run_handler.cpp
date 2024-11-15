@@ -161,6 +161,41 @@ Result InstanceRunHandler::UnsubscribeSdk(const std::vector<std::string> &payloa
     return result;
 }
 
+Result InstanceRunHandler::Publish(const std::vector<std::string> &payload)
+{
+    DataList dataList;
+    InStream in(payload[0]);
+    DataListDeserialize(&dataList, in);
+    Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
+    if (!memoryStore->IsInstanceExist(topic.instanceName)) {
+        WARN(logger, "publish failed, " << "instance " << topic.instanceName << " is not exist.");
+        return Result(FAILED, "instance " + topic.instanceName + " is not exist.");
+    }
+    auto instance = memoryStore->GetInstance(topic.instanceName);
+    if (!topic.topicName.empty() && !instance->supportTopics.count(topic.topicName)) {
+        WARN(logger, "publish failed, " << "instance " << topic.topicName << " is not exist.");
+        return Result(FAILED, "topic " + topic.topicName + " is not exist.");
+    }
+    instance->interface->UpdateData(dataList);
+    Result result;
+    if (!instance->enabled) {
+        result = EnableInstance(topic.instanceName);
+        if (result.code < 0) {
+            WARN(logger, result.code);
+            return result;
+        }
+    }
+    if (!topic.topicName.empty()) {
+        result = instance->interface->OpenTopic(topic);
+        if (result.code < 0) {
+            WARN(logger, result.code);
+            return result;
+        }
+    }
+    INFO(logger, "publish applied, topic{" << topic.instanceName << ", " << topic.topicName <<"}.");
+    return Result(OK);
+}
+
 bool InstanceRunHandler::HandleMessage()
 {
     std::shared_ptr<InstanceRunMessage> msg;
@@ -190,6 +225,10 @@ bool InstanceRunHandler::HandleMessage()
             }
             case RunType::UNSUBSCRIBE_SDK: {
                 UnsubscribeSdk(msg->payload);
+                break;
+            }
+            case RunType::PUBLISH: {
+                msg->result = Publish(msg->payload);
                 break;
             }
             case RunType::SHUTDOWN: {
@@ -222,6 +261,12 @@ void InstanceRunHandler::UpdateData()
     managerCallback->publishData.clear();
 }
 
+void InstanceRunHandler::CloseInstance(std::shared_ptr<Instance> instance)
+{
+    instance->enabled = false;
+    instance->interface->Disable();
+}
+
 void InstanceRunHandler::Schedule()
 {
     while (!scheduleQueue.empty()) {
@@ -238,6 +283,7 @@ void InstanceRunHandler::Schedule()
         UpdateData();
         // static plugin only run once
         if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
+            CloseInstance(instance);
             continue;
         }
         schedule_instance.time += instance->interface->GetPeriod();

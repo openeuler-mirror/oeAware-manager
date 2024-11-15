@@ -32,6 +32,9 @@ private:
 private:
     std::shared_ptr<DomainSocket> domainSocket;
     std::shared_ptr<SocketStream> socketStream;
+    std::mutex subMutex;
+    std::mutex unsubMutex;
+    std::mutex pubMutex;
     std::unordered_map<std::string, std::vector<Callback>> topicHandle;
     std::shared_ptr<SafeQueue<Result>> resultQueue;
     bool finished = false;
@@ -62,7 +65,8 @@ void Impl::HandleRecv()
                     continue;
                 }
                 auto topic = dataList.topic;
-                for (auto handle : topicHandle[Concat({topic.instanceName, topic.topicName, topic.params}, "::")]) {
+                auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
+                for (auto handle : topicHandle[key]) {
                     handle(&dataList);
                 }
                 break;
@@ -110,11 +114,13 @@ int Impl::Subscribe(const CTopic &topic, Callback callback)
 {
     OutStream out;
     TopicSerialize(&topic, out);
+    auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
+    std::lock_guard<std::mutex> lock(subMutex);
+    topicHandle[key].emplace_back(callback);
     if (HandleRequest(Opt::SUBSCRIBE, {out.Str()}) < 0) {
+        topicHandle[key].pop_back();
         return -1;
     }
-    auto key = Concat({topic.instanceName, topic.topicName, topic.params}, "::");
-    topicHandle[key].emplace_back(callback);
     return 0;
 }
 
@@ -122,6 +128,7 @@ int Impl::Unsubscribe(const CTopic &topic)
 {
     OutStream out;
     TopicSerialize(&topic, out);
+    std::lock_guard<std::mutex> lock(unsubMutex);
     if (HandleRequest(Opt::UNSUBSCRIBE, {out.Str()}) < 0) {
         return -1;
     }
@@ -134,6 +141,7 @@ int Impl::Publish(const DataList &dataList)
 {
     OutStream out;
     DataListSerialize(&dataList, out);
+    std::lock_guard<std::mutex> lock(pubMutex);
     return HandleRequest(Opt::PUBLISH, {out.Str()});
 }
 

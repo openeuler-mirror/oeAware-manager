@@ -12,11 +12,16 @@
 #ifndef PLUGIN_MGR_EVENT_PUBLISH_HANDLER_H
 #define PLUGIN_MGR_EVENT_PUBLISH_HANDLER_H
 #include "event_handler.h"
+#include "instance_run_handler.h"
 
 namespace oeaware {
 class PublishHandler : public Handler {
 public:
+    explicit PublishHandler(InstanceRunHandlerPtr instanceRunHandler) : instanceRunHandler(instanceRunHandler) { }
     EventResult Handle(const Event &event) override;
+private:
+    Result Publish(const Event &event);
+    InstanceRunHandlerPtr instanceRunHandler;
 };
 }
 

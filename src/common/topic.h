@@ -38,6 +38,14 @@ struct Topic {
     {
         return Concat({instanceName, topicName, params}, "::");
     }
+    static Topic GetTopicFromType(const std::string &type)
+    {
+        auto values = SplitString(type, "::");
+        std::string newInstanceName = values[0];
+        std::string newTopicName = values[1];
+        std::string newParams = (values.size() > 2 ? values[2] : "");
+        return Topic{newInstanceName, newTopicName, newParams};
+    }
 };
 
 

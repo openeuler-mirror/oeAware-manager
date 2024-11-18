@@ -46,20 +46,20 @@ oeaware::Result StealTask::Enable(const std::string &param)
 {
     (void)param;
     if (system("zcat /proc/config.gz | grep CONFIG_SCHED_STEAL=y > /dev/null") == 1) {
-        return oeaware::Result(FAILED);
+        return oeaware::Result(FAILED, "kernel should be compiled with CONFIG_SCHED_STEAL=y");
+    }
+
+    ReadConfig();
+    std::string::size_type pos = cmdline.find("sched_steal_node_limit");
+    if (pos == std::string::npos) {
+        return oeaware::Result(FAILED, "sched_steal_node_limit=[numa number] not found in cmdline");
     }
 
     if (!isInit) {
-        ReadConfig();
         std::ofstream file("/sys/kernel/debug/sched_features");
         file << "STEAL";
         file.close();
         isInit = true;
-    }
-
-    std::string::size_type pos = cmdline.find("sched_steal_node_limit");
-    if (pos == std::string::npos) {
-        return oeaware::Result(FAILED);
     }
 
     return oeaware::Result(OK);

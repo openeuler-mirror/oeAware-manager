@@ -27,7 +27,7 @@ Result SubscribeHandler::Subscribe(const std::string &name, const Topic &topic)
         return result;
     }
     auto msg = std::make_shared<InstanceRunMessage>(RunType::SUBSCRIBE,
-        std::vector<std::string>{topic.instanceName, topic.topicName, topic.params, name});
+        std::vector<std::string>{topic.GetType(), name});
     instanceRunHandler->RecvQueuePush(msg);
     msg->Wait();
     result = msg->result;

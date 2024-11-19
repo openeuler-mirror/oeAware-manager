@@ -32,13 +32,19 @@ public:
     {
         instances.insert(std::make_pair(instance->name, instance));
     }
-    std::shared_ptr<Plugin> GetPlugin(const std::string &name) const
+    std::shared_ptr<Plugin> GetPlugin(const std::string &name)
     {
-        return this->plugins.at(name);
+        if (!plugins.count(name)) {
+            return nullptr;
+        }
+        return plugins[name];
     }
-    std::shared_ptr<Instance> GetInstance(const std::string &name) const
+    std::shared_ptr<Instance> GetInstance(const std::string &name)
     {
-        return instances.at(name);
+        if (!instances.count(name)) {
+            return nullptr;
+        }
+        return instances[name];
     }
     void DeletePlugin(const std::string &name)
     {

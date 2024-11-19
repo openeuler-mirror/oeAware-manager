@@ -12,6 +12,8 @@
 #ifndef KERNEL_CONFIG_H
 #define KERNEL_CONFIG_H
 #include <unordered_map>
+#include <unordered_set>
+#include <string>
 #include "data_list.h"
 #include "interface.h"
 #include "kernel_data.h"

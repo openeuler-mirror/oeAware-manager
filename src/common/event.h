@@ -11,7 +11,6 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_EVENT_EVENT_H
 #define PLUGIN_MGR_EVENT_EVENT_H
-#include <vector>
 #include "message_protocol.h"
 #include "safe_queue.h"
 

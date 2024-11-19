@@ -41,7 +41,6 @@ public:
     void ParseLine(const std::string& line);
     static std::string GetCommand(const oeaware::Topic& topic);
     bool FillDataStruct(void* dataStruct);
-    bool FreeData(void *dataList);
     void Close();
 };
 

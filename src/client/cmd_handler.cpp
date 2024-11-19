@@ -206,6 +206,7 @@ void InstallHandler::ResHandler(Message &msg)
 
 void StartHandler::Handler(Message &msg)
 {
+    (void)msg;
     system("/bin/oeaware /etc/oeaware/config.yaml &> /dev/null &");
     printf("oeaware started.\n");
     exit(0);
@@ -213,15 +214,18 @@ void StartHandler::Handler(Message &msg)
 
 void StartHandler::ResHandler(Message &msg)
 {
+    (void)msg;
 }
 
 void StopHandler::Handler(Message &msg)
 {
+    (void)msg;
     msg.opt = Opt::SHUTDOWN;
 }
 
 void StopHandler::ResHandler(Message &msg)
 {
+    (void)msg;
     printf("oeaware stopped.\n");
 }
 

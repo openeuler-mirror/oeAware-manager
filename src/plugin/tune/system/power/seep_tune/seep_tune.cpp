@@ -14,6 +14,7 @@
 #include "interface.h"
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <unistd.h>
 
 using namespace oeaware;
@@ -105,13 +106,13 @@ oeaware::Result Seep::Enable(const std::string &param)
             return oeaware::Result(FAILED);
         }
 
-        for (unsigned int i = 0; i < cpuNum; ++i)
+        for (int i = 0; i < cpuNum; ++i)
         {
             result = WriteSeepFile(i, "enable");
             if (!result)
             {
                 std::cout << "Try to restore the enabled cpu" << std::endl;
-                for (unsigned int j = 0; j < i; ++j)
+                for (int j = 0; j < i; ++j)
                 {
                     WriteSeepFile(j, "disable");
                 }

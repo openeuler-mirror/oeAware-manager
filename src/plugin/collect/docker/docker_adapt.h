@@ -12,6 +12,7 @@
 #ifndef OEAWARE_MANAGER_DOCKER_ADAPT_H
 #define OEAWARE_MANAGER_DOCKER_ADAPT_H
 #include <unordered_map>
+#include <unordered_set>
 #include <dirent.h>
 #include <sys/stat.h>
 #include "interface.h"

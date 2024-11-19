@@ -12,17 +12,19 @@
 #ifndef PLUGIN_MGR_EVENT_QUERY_SUBSCRIBE_GRAPH_H
 #define PLUGIN_MGR_EVENT_QUERY_SUBSCRIBE_GRAPH_H
 #include "event_handler.h"
+#include "instance_run_handler.h"
 
 namespace oeaware {
 class QuerySubscribeGraphHandler : public Handler {
 public:
-    explicit QuerySubscribeGraphHandler(std::shared_ptr<ManagerCallback> managerCallback)
-        : managerCallback(managerCallback) {}
+    explicit QuerySubscribeGraphHandler(std::shared_ptr<InstanceRunHandler> instanceRunHandler)
+        : instanceRunHandler(instanceRunHandler) {}
     EventResult Handle(const Event &event) override;
 private:
     ErrorCode QuerySubGraph(const std::string &name, std::vector<std::pair<std::string, std::string>> &graph);
     std::string GenerateDot(const std::vector<std::pair<std::string, std::string>> &graph);
-    std::shared_ptr<ManagerCallback> managerCallback;
+
+    std::shared_ptr<InstanceRunHandler> instanceRunHandler;
 };
 }
 

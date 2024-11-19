@@ -12,19 +12,23 @@
 #ifndef COMMON_INTERFACE_H
 #define COMMON_INTERFACE_H
 #include "data_list.h"
-#include "manager_callback.h"
 #include "logger.h"
+#include "safe_queue.h"
+#include "instance_run_message.h"
 
 namespace oeaware {
+// Instance type.
 const int TUNE = 0b10000;
+const int SCENARIO = 0b01000;
 const int RUN_ONCE = 0b00010;
+
 class Interface {
 public:
     Interface() = default;
     virtual ~Interface() = default;
-    void SetManagerCallback(std::shared_ptr<ManagerCallback> newManagerCallback)
+    void SetRecvQueue(std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> newRecvQueue)
     {
-        this->managerCallback = newManagerCallback;
+        recvQueue = newRecvQueue;
     }
     void SetLogger(const log4cplus::Logger &newLogger)
     {
@@ -75,18 +79,32 @@ protected:
     int period;
     Result Subscribe(const Topic &topic)
     {
-        return managerCallback->Subscribe(name, topic, 1);
+        auto msg = std::make_shared<InstanceRunMessage>(RunType::SUBSCRIBE,
+            std::vector<std::string>{topic.GetType(), name});
+        recvQueue->Push(msg);
+        return Result(OK);
     }
     Result Unsubscribe(const Topic &topic)
     {
-        return managerCallback->Unsubscribe(name, topic, 1);
+        auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE,
+            std::vector<std::string>{topic.GetType(), name});
+        recvQueue->Push(msg);
+        return Result(OK);
     }
-    void Publish(const DataList &dataList)
+    void Publish(DataList &dataList)
     {
-        return managerCallback->Publish(dataList);
+        Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
+        auto msg = std::make_shared<InstanceRunMessage>(RunType::PUBLISH_DATA,
+            std::vector<std::string>{topic.GetType()});
+        msg->dataList.data = dataList.data;
+        msg->dataList.len = dataList.len;
+        msg->dataList.topic.instanceName = dataList.topic.instanceName;
+        msg->dataList.topic.topicName = dataList.topic.topicName;
+        msg->dataList.topic.params = dataList.topic.params;
+        recvQueue->Push(msg);
     }
 private:
-    std::shared_ptr<ManagerCallback> managerCallback;
+    std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
 };
 }
 

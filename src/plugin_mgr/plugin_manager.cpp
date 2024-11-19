@@ -43,22 +43,22 @@ void SignalHandler(int signum)
 std::shared_ptr<MemoryStore> Handler::memoryStore;
 log4cplus::Logger Handler::logger;
 
-void PluginManager::InitEventHandler()
+void PluginManager::InitEventHandler(std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue)
 {
     Handler::memoryStore = memoryStore;
     Handler::logger = logger;
-    eventHandler[Opt::LOAD] = std::make_shared<LoadHandler>(managerCallback);
+    eventHandler[Opt::LOAD] = std::make_shared<LoadHandler>(recvQueue);
     eventHandler[Opt::REMOVE] = std::make_shared<RemoveHandler>();
     eventHandler[Opt::QUERY_ALL] = std::make_shared<QueryHandler>();
     eventHandler[Opt::QUERY] = eventHandler[Opt::QUERY_ALL];
-    eventHandler[Opt::QUERY_SUB_GRAPH] = std::make_shared<QuerySubscribeGraphHandler>(managerCallback);
+    eventHandler[Opt::QUERY_SUB_GRAPH] = std::make_shared<QuerySubscribeGraphHandler>(instanceRunHandler);
     eventHandler[Opt::QUERY_ALL_SUB_GRAPH] = eventHandler[Opt::QUERY_SUB_GRAPH];
     eventHandler[Opt::ENABLED] = std::make_shared<EnableHandler>(instanceRunHandler);
     eventHandler[Opt::DISABLED] = std::make_shared<DisableHandler>(instanceRunHandler);
     eventHandler[Opt::LIST] = std::make_shared<ListHandler>(config);
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
-    eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(managerCallback, instanceRunHandler);
-    eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(managerCallback, instanceRunHandler);
+    eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(instanceRunHandler);
+    eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(instanceRunHandler);
     eventHandler[Opt::PUBLISH] = std::make_shared<PublishHandler>(instanceRunHandler);
 }
 
@@ -68,14 +68,13 @@ void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage,
     this->config = config;
     this->recvMessage = recvMessage;
     this->sendMessage = sendMessage;
-    managerCallback = std::make_shared<ManagerCallback>();
-    managerCallback->Init(recvData);
     memoryStore = std::make_shared<MemoryStore>();
-    instanceRunHandler = std::make_shared<InstanceRunHandler>(memoryStore, managerCallback);
+    auto recvQueue = std::make_shared<SafeQueue<std::shared_ptr<InstanceRunMessage>>>();
+    instanceRunHandler = std::make_shared<InstanceRunHandler>(memoryStore, recvData, recvQueue);
     Logger::GetInstance().Register("PluginManager");
     Logger::GetInstance().Register("Plugin");
     logger = Logger::GetInstance().Get("PluginManager");
-    InitEventHandler();
+    InitEventHandler(recvQueue);
 }
 
 void PluginManager::EnablePlugin(const std::string &pluginName)

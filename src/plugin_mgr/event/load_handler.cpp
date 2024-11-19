@@ -31,7 +31,8 @@ ErrorCode LoadHandler::LoadPlugin(const std::string &name)
         return ErrorCode::LOAD_PLUGIN_EXIST;
     }
     auto plugin = std::make_shared<Plugin>(name);
-    int error = plugin->Load(plugin_path, managerCallback);
+    plugin->recvQueue = recvQueue;
+    int error = plugin->Load(plugin_path);
     if (error) {
         WARN(logger, dlerror());
         return ErrorCode::LOAD_PLUGIN_DLOPEN_FAILED;

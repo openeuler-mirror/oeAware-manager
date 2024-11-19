@@ -13,6 +13,7 @@
 #define COMMON_DATA_REGISTER_H
 #include <unordered_map>
 #include "serialize.h"
+
 namespace oeaware {
 using DeserializeFunc = int(*)(void**, InStream &in);
 using SerializeFunc = int(*)(const void*, OutStream &out);

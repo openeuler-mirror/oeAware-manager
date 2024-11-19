@@ -23,7 +23,7 @@ EventResult UnsubscribeHandler::Handle(const Event &event)
         INFO(logger, "sdk " << event.payload[0] << " disconnected and has been unsubscribed related topics.");
         return eventResult;
     }
-    auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE_SDK, event.payload);
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE, event.payload);
     instanceRunHandler->RecvQueuePush(msg);
     msg->Wait();
     result = msg->result;

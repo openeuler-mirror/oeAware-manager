@@ -16,12 +16,13 @@
 namespace oeaware {
 class LoadHandler : public Handler {
 public:
-    explicit LoadHandler(std::shared_ptr<ManagerCallback> managerCallback) : managerCallback(managerCallback) { }
+    explicit LoadHandler(std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue)
+        : recvQueue(recvQueue) { }
     EventResult Handle(const Event &event) override;
 private:
     ErrorCode LoadPlugin(const std::string &name);
 private:
-    std::shared_ptr<ManagerCallback> managerCallback;
+    std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
 };
 }
 

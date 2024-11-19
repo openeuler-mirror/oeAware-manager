@@ -18,6 +18,7 @@
 #include "safe_queue.h"
 #include "default_path.h"
 #include "data_register.h"
+
 namespace oeaware {
 class Impl {
 public:

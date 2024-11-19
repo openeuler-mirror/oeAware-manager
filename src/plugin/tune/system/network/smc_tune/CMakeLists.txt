@@ -8,8 +8,6 @@ else()
 endif()
 add_compile_options(-fPIC -Wall -Wextra -Wno-unused-value -Wno-missing-field-initializers)
 
-include_directories(../include)
-
 include_directories(/usr/include/libnl3)
 
 add_subdirectory(kprobe)

@@ -598,30 +598,31 @@ int AnalysisDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
-void Register::RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func)
+void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
-    deserializeFuncs[name] = func;
+    deserializeFuncs[name] = entry;
 }
 
 void Register::InitRegisterData()
 {
 #if defined(__arm__) || defined(__aarch64__)
-    RegisterData("pmu_counting_collector", std::make_pair(PmuCountingDataSerialize, PmuCountingDataDeserialize));
+    RegisterData("pmu_counting_collector", RegisterEntry(PmuCountingDataSerialize, PmuCountingDataDeserialize));
 
-    RegisterData("pmu_sampling_collector", std::make_pair(PmuSamplingDataSerialize, PmuSamplingDataDeserialize));
+    RegisterData("pmu_sampling_collector", RegisterEntry(PmuSamplingDataSerialize, PmuSamplingDataDeserialize));
 
-    RegisterData("pmu_spe_collector", std::make_pair(PmuSpeDataSerialize, PmuSpeDataDeserialize));
+    RegisterData("pmu_spe_collector", RegisterEntry(PmuSpeDataSerialize, PmuSpeDataDeserialize));
 
-    RegisterData("pmu_uncore_collector", std::make_pair(PmuUncoreDataSerialize, PmuUncoreDataDeserialize));
+    RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize));
 #endif
-    RegisterData("thread_collector", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
+    RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
 
-    RegisterData("kernel_config", std::make_pair(KernelDataSerialize, KernelDataDeserialize));
+    RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize));
 
-    RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
+    RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
 
-    RegisterData("command_collector", std::make_pair(CommandDataSerialize, CommandDataDeserialize));
-	RegisterData("analysis_aware", std::make_pair(AnalysisDataSerialize, AnalysisDataDeserialize));
+    RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize));
+    RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize));
+	RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)
@@ -629,7 +630,7 @@ SerializeFunc Register::GetDataSerialize(const std::string &name)
     if (!deserializeFuncs.count(name)) {
         return nullptr;
     }
-    return deserializeFuncs[name].first;
+    return deserializeFuncs[name].se;
 }
 
 DeserializeFunc Register::GetDataDeserialize(const std::string &name)
@@ -637,6 +638,6 @@ DeserializeFunc Register::GetDataDeserialize(const std::string &name)
     if (!deserializeFuncs.count(name)) {
         return nullptr;
     }
-    return deserializeFuncs[name].second;
+    return deserializeFuncs[name].de;
 }
 }

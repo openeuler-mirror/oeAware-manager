@@ -16,6 +16,8 @@
 #include "logger.h"
 
 namespace oeaware {
+const int TUNE = 0b10000;
+const int RUN_ONCE = 0b00010;
 class Interface {
 public:
     Interface() = default;
@@ -59,7 +61,7 @@ public:
     virtual Result OpenTopic(const Topic &topic) = 0;
     virtual void CloseTopic(const Topic &topic) = 0;
     virtual void UpdateData(const DataList &dataList) = 0;
-    virtual Result Enable(const std::string &parma = "") = 0;
+    virtual Result Enable(const std::string &param = "") = 0;
     virtual void Disable() = 0;
     virtual void Run() = 0;
 protected:

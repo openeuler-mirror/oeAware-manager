@@ -28,6 +28,7 @@ Result ManagerCallback::Subscribe(const std::string &name, const Topic &topic, i
         topicSdk[topicType].insert(name);
     }
     inDegree[topic.instanceName][topic.topicName][topic.params]++;
+    subscibers[name].insert(topicType);
     return Result(OK);
 }
 
@@ -44,6 +45,7 @@ Result ManagerCallback::Unsubscribe(const std::string &name, const Topic &topic,
         topicSdk[topicType].erase(name);
     }
     --inDegree[topic.instanceName][topic.topicName][topic.params];
+    subscibers[name].erase(topicType);
     return Result(OK);
 }
 

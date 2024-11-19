@@ -16,6 +16,16 @@
 namespace oeaware {
 using DeserializeFunc = int(*)(void**, InStream &in);
 using SerializeFunc = int(*)(const void*, OutStream &out);
+using FreeData = void(*)(void *);
+
+struct RegisterEntry {
+    RegisterEntry() { }
+    RegisterEntry(const SerializeFunc &se, const DeserializeFunc &de) : se(se), de(de) { }
+    SerializeFunc se;
+    DeserializeFunc de;
+    FreeData free;
+};
+
 class Register {
 public:
     Register(const Register&) = delete;
@@ -29,11 +39,11 @@ public:
     void InitRegisterData();
     DeserializeFunc GetDataDeserialize(const std::string &name);
     SerializeFunc GetDataSerialize(const std::string &name);
-    void RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func);
+    void RegisterData(const std::string &name, const RegisterEntry &func);
 private:
     Register() { };
 
-    std::unordered_map<std::string, std::pair<SerializeFunc, DeserializeFunc>> deserializeFuncs;
+    std::unordered_map<std::string, RegisterEntry> deserializeFuncs;
 };
 
 int DataListSerialize(const void *data, OutStream &out);

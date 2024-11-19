@@ -50,6 +50,7 @@ public:
     std::vector<DataList> publishData;
     std::unordered_map<std::string, std::unordered_set<std::string>> topicInstance;
     std::unordered_map<std::string, std::unordered_set<std::string>> topicSdk;
+    std::unordered_map<std::string, std::unordered_set<std::string>> subscibers;
     InDegree inDegree;
 private:
     std::mutex mutex;

@@ -17,11 +17,21 @@
 #include <unordered_map>
 #include "env.h"
 #include <string>
-
+ 
 struct NetworkInfo {
+    NetworkInfo();
+    ~NetworkInfo() = default;
     void Init();
     uint64_t netRxSum = 0;
+    uint64_t remoteRxSum = 0;
     std::vector<uint64_t> netRxTimes; // local net info
+    // [interface][queue][thread node][irq node] access
+    std::unordered_map<std::string, std::unordered_map<int,
+        std::unordered_map<uint8_t, std::unordered_map<uint8_t, uint64_t>>>> rxTimes;
+    void AddRxTimes(const std::unordered_map<std::string, std::unordered_map<int,
+        std::unordered_map<uint8_t, std::unordered_map<uint8_t, uint64_t>>>> &value);
+    void Node2NodeRxTimes(std::vector<std::vector<uint64_t>> &value) const;
+    void SumRemoteRxTimes();
     void ClearData();
 };
 
@@ -70,6 +80,7 @@ struct SystemInfo {
     void Init();
     void SummaryProcs();
     void CalculateNumaScore();
+    void SummaryProcsNetInfo();
     void SetLoopCnt(uint64_t loopCnt);
     void ClearRealtimeInfo();
     void AppendTraceInfo();

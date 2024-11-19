@@ -9,7 +9,7 @@ set(analysis_src
     analysis/env.cpp
 )
 
-set(oeaware_src adapt/oeaware_adapt.cpp)
+set(oeaware_src adapt/analysis_aware.cpp)
 
 add_compile_options(-g -fPIC -Wall -Wextra)
 
@@ -20,7 +20,7 @@ target_include_directories(analysis_base PUBLIC
 )
 
 
-target_link_libraries(analysis_base numa)
+target_link_libraries(analysis_base numa boundscheck)
 
 add_library(analysis_oeaware SHARED ${oeaware_src})
 target_include_directories(analysis_oeaware PUBLIC

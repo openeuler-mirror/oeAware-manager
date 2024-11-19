@@ -6,7 +6,8 @@ SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -
 
 include_directories(../common
     ${LIB_KPERF_INCPATH}
-    ../plugin/collect/include    
+    ../plugin/collect/include
+	../plugin/scenario/include    
 )
 
 if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")

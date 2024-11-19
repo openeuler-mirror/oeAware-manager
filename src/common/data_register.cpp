@@ -12,6 +12,7 @@
 #include "thread_info.h"
 #include "kernel_data.h"
 #include "command_data.h"
+#include "adapt_data.h"
 
 namespace oeaware {
 
@@ -569,6 +570,34 @@ int CommandDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
+int AnalysisDataSerialize(const void *data, OutStream &out)
+{
+    auto analysisData = static_cast<const AdaptData*>(data);
+	out << analysisData->len;
+	for (int i = 0; i < analysisData->len; i++) {
+		std::string tmpData(analysisData->data[i]);
+		out << tmpData;
+	}
+    return 0;
+}
+
+int AnalysisDataDeserialize(void **data, InStream &in)
+{
+    *data = new AdaptData();
+    auto analysisData = static_cast<AdaptData*>(*data);
+    in >> analysisData->len;
+	analysisData->data = new char*[analysisData->len];
+
+	for (int i = 0; i < analysisData->len; i++) {
+	    std::string tmpData;
+    	in >> tmpData;
+    	analysisData->data[i] = new char[tmpData.size() + 1];
+		strcpy_s(analysisData->data[i], tmpData.size() + 1, tmpData.data());
+	}
+
+    return 0;
+}
+
 void Register::RegisterData(const std::string &name, const std::pair<SerializeFunc, DeserializeFunc> &func)
 {
     deserializeFuncs[name] = func;
@@ -592,6 +621,7 @@ void Register::InitRegisterData()
     RegisterData("thread_scenario", std::make_pair(ThreadInfoSerialize, ThreadInfoDeserialize));
 
     RegisterData("command_collector", std::make_pair(CommandDataSerialize, CommandDataDeserialize));
+	RegisterData("analysis_aware", std::make_pair(AnalysisDataSerialize, AnalysisDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

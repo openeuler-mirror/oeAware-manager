@@ -9,40 +9,32 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef ENV_H
-#define ENV_H
+#ifndef ANALYSIS_AWARE_H
+#define ANALYSIS_AWARE_H
+#include "interface.h"
+#include "analysis.h"
+#include "pmu.h"
 
-#include <vector>
-#include <sched.h>
-#include <cstdint>
-#include <sched.h>
-
-
-class Env {
-private:
-    Env() = default;
-    ~Env() = default;
+namespace oeaware {
+class AnalysisAware : public Interface {
 public:
-    static Env &GetInstance()
-    {
-        static Env instance;
-        return instance;
-    }
-    Env(const Env &) = delete;
-    Env &operator = (const Env &) = delete;
-    // common para
-    bool initialized = false;
-    int numaNum;
-    int cpuNum;
-    unsigned long pageMask = 0;
-    uint64_t sysMaxCycles = 0;
-    std::vector<int> cpu2Node;
-    std::vector<std::vector<int>> distance;
-    std::vector<uint64_t> cpuMaxCycles; // per second
-    int maxDistance;
-    int diffDistance;
-    bool Init();
-    void InitDistance();
-};
+	AnalysisAware();
+	~AnalysisAware() override = default;
+	Result OpenTopic(const oeaware::Topic &topic) override;
+	void CloseTopic(const oeaware::Topic &topic) override;
+	void UpdateData(const DataList &dataList) override;
+	Result Enable(const std::string &param) override;
+	void Disable() override;
+	void Run() override;
 
+private:
+	void UpdatePmu();
+
+private:
+	Analysis analysis;
+	std::vector<std::string> analysisData;
+	std::unordered_map<std::string, std::vector<PmuData>> pmuData;
+};
+}
 #endif
+

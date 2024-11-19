@@ -23,11 +23,13 @@ void TraceInfoSummary(const std::vector<TaskInfo> &infos, TaskInfo &summary)
         for (size_t i = 0; i < info.netInfo.netRxTimes.size(); i++) {
             summary.netInfo.netRxTimes[i] += info.netInfo.netRxTimes[i];
         }
-        summary.netInfo.netRxSum += info.netInfo.netRxSum;
         summary.cycles += info.cycles;
+        summary.netInfo.netRxSum += info.netInfo.netRxSum;
+        summary.netInfo.AddRxTimes(info.netInfo.rxTimes);
     }
     summary.loopCnt = infos.size();
     summary.CalculateNumaScore();
+    summary.netInfo.SumRemoteRxTimes();
 }
 
 TaskInfo::TaskInfo()
@@ -132,6 +134,20 @@ void SystemInfo::CalculateNumaScore()
     realtimeInfo.CalculateNumaScore();
 }
 
+void SystemInfo::SummaryProcsNetInfo()
+{
+    for (auto &proc_item : procs) {
+        auto &proc = proc_item.second;
+        for (auto &thread_item : proc.threads) {
+            proc.realtimeInfo.netInfo.AddRxTimes(thread_item.second.realtimeInfo.netInfo.rxTimes);
+            thread_item.second.realtimeInfo.netInfo.SumRemoteRxTimes();
+        }
+        proc.realtimeInfo.netInfo.SumRemoteRxTimes();
+        realtimeInfo.netInfo.AddRxTimes(proc.realtimeInfo.netInfo.rxTimes);
+    }
+    realtimeInfo.netInfo.SumRemoteRxTimes();
+}
+
 void SystemInfo::SetLoopCnt(uint64_t loopCnt)
 {
     for (auto &proc_item : procs) {
@@ -188,16 +204,64 @@ void SystemInfo::Reset()
     traceInfo.clear();
 }
 
+NetworkInfo::NetworkInfo()
+{
+    Init();
+}
+
 void NetworkInfo::Init()
 {
     int numaNum = Env::GetInstance().numaNum;
     netRxTimes.resize(numaNum);
 }
 
+void NetworkInfo::AddRxTimes(const std::unordered_map<std::string,
+    std::unordered_map<int, std::unordered_map<uint8_t, std::unordered_map<uint8_t, uint64_t>>>> &value)
+{
+    for (const auto &intf : value) {
+        for (const auto &queue : intf.second) {
+            for (const auto &thrNode : queue.second) {
+                for (const auto &irqNode : thrNode.second) {
+                    rxTimes[intf.first][queue.first][thrNode.first][irqNode.first] += irqNode.second;
+                }
+            }
+        }
+    }
+}
+
+void NetworkInfo::Node2NodeRxTimes(std::vector<std::vector<uint64_t>> &value) const
+{
+    for (auto &intf : rxTimes) {
+        for (auto &queue : intf.second) {
+            for (auto &thrNode : queue.second) {
+                for (auto &irqNode : thrNode.second) {
+                    value[thrNode.first][irqNode.first] += irqNode.second;
+                }
+            }
+        }
+    }
+}
+
+void NetworkInfo::SumRemoteRxTimes()
+{
+    remoteRxSum = 0;
+    for (const auto &intf : rxTimes) {
+        for (const auto &queue : intf.second) {
+            for (const auto &thrNode : queue.second) {
+                for (const auto &irqNode : thrNode.second) {
+                    remoteRxSum += irqNode.second;
+                }
+            }
+        }
+    }
+}
+
 void NetworkInfo::ClearData()
 {
     netRxSum = 0;
+    remoteRxSum = 0;
     for (auto &tmp : netRxTimes) {
         tmp = 0;
     }
+    rxTimes.clear();
 }

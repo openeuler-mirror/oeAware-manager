@@ -8,6 +8,7 @@ SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -
 include_directories(/usr/include/yaml-cpp)
 include_directories(/usr/include/log4cplus)
 include_directories(../plugin/collect/include)
+include_directories(../plugin/scenario/include)
 include_directories(${LIB_KPERF_INCPATH})
 include_directories(/usr/include/curl)
 

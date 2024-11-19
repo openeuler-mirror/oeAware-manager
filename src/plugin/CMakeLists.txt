@@ -15,6 +15,8 @@ file(MAKE_DIRECTORY ${PLUGIN_OBJECT_OUTPUT_DIRECTORY})
 
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
    add_subdirectory(collect/pmu)
+   add_subdirectory(collect/docker)
+   add_subdirectory(tune/docker)
 endif()
 add_subdirectory(collect/system)
 
@@ -29,8 +31,8 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_counting_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_sampling_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_spe_data.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_uncore_data.h"
-    
+    "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_uncore_data.h"   
+    "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/docker_data.h"
     DESTINATION "${CMAKE_BINARY_DIR}/include")
 endif()
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/kernel_data.h"

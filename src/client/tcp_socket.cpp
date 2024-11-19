@@ -48,7 +48,7 @@ int TcpSocket::file_connect(const char *name) {
 bool TcpSocket::init() {
     if( (sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         printf("socket create error!\n");
-        return -1;
+        return false;
     }
     if (file_connect(SOCK_PATH.c_str()) < 0) {
         return false;

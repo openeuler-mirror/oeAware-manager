@@ -13,10 +13,12 @@
 #include "interface.h"
 #include "cpu/stealtask_tune/stealtask_tune.h"
 #include "network/smc_tune/smc_tune.h"
+#include "power/seep_tune/seep_tune.h"
 using namespace oeaware;
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<StealTask>());
     interface.emplace_back(std::make_shared<SmcTune>());
+    interface.emplace_back(std::make_shared<Seep>());
 }

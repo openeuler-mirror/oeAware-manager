@@ -11,43 +11,67 @@
  ******************************************************************************/
 #include "plugin.h"
 
-const std::string Instance::PLUGIN_ENABLED = "running";
-const std::string Instance::PLUGIN_DISABLED = "close";
-const std::string Instance::PLUGIN_STATE_ON = "available";
-const std::string Instance::PLUGIN_STATE_OFF = "unavailable";
+namespace oeaware {
+const std::string Instance::pluginEnabled = "running";
+const std::string Instance::pluginDisabled = "close";
+const std::string Instance::pluginStateOn = "available";
+const std::string Instance::pluginStateOff = "unavailable";
 
-int Plugin::load(const std::string &dl_path) {
-    void *handler = dlopen(dl_path.c_str(), RTLD_LAZY);
-    if (handler == nullptr) {
+int Plugin::LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceList)
+{
+    void (*getInstance)(std::vector<std::shared_ptr<Interface>>&) =
+        (void(*)(std::vector<std::shared_ptr<Interface>>&))dlsym(handler, "GetInstance");
+    if (getInstance == nullptr) {
         return -1;
     }
-    this->handler = handler;
+    getInstance(interfaceList);
     return 0;
 }
 
-std::string Instance::get_info() const {
-    std::string state_text = this->state ? PLUGIN_STATE_ON : PLUGIN_STATE_OFF;
-    std::string run_text = this->enabled ? PLUGIN_ENABLED : PLUGIN_DISABLED;
-    return name + "(" + state_text + ", " + run_text + ")"; 
+void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList)
+{
+    for (auto &interface : interfaceList) {
+        std::shared_ptr<Instance> instance = std::make_shared<Instance>();
+        std::string instanceName = interface->GetName();
+        interface->SetRecvQueue(recvQueue);
+        interface->SetLogger(Logger::GetInstance().Get("Plugin"));
+        instance->interface = interface;
+        for (auto &topic : interface->GetSupportTopics()) {
+            instance->supportTopics[topic.topicName] = topic;
+        }
+        instance->name = instanceName;
+        instance->pluginName = GetName();
+        instance->enabled = false;
+        instances.emplace_back(instance);
+    }
 }
 
-std::vector<std::string> Instance::get_deps() {
-    std::vector<std::string> vec;
-    if (get_interface()->get_dep == nullptr || get_interface()->get_dep() == nullptr) {
-        return vec;
+bool Plugin::LoadInstance()
+{
+    std::vector<std::shared_ptr<Interface>> interfaceList;
+    if (LoadDlInstance(interfaceList) < 0) {
+        return false;
     }
-    std::string deps = get_interface()->get_dep();
-    std::string dep = "";
-    for (size_t i = 0; i < deps.length(); ++i) {
-        if (deps[i] != '-') {
-            dep += deps[i];
-        } else {
-            vec.emplace_back(dep);
-            dep = "";
-        }
+    SaveInstance(interfaceList);
+    return true;
+}
+
+int Plugin::Load(const std::string &dl_path)
+{
+    this->handler = dlopen(dl_path.c_str(), RTLD_LAZY);
+    if (handler == nullptr) {
+        return -1;
     }
-    if (!dep.empty()) {
-        vec.emplace_back(dep);
+    if (!LoadInstance()) {
+        return -1;
     }
-    return vec;
+    return 0;
+}
+
+std::string Instance::GetInfo() const
+{
+    std::string stateText = this->state ? pluginStateOn : pluginStateOff;
+    std::string runText = this->enabled ? pluginEnabled : pluginDisabled;
+    return name + "(" + stateText + ", " + runText + ")";
+}
 }

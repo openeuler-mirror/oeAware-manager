@@ -11,33 +11,26 @@
  ******************************************************************************/
 #include "arg_parse.h"
 #include <iostream>
-#include <getopt.h>
+#include <cstring>
 
-const std::string ArgParse::OPT_STRING = "Qqd:l:r:e:i:";
-const struct option ArgParse::long_options[] = {
-    {"help", no_argument, NULL, 'h'},
-    {"load", required_argument, NULL, 'l'},
-    {"remove", required_argument, NULL, 'r'}, 
-    {"query", required_argument, NULL, 'q'},
-    {"query-dep", required_argument, NULL, 'Q'},
-    {"enable", required_argument, NULL, 'e'},
-    {"disable", required_argument, NULL, 'd'},
-    {"list", no_argument, NULL, 'L'},
-    {"install", required_argument, NULL, 'i'},
-    {0, 0, 0, 0},
-};
+namespace oeaware {
+const std::string ArgParse::optString = "Qqd:l:r:e:i:";
 
-void ArgParse::arg_error(const std::string &msg) {
+
+void ArgParse::ArgError(const std::string &msg)
+{
     std::cerr << "oeawarectl: " << msg << "\n";
-    print_help();
+    PrintHelp();
     exit(EXIT_FAILURE);
 }
 
-void ArgParse::set_arg(char *_arg) {
-    arg = std::string(_arg);
+void ArgParse::SetArg(const std::string &newArg)
+{
+    arg = newArg;
 }
 
-void ArgParse::print_help() {
+void ArgParse::PrintHelp()
+{
     std::cout << "usage: oeawarectl [options]...\n"
            "  options\n"
            "    -l|--load [plugin]      load plugin and need plugin type.\n"
@@ -53,7 +46,8 @@ void ArgParse::print_help() {
            "    --help                  show this help message.\n";
 }
 
-void ArgParse::init_opts() {
+void ArgParse::InitOpts()
+{
     opts.insert('l');
     opts.insert('r');
     opts.insert('q');
@@ -61,55 +55,79 @@ void ArgParse::init_opts() {
     opts.insert('e');
     opts.insert('d');
     opts.insert('i');
+    longOptions.emplace_back(Option{"help", no_argument, NULL, 'h'});
+    longOptions.emplace_back(Option{"load", required_argument, NULL, 'l'});
+    longOptions.emplace_back(Option{"remove", required_argument, NULL, 'r'});
+    longOptions.emplace_back(Option{"query", required_argument, NULL, 'q'});
+    longOptions.emplace_back(Option{"query-dep", required_argument, NULL, 'Q'});
+    longOptions.emplace_back(Option{"enable", required_argument, NULL, 'e'});
+    longOptions.emplace_back(Option{"disable", required_argument, NULL, 'd'});
+    longOptions.emplace_back(Option{"install", required_argument, NULL, 'i'});
+    longOptions.emplace_back(Option{"list", no_argument, NULL, 'L'});
 }
 
-int ArgParse::init(int argc, char *argv[]) {
+int ArgParse::InitCmd(int &cmd, int opt)
+{
+    if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' || opt == 'd'  || opt == 'L' || opt == 'i') {
+        if (cmd != -1) {
+            ArgError("invalid option.");
+            return -1;
+        }
+        cmd = opt;
+        if (optarg) {
+            SetArg(optarg);
+        }
+    }
+    return 0;
+}
+
+int ArgParse::Init(int argc, char *argv[])
+{
+    constexpr int START_OR_STOP = 2;
+    if (argc == START_OR_STOP) {
+        if (strcmp(argv[1], "start") == 0) {
+            return START;
+        } else if (strcmp(argv[1], "stop") == 0) {
+            return STOP;
+        }
+    }
     int cmd = -1;
     int opt;
     bool help = false;
-    init_opts();
+    InitOpts();
     opterr = 0;
-    while((opt = getopt_long(argc, argv, OPT_STRING.c_str(), long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, optString.c_str(), longOptions.data(), nullptr)) != -1) {
         switch (opt) {
             case 'h':
                 help = true;
                 break;
             case '?': {
-                std::string opt_string;
+                std::string optString;
                 if (optind == argc) {
-                    opt_string += argv[optind - 1];    
+                    optString += argv[optind - 1];
                 } else {
-                    opt_string += argv[optind];
+                    optString += argv[optind];
                 }
                 if (!opts.count(optopt)) {
-                    arg_error("unknown option '" + opt_string  + "'.");
-                } else{
-                    arg_error("option " + opt_string  + " requires an argument.");
+                    ArgError("unknown option '" + optString  + "'.");
+                } else {
+                    ArgError("option " + optString  + " requires an argument.");
                 }
                 break;
             }
             default: {
-                if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' || opt == 'd'  || opt == 'L' || opt == 'i') {
-                    if (cmd != -1) {
-                        arg_error("invalid option.");
-                        return -1;
-                    }
-                    cmd = opt;
-                    if (optarg) {
-                        set_arg(optarg);
-                    }
-                } 
+                InitCmd(cmd, opt);
                 break;
             }
-                
         }
     }
     if (help) {
-        print_help();
+        PrintHelp();
         exit(EXIT_SUCCESS);
     }
     if (cmd < 0) {
-        arg_error("option error.");
+        ArgError("option error.");
     }
     return cmd;
+}
 }

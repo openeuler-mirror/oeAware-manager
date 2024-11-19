@@ -11,39 +11,46 @@
  ******************************************************************************/
 #include "client.h"
 
-std::string ArgParse::arg;
-std::unordered_set<char> ArgParse::opts;
-
-void Client::cmd_groups_init() {
-    cmd_handler_groups.insert(std::make_pair('l', std::make_shared<LoadHandler>()));
-    cmd_handler_groups.insert(std::make_pair('q', std::make_shared<QueryHandler>()));
-    cmd_handler_groups.insert(std::make_pair('r', std::make_shared<RemoveHandler>()));
-    cmd_handler_groups.insert(std::make_pair('Q', std::make_shared<QueryTopHandler>()));
-    cmd_handler_groups.insert(std::make_pair('e', std::make_shared<EnabledHandler>()));
-    cmd_handler_groups.insert(std::make_pair('d', std::make_shared<DisabledHandler>()));
-    cmd_handler_groups.insert(std::make_pair('L', std::make_shared<ListHandler>()));
-    cmd_handler_groups.insert(std::make_pair('i', std::make_shared<InstallHandler>()));
+namespace oeaware {
+void Client::CmdGroupsInit()
+{
+    cmdHandlerGroups.insert(std::make_pair('l', std::make_shared<LoadHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('q', std::make_shared<QueryHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('r', std::make_shared<RemoveHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('Q', std::make_shared<QueryTopHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('e', std::make_shared<EnabledHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('d', std::make_shared<DisabledHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('L', std::make_shared<ListHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('i', std::make_shared<InstallHandler>()));
+    cmdHandlerGroups.insert(std::make_pair(START, std::make_shared<StartHandler>()));
+    cmdHandlerGroups.insert(std::make_pair(STOP, std::make_shared<StopHandler>()));
 }
 
-bool Client::init(int argc, char *argv[]) {
-    if ((cmd = ArgParse::init(argc, argv)) < 0) {
+bool Client::Init(int argc, char *argv[])
+{
+    if ((cmd = ArgParse::GetInstance().Init(argc, argv)) < 0) {
         return false;
     }
-    cmd_groups_init();
-    return this->tcp_socket.init();
+    CmdGroupsInit();
+    if (cmd == START) {
+        return true;
+    }
+    return this->tcpSocket.Init(DEFAULT_SERVER_LISTEN_PATH);
 }
 
-void Client::run_cmd() {
-    Msg msg;
-    Msg res;
+void Client::RunCmd()
+{
+    Message msg;
+    Message res;
     MessageHeader header;
-    this->cmd_handler = cmd_handler_groups[cmd];
-    this->cmd_handler->handler(msg);
-    if(!this->tcp_socket.send_msg(msg, header)) {
+    this->cmdHandler = cmdHandlerGroups[cmd];
+    this->cmdHandler->Handler(msg);
+    if (!this->tcpSocket.SendMsg(msg, header)) {
         return;
     }
-    if (!this->tcp_socket.recv_msg(res, header)) {
+    if (!this->tcpSocket.RecvMsg(res, header)) {
         return;
     }
-    this->cmd_handler->res_handler(res);
+    this->cmdHandler->ResHandler(res);
+}
 }

@@ -11,11 +11,14 @@
  ******************************************************************************/
 #ifndef COMMON_DEFAULT_PATH_H
 #define COMMON_DEFAULT_PATH_H
+#include <string>
 
-#include<string>
-
+namespace oeaware {
 const std::string DEFAULT_PLUGIN_PATH = "/usr/lib64/oeAware-plugin";
 const std::string DEFAULT_RUN_PATH = "/var/run/oeAware";
 const std::string DEFAULT_LOG_PATH = "/var/log/oeAware";
+const std::string DEFAULT_SERVER_LISTEN_PATH = "/var/run/oeAware/oeAware-server";
+const std::string DEFAULT_SDK_CONN_PATH = "/var/run/oeAware/oeAware-sdk";
+}
 
 #endif // !COMMON_DEFAULT_PATH_H

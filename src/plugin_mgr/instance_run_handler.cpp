@@ -13,112 +13,217 @@
 #include <thread>
 #include <unistd.h>
 
-static const DataRingBuf* get_ring_buf(std::shared_ptr<Instance> instance) {
-    if (instance == nullptr) {
-        return nullptr;
+namespace oeaware {
+constexpr int INSTANCE_RUN_ONCE = 2;
+constexpr int INSTANCE_RUN_ALWAYS = 1;
+
+Result InstanceRunHandler::EnableInstance(const std::string &name)
+{
+    auto instance = memoryStore->GetInstance(name);
+    auto result = instance->interface->Enable();
+    if (result.code < 0) {
+        WARN(logger, name << " instance enabled failed!");
+        return result;
     }
-    return instance->get_interface()->get_ring_buf();
+    instance->enabled = true;
+    if (instance->interface->GetType() & SCENARIO) {
+        scheduleQueue.push(ScheduleInstance{instance, time + instance->interface->GetPeriod()});
+    } else if (instance->interface->GetType() & TUNE) {
+        scheduleQueue.push(ScheduleInstance{instance, time + 2 * instance->interface->GetPeriod()});
+    } else {
+        scheduleQueue.push(ScheduleInstance{instance, time});
+    }
+    INFO(logger, name << " instance enabled.");
+    return result;
 }
 
-void InstanceRunHandler::run_instance(std::vector<std::string> &deps, InstanceRun run) {
-    std::vector<const DataRingBuf*> input_data;
-    for (size_t i = 0; i < deps.size(); ++i) {
-        std::shared_ptr<Instance> ins = memory_store.get_instance(deps[i]);
-        input_data.emplace_back(get_ring_buf(ins));
-    }
-    Param param;
-    param.ring_bufs = input_data.data();
-    param.len = input_data.size();
-    run(&param);
+void InstanceRunHandler::DisableInstance(const std::string &name)
+{
+    auto instance = memoryStore->GetInstance(name);
+    instance->enabled = false;
+    instance->interface->Disable();
+    INFO(logger, "instance " << name << " has been disabled.");
 }
 
-void InstanceRunHandler::enable_instance(const std::string &name) {
-    std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memory_store.get_dep_handler();
-    instance_node_queue.push(dep_handler.get_node(name));
-    std::vector<std::string> new_enabled;
-    bool enabled = true;
-    while (!instance_node_queue.empty()) {
-        auto node = instance_node_queue.front();
-        instance_node_queue.pop();
-        if (node->instance->get_enabled()) {
+Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
+{
+    Topic topic = Topic::GetTopicFromType(payload[0]);
+    Result result;
+    constexpr int subscriberIndex = 1;
+    auto instance = memoryStore->GetInstance(topic.instanceName);
+    if (!instance->enabled) {
+        result = EnableInstance(instance->name);
+        if (result.code < 0) {
+            WARN(logger, "failed to start the instance of the subscription topic, instance: " << instance->name);
+            return result;
+        }
+    }
+    if (!topicState[topic.instanceName][topic.topicName][topic.params]) {
+        result = instance->interface->OpenTopic(topic);
+        if (result.code < 0) {
+            WARN(logger, "topic open failed, " << result.payload);
+            DisableInstance(instance->name);
+            return result;
+        }
+        topicState[topic.instanceName][topic.topicName][topic.params] = true;
+    }
+    subscibers[payload[0]].insert(payload[subscriberIndex]);
+    if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
+        topicRunOnce.emplace_back(std::make_pair(topic, payload[subscriberIndex]));
+    }
+    INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
+    LogText(topic.params) << "} has been subscribed.");
+    return result;
+}
+
+
+void InstanceRunHandler::UpdateInstance()
+{
+    for (auto &p : topicState) {
+        int cntTopic = 0;
+        for (auto &pt : p.second) {
+            for (auto &pp : pt.second) {
+                if (pp.second) {
+                    Topic topic = Topic{p.first, pt.first, pp.first};
+                    std::string type = Concat({p.first, pt.first, pp.first}, "::");
+                    if (!subscibers.count(type)) {
+                        memoryStore->GetInstance(p.first)->interface->CloseTopic(topic);
+                        pp.second = false;
+                    } else {
+                        cntTopic++;
+                    }
+                }
+            }
+        }
+        if (!cntTopic && memoryStore->GetInstance(p.first)->enabled) {
+            DisableInstance(p.first);
+        }
+    }
+}
+
+Result InstanceRunHandler::Unsubscribe(const std::vector<std::string> &payload)
+{
+    Result result;
+    Topic topic = Topic::GetTopicFromType(payload[0]);
+    subscibers[payload[0]].erase(payload[1]);
+    if (subscibers[payload[0]].empty()) {
+        subscibers.erase(payload[0]);
+    }
+    UpdateInstance();
+    INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
+    LogText(topic.params) << "} has been unsubscribed.");
+    return result;
+}
+
+Result InstanceRunHandler::UnsubscribeSdk(const std::vector<std::string> &payload)
+{
+    Result result;
+    std::string sdkFd = payload[0];
+    for (auto i = subscibers.begin(); i != subscibers.end();) {
+        if (i->second.count(sdkFd)) {
+            i->second.erase(sdkFd);
+            if (i->second.empty()) {
+                i = subscibers.erase(i);
+            }
+            UpdateInstance();
+        } else {
+            ++i;
+        }
+    }
+    return result;
+}
+
+Result InstanceRunHandler::Publish(const std::vector<std::string> &payload)
+{
+    DataList dataList;
+    InStream in(payload[0]);
+    DataListDeserialize(&dataList, in);
+    Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
+    if (!memoryStore->IsInstanceExist(topic.instanceName)) {
+        WARN(logger, "publish failed, " << "instance " << topic.instanceName << " is not exist.");
+        return Result(FAILED, "instance " + topic.instanceName + " is not exist.");
+    }
+    auto instance = memoryStore->GetInstance(topic.instanceName);
+    if (!topic.topicName.empty() && !instance->supportTopics.count(topic.topicName)) {
+        WARN(logger, "publish failed, " << "instance " << topic.topicName << " is not exist.");
+        return Result(FAILED, "topic " + topic.topicName + " is not exist.");
+    }
+    instance->interface->UpdateData(dataList);
+    Result result;
+    if (!instance->enabled) {
+        result = EnableInstance(topic.instanceName);
+        if (result.code < 0) {
+            WARN(logger, result.code);
+            return result;
+        }
+    }
+    if (!topic.topicName.empty()) {
+        result = instance->interface->OpenTopic(topic);
+        if (result.code < 0) {
+            WARN(logger, result.code);
+            return result;
+        }
+    }
+    INFO(logger, "publish applied, topic{" << topic.instanceName << ", " << topic.topicName <<"}.");
+    return Result(OK);
+}
+
+void InstanceRunHandler::PublishData(std::shared_ptr<InstanceRunMessage> &msg)
+{
+    for (auto subscriber : subscibers[msg->payload[0]]) {
+        if (std::any_of(subscriber.begin(), subscriber.end(), ::isdigit)) {
+            OutStream out;
+            DataListSerialize(&msg->dataList, out);
+            recvData->Push(Event(Opt::DATA, {subscriber, out.Str()}));
             continue;
         }
-        auto cur_name = node->instance->get_name();
-        node->instance->set_enabled(true);
-        new_enabled.emplace_back(cur_name);
-        if (!node->instance->get_interface()->enable()) {
-            enabled = false;
-            break;
-        }
-        for (auto arc = node->head->next; arc != nullptr; arc = arc->next) {
-            if (!arc->is_exist) {
-                continue;
-            }
-            auto cur_node = dep_handler.get_node(arc->to);
-            in_degree[arc->to]++;
-            instance_node_queue.push(cur_node);
-        }
+        Topic topic = Topic::GetTopicFromType(msg->payload[0]);
+        auto instance = memoryStore->GetInstance(subscriber);
+        instance->interface->UpdateData(msg->dataList);
     }
-    if (!enabled) {
-        for (auto &enabled_name : new_enabled) {
-            auto instance = dep_handler.get_instance(enabled_name);
-            instance->get_interface()->disable();
-            instance->set_enabled(false);
-            if (enabled_name == name) {
-                continue;
-            }
-            in_degree[enabled_name]--;
-        }
-    } else {
-        for (auto &enabled_name : new_enabled) {
-            auto instance = dep_handler.get_instance(enabled_name);
-            schedule_queue.push(ScheduleInstance{instance, time});
-            INFO("[InstanceRunHandler] " << enabled_name << " instance insert into schedule queue at time " << time);
-        }
-    }
+    // free dataList
 }
 
-void InstanceRunHandler::disable_instance(const std::string &name, bool force) {
-    if (!force && in_degree[name] != 0) {
-        return;
-    }
-    in_degree[name] = 0;
-    std::queue<std::shared_ptr<Node>> instance_node_queue;
-    auto dep_handler = memory_store.get_dep_handler();
-    instance_node_queue.push(dep_handler.get_node(name));
-    while (!instance_node_queue.empty()) {
-        auto node = instance_node_queue.front();
-        auto &instance = node->instance;
-        instance_node_queue.pop();
-        auto cur_name = instance->get_name();
-        instance->set_enabled(false);
-        instance->get_interface()->disable();
-        INFO("[InstanceRunHandler] " << cur_name << " instance disabled at time " << time);
-        for (auto arc = node->head->next; arc != nullptr; arc = arc->next) {
-            auto cur_node = dep_handler.get_node(arc->to);
-            arc->is_exist = arc->init;
-            /* The instance can be closed only when the indegree is 0.  */
-            if (in_degree[arc->to] <= 0 || --in_degree[arc->to] != 0) {
-                continue;
-            }
-            instance_node_queue.push(cur_node);
-        }
-    }
-}
-
-bool InstanceRunHandler::handle_message() {
+bool InstanceRunHandler::HandleMessage()
+{
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
-    while(this->recv_queue_try_pop(msg)){
-        std::shared_ptr<Instance> instance = msg->get_instance();
-        switch (msg->get_type()){
+    while (true) {
+        if (!this->RecvQueueTryPop(msg)) {
+            break;
+        }
+        DEBUG(logger, "handle message " << (int)msg->GetType());
+        switch (msg->GetType()) {
             case RunType::ENABLED: {
-                enable_instance(instance->get_name());
+                EnableInstance(msg->payload[0]);
                 break;
             }
             case RunType::DISABLED: {
-                disable_instance(instance->get_name(), true);
+                DisableInstance(msg->payload[0]);
+                break;
+            }
+            case RunType::DISABLED_FORCE: {
+                DisableInstance(msg->payload[0]);
+                break;
+            }
+            case RunType::SUBSCRIBE: {
+                msg->result = Subscribe(msg->payload);
+                break;
+            }
+            case RunType::UNSUBSCRIBE: {
+                Unsubscribe(msg->payload);
+                break;
+            }
+            case RunType::UNSUBSCRIBE_SDK: {
+                UnsubscribeSdk(msg->payload);
+                break;
+            }
+            case RunType::PUBLISH: {
+                msg->result = Publish(msg->payload);
+                break;
+            }
+            case RunType::PUBLISH_DATA: {
+                PublishData(msg);
                 break;
             }
             case RunType::SHUTDOWN: {
@@ -126,7 +231,7 @@ bool InstanceRunHandler::handle_message() {
                 break;
             }
         }
-        msg->notify_one();
+        msg->NotifyOne();
         if (shutdown) {
             return false;
         }
@@ -134,77 +239,62 @@ bool InstanceRunHandler::handle_message() {
     return true;
 }
 
-void InstanceRunHandler::change_instance_state(const std::string &name, std::vector<std::string> &deps, 
-                                               std::vector<std::string> &after_deps) {
-    for (auto &dep : deps) {
-        if (std::find(after_deps.begin(), after_deps.end(), dep) != after_deps.end()) {
-            continue;
-        }
-        auto instance = memory_store.get_instance(dep);
-        if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] illegal dependency: " << dep);
-            continue;
-        }
-        memory_store.delete_edge(name, instance->get_name());
-        in_degree[instance->get_name()]--;
-        /* Disable the instance that is not required.  */
-        if (instance->get_enabled()) {
-            disable_instance(instance->get_name(), false);
-        }  
-    }
-    for (auto &after_dep : after_deps) {
-        if (std::find(deps.begin(), deps.end(), after_dep) != deps.end()) {
-            continue;
-        }
-        auto instance = memory_store.get_instance(after_dep);
-        if (instance == nullptr) {
-            ERROR("[InstanceRunHandler] illegal dependency: " << after_dep);
-            continue;
-        }
-        in_degree[instance->get_name()]++;
-        memory_store.add_edge(name, instance->get_name());
-        /* Enable the instance that is required. */
-        if (!instance->get_enabled()) {
-            enable_instance(instance->get_name());
-        }
-    }    
+void InstanceRunHandler::CloseInstance(std::shared_ptr<Instance> instance)
+{
+    instance->enabled = false;
+    instance->interface->Disable();
 }
 
-void InstanceRunHandler::schedule() {
-    while (!schedule_queue.empty()) {
-        auto schedule_instance = schedule_queue.top();
+void InstanceRunHandler::Schedule()
+{
+    while (!scheduleQueue.empty()) {
+        auto schedule_instance = scheduleQueue.top();
         auto &instance = schedule_instance.instance;
         if (schedule_instance.time != time) {
             break;
         }
-        schedule_queue.pop();
-        if (!instance->get_enabled()) {
+        scheduleQueue.pop();
+        if (!instance->enabled) {
             continue;
         }
-        std::vector<std::string> deps = instance->get_deps();
-        run_instance(deps, instance->get_interface()->run);
-        schedule_instance.time += instance->get_interface()->get_period();
-        schedule_queue.push(schedule_instance);
-        /* Dynamically change dependencies. */
-        std::vector<std::string> after_deps = instance->get_deps();
-        change_instance_state(instance->get_name(), deps, after_deps);
+        instance->interface->Run();
+        // static plugin only run once
+        if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
+            CloseInstance(instance);
+            continue;
+        }
+        schedule_instance.time += instance->interface->GetPeriod();
+        scheduleQueue.push(schedule_instance);
     }
 }
 
-void start(InstanceRunHandler *instance_run_handler) {
-    INFO("[InstanceRunHandler] instance schedule started!");
-    while(true) {
-        if (!instance_run_handler->handle_message()) {
-            INFO("[InstanceRunHandler] instance schedule shutdown!");
+void InstanceRunHandler::Start()
+{
+    INFO(logger, "instance schedule started!");
+    const static uint64_t millisecond = 1000;
+    while (true) {
+        if (!HandleMessage()) {
+            INFO(logger, "instance schedule shutdown!");
             break;
         }
-        instance_run_handler->schedule();
-        usleep(instance_run_handler->get_cycle() * 1000);
-        instance_run_handler->add_time(instance_run_handler->get_cycle());
+        Schedule();
+        usleep(GetCycle() * millisecond);
+        AddTime(GetCycle());
     }
 }
 
-void InstanceRunHandler::run() {
-    std::thread t(start, this);
+void InstanceRunHandler::Init()
+{
+    Logger::GetInstance().Register("InstanceSchedule");
+    logger = Logger::GetInstance().Get("InstanceSchedule");
+}
+
+void InstanceRunHandler::Run()
+{
+    Init();
+    std::thread t([this] {
+        this->Start();
+    });
     t.detach();
+}
 }

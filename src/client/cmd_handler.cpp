@@ -108,10 +108,10 @@ void QueryTopHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     if (arg.empty()) {
-        msg.opt = Opt::QUERY_ALL_DEPS;
+        msg.opt = Opt::QUERY_ALL_SUB_GRAPH;
     } else {
         msg.payload.emplace_back(arg);
-        msg.opt = Opt::QUERY_DEP;
+        msg.opt = Opt::QUERY_SUB_GRAPH;
     }
 }
 

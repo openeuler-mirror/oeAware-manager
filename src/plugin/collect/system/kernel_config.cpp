@@ -177,7 +177,7 @@ void KernelConfig::Disable()
 
 void KernelConfig::UpdateData(const DataList &dataList)
 {
-    for (int i = 0; i < dataList.len; ++i) {
+    for (uint64_t i = 0; i < dataList.len; ++i) {
         KernelData *kernelData = (KernelData*)dataList.data[i];
         auto tmp = kernelData->kernelData;
         for (int j = 0; j < kernelData->len; ++j) {

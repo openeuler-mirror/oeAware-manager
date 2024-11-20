@@ -37,8 +37,7 @@ void XcallTune::CloseTopic(const oeaware::Topic &topic)
 
 void XcallTune::UpdateData(const DataList &dataList)
 {
-    (void)dataList;
-    for (int i = 0; i < dataList.len; ++i) {
+    for (uint64_t i = 0; i < dataList.len; ++i) {
         ThreadInfo *threadInfo = (ThreadInfo*)dataList.data[i];
         if (xcallTune.count(threadInfo->name)) {
             threadId[threadInfo->name] = threadInfo->pid;

@@ -14,7 +14,6 @@
 #include "instance_run_handler.h"
 #include "message_manager.h"
 #include "event/event_handler.h"
-#include "manager_callback.h"
 
 namespace oeaware {
 class PluginManager {
@@ -36,7 +35,7 @@ public:
     }
 private:
     PluginManager() { }
-    void InitEventHandler();
+    void InitEventHandler(std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue);
     void PreLoad();
     void PreEnable();
     void PreLoadPlugin();
@@ -54,7 +53,6 @@ private:
     std::shared_ptr<SafeQueue<Event>> recvMessage;
     std::shared_ptr<SafeQueue<EventResult>> sendMessage;
     std::unordered_map<Opt, std::shared_ptr<Handler>> eventHandler;
-    std::shared_ptr<ManagerCallback> managerCallback;
     std::shared_ptr<MemoryStore> memoryStore;
     log4cplus::Logger logger;
 };

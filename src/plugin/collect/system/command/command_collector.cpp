@@ -34,7 +34,6 @@ void CommandCollector::CollectThread(const oeaware::Topic &topic, CommandBase* c
     std::string cmd = collector->GetCommand(topic);
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) {
-        std::cerr << "Error: Failed to execute command: " << cmd << std::endl;
         return;
     }
     char buffer[256];
@@ -66,9 +65,7 @@ void CommandCollector::PublishThread(const oeaware::Topic &topic, CommandBase* c
             if (!collector->FillDataStruct(&dataList)) {
                 continue;
             }
-            SarData *pdata = (SarData *)dataList.data[0];
             Publish(dataList);
-            collector->FreeData(&dataList);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -117,8 +114,9 @@ void CommandCollector::CloseTopic(const oeaware::Topic &topic)
     t.detach();
 }
 
-oeaware::Result CommandCollector::Enable(const std::string &parma)
+oeaware::Result CommandCollector::Enable(const std::string &param)
 {
+    (void)param;
     return oeaware::Result(OK);
 }
 
@@ -129,6 +127,7 @@ void CommandCollector::Disable()
 
 void CommandCollector::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     return;
 }
 

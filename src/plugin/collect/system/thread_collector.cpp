@@ -28,7 +28,6 @@ ThreadCollector::ThreadCollector()
     version = "1.0.0";
     period = 500;
     priority = 0;
-
     oeaware::Topic topic;
     topic.instanceName = this->name;
     topic.topicName = this->name;

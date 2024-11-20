@@ -17,6 +17,8 @@ ThreadAware::ThreadAware()
 {
     name = "thread_scenario";
     period = awarePeriod;
+    priority = 1;
+    type = SCENARIO;
     supportTopics.emplace_back(Topic{"thread_scenario", "thread_scenario", ""});
 }
 

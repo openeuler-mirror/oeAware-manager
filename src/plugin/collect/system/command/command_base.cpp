@@ -114,7 +114,7 @@ bool CommandBase::FillDataStruct(void* dataStruct)
         }
         for (int i = 0; i < commandData->itemLen; ++i) {
             auto item = pair.second[i];
-            for (int j = 0; j < item.size(); ++j) {
+            for (size_t j = 0; j < item.size(); ++j) {
                 commandData->items[i].value[j] = new char[item[j].size() + 1];
                 ret = strcpy_s(commandData->items[i].value[j], item[j].size() + 1, item[j].data());
                 if (ret != EOK) {
@@ -131,11 +131,6 @@ bool CommandBase::FillDataStruct(void* dataStruct)
     for (int i = 0; i < len; ++i) {
         dataList->data[i] = commandDatas[i];
     }
-    return true;
-}
-
-bool CommandBase::FreeData(void *dataList)
-{
     return true;
 }
 

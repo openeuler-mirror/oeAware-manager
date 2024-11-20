@@ -12,59 +12,15 @@
 #ifndef PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 #define PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 #include <queue>
+#include <unordered_set>
+#include "event.h"
 #include "safe_queue.h"
-#include "plugin.h"
 #include "logger.h"
 #include "memory_store.h"
 #include "data_register.h"
+#include "instance_run_message.h"
 
 namespace oeaware {
-enum class RunType {
-    /* Message from PluginManager. */
-    ENABLED,
-    DISABLED,
-    DISABLED_FORCE,
-    SUBSCRIBE,
-    UNSUBSCRIBE,
-    UNSUBSCRIBE_SDK,
-    PUBLISH,
-    SHUTDOWN,
- };
-
-/* Message for communication between plugin manager and instance scheduling */
-class InstanceRunMessage {
-public:
-    InstanceRunMessage() {}
-    explicit InstanceRunMessage(RunType type) : type(type) { }
-    InstanceRunMessage(RunType type, const std::vector<std::string> &payload) : payload(payload), type(type),
-        finish(false) { }
-    RunType GetType()
-    {
-        return type;
-    }
-    void Wait()
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        cond.wait(lock, [this]() {
-            return finish;
-        });
-    }
-    void NotifyOne()
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        finish = true;
-        cond.notify_one();
-    }
-
-    std::vector<std::string> payload;
-    Result result;
-private:
-    RunType type;
-    std::mutex mutex;
-    std::condition_variable cond;
-    bool finish;
-};
-
 class ScheduleInstance {
 public:
     bool operator < (const ScheduleInstance &rhs) const
@@ -76,12 +32,16 @@ public:
     uint64_t time;
 };
 
+using TopicState = std::unordered_map<std::string, std::unordered_map<std::string,
+    std::unordered_map<std::string, bool>>>;
+
 /* A handler to schedule instances. */
 class InstanceRunHandler {
 public:
     using InstanceRun = void (*)();
-    InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore, std::shared_ptr<ManagerCallback> managerCallback)
-        : memoryStore(memoryStore), managerCallback(managerCallback), time(0), cycle(defaultCycleSize) { }
+    InstanceRunHandler(std::shared_ptr<MemoryStore> memoryStore, EventQueue recvData,
+        std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue) : memoryStore(memoryStore),
+        recvData(recvData), recvQueue(recvQueue), time(0), cycle(defaultCycleSize) { }
     void Init();
     void Run();
     void Schedule();
@@ -96,15 +56,19 @@ public:
     }
     void RecvQueuePush(std::shared_ptr<InstanceRunMessage> msg)
     {
-        this->RecvQueue.Push(msg);
+        recvQueue->Push(msg);
     }
     bool RecvQueueTryPop(std::shared_ptr<InstanceRunMessage> &msg)
     {
-        return this->RecvQueue.TryPop(msg);
+        return recvQueue->TryPop(msg);
     }
     void AddTime(uint64_t period)
     {
         time += period;
+    }
+    std::unordered_map<std::string, std::unordered_set<std::string>> GetSubscribers() const
+    {
+        return subscibers;
     }
 private:
     void Start();
@@ -112,23 +76,21 @@ private:
     Result Subscribe(const std::vector<std::string> &payload);
     Result Unsubscribe(const std::vector<std::string> &payload);
     Result UnsubscribeSdk(const std::vector<std::string> &payload);
-    void UpdateInDegreeIter(InDegree::iterator &pins);
     void UpdateInstance();
     Result EnableInstance(const std::string &name);
-    void DisableInstance(const std::string &name, bool force);
-    bool CheckInstanceDisable(const std::string &name);
-    void UpdateState();
-    void OpenTopic();
+    void DisableInstance(const std::string &name);
     Result Publish(const std::vector<std::string> &payload);
     void CloseInstance(std::shared_ptr<Instance> instance);
-private:
+    void PublishData(std::shared_ptr<InstanceRunMessage> &msg);
     /* Instance execution queue. */
     std::priority_queue<ScheduleInstance> scheduleQueue;
     /* Receives messages from the PluginManager. */
-    SafeQueue<std::shared_ptr<InstanceRunMessage>> RecvQueue;
     std::shared_ptr<MemoryStore> memoryStore;
-    std::shared_ptr<ManagerCallback> managerCallback;
+    EventQueue recvData;
+    std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
     std::vector<std::pair<Topic, std::string>> topicRunOnce;
+    TopicState topicState;
+    std::unordered_map<std::string, std::unordered_set<std::string>> subscibers;
     log4cplus::Logger logger;
     uint64_t time;
     uint64_t cycle;

@@ -28,13 +28,12 @@ int Plugin::LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceLis
     return 0;
 }
 
-void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList,
-    std::shared_ptr<ManagerCallback> managerCallback)
+void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList)
 {
     for (auto &interface : interfaceList) {
         std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         std::string instanceName = interface->GetName();
-        interface->SetManagerCallback(managerCallback);
+        interface->SetRecvQueue(recvQueue);
         interface->SetLogger(Logger::GetInstance().Get("Plugin"));
         instance->interface = interface;
         for (auto &topic : interface->GetSupportTopics()) {
@@ -47,23 +46,23 @@ void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList
     }
 }
 
-bool Plugin::LoadInstance(std::shared_ptr<ManagerCallback> managerCallback)
+bool Plugin::LoadInstance()
 {
     std::vector<std::shared_ptr<Interface>> interfaceList;
     if (LoadDlInstance(interfaceList) < 0) {
         return false;
     }
-    SaveInstance(interfaceList, managerCallback);
+    SaveInstance(interfaceList);
     return true;
 }
 
-int Plugin::Load(const std::string &dl_path, std::shared_ptr<ManagerCallback> managerCallback)
+int Plugin::Load(const std::string &dl_path)
 {
     this->handler = dlopen(dl_path.c_str(), RTLD_LAZY);
     if (handler == nullptr) {
         return -1;
     }
-    if (!LoadInstance(managerCallback)) {
+    if (!LoadInstance()) {
         return -1;
     }
     return 0;

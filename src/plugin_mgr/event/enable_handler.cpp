@@ -29,11 +29,7 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
     instanceRunHandler->RecvQueuePush(msg);
     /* Wait for InstanceRunHandler to finsh this task. */
     msg->Wait();
-    if (instance->enabled) {
-        return ErrorCode::OK;
-    } else {
-        return ErrorCode::ENABLE_INSTANCE_ENV;
-    }
+    return ErrorCode::OK;
 }
 
 EventResult EnableHandler::Handle(const Event &event)

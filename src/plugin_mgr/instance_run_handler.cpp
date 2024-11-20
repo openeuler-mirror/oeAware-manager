@@ -17,29 +17,6 @@ namespace oeaware {
 constexpr int INSTANCE_RUN_ONCE = 2;
 constexpr int INSTANCE_RUN_ALWAYS = 1;
 
-void InstanceRunHandler::OpenTopic()
-{
-    for (auto pi : managerCallback->topicInstance) {
-        auto name = SplitString(pi.first, "::");
-        auto instanceName = name[0];
-        auto topicName = name[1];
-        auto params = (name.size() > 2 ? name[2] : "");
-        auto instance = memoryStore->GetInstance(instanceName);
-        if (!instance->enabled) {
-            instance->enabled = true;
-            instance->interface->Enable();
-            scheduleQueue.push(ScheduleInstance{instance, time});
-        }
-        instance->interface->OpenTopic(Topic{instanceName, topicName, params});
-    }
-    for (auto pi : managerCallback->topicSdk) {
-        auto name = SplitString(pi.first, "::");
-        auto instanceName = name[0];
-        auto topicName = name[1];
-        auto params = (name.size() > 2 ? name[2] : "");
-        memoryStore->GetInstance(instanceName)->interface->OpenTopic(Topic{instanceName, topicName, params});
-    }
-}
 Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
     auto instance = memoryStore->GetInstance(name);
@@ -48,24 +25,20 @@ Result InstanceRunHandler::EnableInstance(const std::string &name)
         WARN(logger, name << " instance enabled failed!");
         return result;
     }
-    // Open instance subscribed topic after enabled.
-    OpenTopic();
     instance->enabled = true;
-    scheduleQueue.push(ScheduleInstance{instance, time});
+    if (instance->interface->GetType() & SCENARIO) {
+        scheduleQueue.push(ScheduleInstance{instance, time + instance->interface->GetPeriod()});
+    } else if (instance->interface->GetType() & TUNE) {
+        scheduleQueue.push(ScheduleInstance{instance, time + 2 * instance->interface->GetPeriod()});
+    } else {
+        scheduleQueue.push(ScheduleInstance{instance, time});
+    }
     INFO(logger, name << " instance enabled.");
     return result;
 }
 
-bool InstanceRunHandler::CheckInstanceDisable(const std::string &name)
+void InstanceRunHandler::DisableInstance(const std::string &name)
 {
-    return managerCallback->inDegree[name].empty();
-}
-
-void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
-{
-    if (!force && !CheckInstanceDisable(name)) {
-        return;
-    }
     auto instance = memoryStore->GetInstance(name);
     instance->enabled = false;
     instance->interface->Disable();
@@ -74,8 +47,9 @@ void InstanceRunHandler::DisableInstance(const std::string &name, bool force)
 
 Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
 {
-    Topic topic{payload[0], payload[1], payload[2]};
+    Topic topic = Topic::GetTopicFromType(payload[0]);
     Result result;
+    constexpr int subscriberIndex = 1;
     auto instance = memoryStore->GetInstance(topic.instanceName);
     if (!instance->enabled) {
         result = EnableInstance(instance->name);
@@ -84,68 +58,56 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
             return result;
         }
     }
-    result = instance->interface->OpenTopic(topic);
-    if (result.code < 0) {
-        WARN(logger, "topic open failed, " << result.payload);
-        DisableInstance(instance->name, false);
-        return result;
+    if (!topicState[topic.instanceName][topic.topicName][topic.params]) {
+        result = instance->interface->OpenTopic(topic);
+        if (result.code < 0) {
+            WARN(logger, "topic open failed, " << result.payload);
+            DisableInstance(instance->name);
+            return result;
+        }
+        topicState[topic.instanceName][topic.topicName][topic.params] = true;
     }
-    constexpr int subscriberIndex = 3;
-    result = managerCallback->Subscribe(payload[subscriberIndex], topic, 0);
-    if (result.code < 0) {
-        WARN(logger, "The subscribed topic " << topic.topicName << " failed.");
-        return result;
-    }
+    subscibers[payload[0]].insert(payload[subscriberIndex]);
     if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
-        topicRunOnce.emplace_back(std::make_pair(topic, payload[3]));
+        topicRunOnce.emplace_back(std::make_pair(topic, payload[subscriberIndex]));
     }
     INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
     LogText(topic.params) << "} has been subscribed.");
     return result;
 }
 
-void InstanceRunHandler::UpdateInDegreeIter(InDegree::iterator &pins)
-{
-    auto instance = memoryStore->GetInstance(pins->first);
-    for (auto pt = pins->second.begin(); pt != pins->second.end();) {
-        for (auto pa = pt->second.begin(); pa != pt->second.end();) {
-            if (pa->second <= 0) {
-                instance->interface->CloseTopic(Topic{pins->first.data(), pt->first.data(), pa->first.data()});
-                pa = pt->second.erase(pa);
-            } else {
-                pa++;
-            }
-        }
-        if (pt->second.empty()) {
-            pt = pins->second.erase(pt);
-        } else {
-            pt++;
-        }
-    }
-    if (pins->second.empty()) {
-        DisableInstance(pins->first, false);
-        pins = managerCallback->inDegree.erase(pins);
-    } else {
-        pins++;
-    }
-}
 
 void InstanceRunHandler::UpdateInstance()
 {
-    for (auto pins = managerCallback->inDegree.begin(); pins != managerCallback->inDegree.end();) {
-        UpdateInDegreeIter(pins);
+    for (auto &p : topicState) {
+        int cntTopic = 0;
+        for (auto &pt : p.second) {
+            for (auto &pp : pt.second) {
+                if (pp.second) {
+                    Topic topic = Topic{p.first, pt.first, pp.first};
+                    std::string type = Concat({p.first, pt.first, pp.first}, "::");
+                    if (!subscibers.count(type)) {
+                        memoryStore->GetInstance(p.first)->interface->CloseTopic(topic);
+                        pp.second = false;
+                    } else {
+                        cntTopic++;
+                    }
+                }
+            }
+        }
+        if (!cntTopic && memoryStore->GetInstance(p.first)->enabled) {
+            DisableInstance(p.first);
+        }
     }
 }
 
 Result InstanceRunHandler::Unsubscribe(const std::vector<std::string> &payload)
 {
     Result result;
-    Topic topic;
-    Decode(topic, payload[0]);
-    result = managerCallback->Unsubscribe(payload[1], topic, 0);
-    if (result.code < 0) {
-        WARN(logger, result.payload);
-        return result;
+    Topic topic = Topic::GetTopicFromType(payload[0]);
+    subscibers[payload[0]].erase(payload[1]);
+    if (subscibers[payload[0]].empty()) {
+        subscibers.erase(payload[0]);
     }
     UpdateInstance();
     INFO(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
@@ -156,8 +118,18 @@ Result InstanceRunHandler::Unsubscribe(const std::vector<std::string> &payload)
 Result InstanceRunHandler::UnsubscribeSdk(const std::vector<std::string> &payload)
 {
     Result result;
-    managerCallback->Unsubscribe(payload[0]);
-    UpdateInstance();
+    std::string sdkFd = payload[0];
+    for (auto i = subscibers.begin(); i != subscibers.end();) {
+        if (i->second.count(sdkFd)) {
+            i->second.erase(sdkFd);
+            if (i->second.empty()) {
+                i = subscibers.erase(i);
+            }
+            UpdateInstance();
+        } else {
+            ++i;
+        }
+    }
     return result;
 }
 
@@ -196,23 +168,42 @@ Result InstanceRunHandler::Publish(const std::vector<std::string> &payload)
     return Result(OK);
 }
 
+void InstanceRunHandler::PublishData(std::shared_ptr<InstanceRunMessage> &msg)
+{
+    for (auto subscriber : subscibers[msg->payload[0]]) {
+        if (std::any_of(subscriber.begin(), subscriber.end(), ::isdigit)) {
+            OutStream out;
+            DataListSerialize(&msg->dataList, out);
+            recvData->Push(Event(Opt::DATA, {subscriber, out.Str()}));
+            continue;
+        }
+        Topic topic = Topic::GetTopicFromType(msg->payload[0]);
+        auto instance = memoryStore->GetInstance(subscriber);
+        instance->interface->UpdateData(msg->dataList);
+    }
+    // free dataList
+}
+
 bool InstanceRunHandler::HandleMessage()
 {
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
-    while (this->RecvQueueTryPop(msg)) {
-        DEBUG(logger, "handle message");
+    while (true) {
+        if (!this->RecvQueueTryPop(msg)) {
+            break;
+        }
+        DEBUG(logger, "handle message " << (int)msg->GetType());
         switch (msg->GetType()) {
             case RunType::ENABLED: {
                 EnableInstance(msg->payload[0]);
                 break;
             }
             case RunType::DISABLED: {
-                DisableInstance(msg->payload[0], false);
+                DisableInstance(msg->payload[0]);
                 break;
             }
             case RunType::DISABLED_FORCE: {
-                DisableInstance(msg->payload[0], true);
+                DisableInstance(msg->payload[0]);
                 break;
             }
             case RunType::SUBSCRIBE: {
@@ -231,6 +222,10 @@ bool InstanceRunHandler::HandleMessage()
                 msg->result = Publish(msg->payload);
                 break;
             }
+            case RunType::PUBLISH_DATA: {
+                PublishData(msg);
+                break;
+            }
             case RunType::SHUTDOWN: {
                 shutdown = true;
                 break;
@@ -242,23 +237,6 @@ bool InstanceRunHandler::HandleMessage()
         }
     }
     return true;
-}
-
-void InstanceRunHandler::UpdateData()
-{
-    for (auto &data : managerCallback->publishData) {
-        auto cTopic = data.topic;
-        Topic topic{cTopic.instanceName, cTopic.topicName, cTopic.params};
-        auto type = topic.GetType();
-        if (!managerCallback->topicInstance.count(type)) {
-            continue;
-        }
-        for (auto &instanceName : managerCallback->topicInstance[type]) {
-            auto instance = memoryStore->GetInstance(instanceName);
-            instance->interface->UpdateData(data);
-        }
-    }
-    managerCallback->publishData.clear();
 }
 
 void InstanceRunHandler::CloseInstance(std::shared_ptr<Instance> instance)
@@ -280,7 +258,6 @@ void InstanceRunHandler::Schedule()
             continue;
         }
         instance->interface->Run();
-        UpdateData();
         // static plugin only run once
         if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
             CloseInstance(instance);
@@ -289,15 +266,6 @@ void InstanceRunHandler::Schedule()
         schedule_instance.time += instance->interface->GetPeriod();
         scheduleQueue.push(schedule_instance);
     }
-}
-
-void InstanceRunHandler::UpdateState()
-{
-    for (auto &p : topicRunOnce) {
-        managerCallback->Unsubscribe(p.second, p.first, 0);
-    }
-    UpdateInstance();
-    topicRunOnce.clear();
 }
 
 void InstanceRunHandler::Start()
@@ -312,7 +280,6 @@ void InstanceRunHandler::Start()
         Schedule();
         usleep(GetCycle() * millisecond);
         AddTime(GetCycle());
-        UpdateState();
     }
 }
 

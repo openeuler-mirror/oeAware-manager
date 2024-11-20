@@ -43,7 +43,7 @@ public:
             handler = nullptr;
         }
     }
-    int Load(const std::string &dl_path, std::shared_ptr<ManagerCallback> managerCallback);
+    int Load(const std::string &dl_path);
     std::string GetName() const
     {
         return this->name;
@@ -56,10 +56,10 @@ public:
     {
         return instances.size();
     }
+    std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
 private:
-    bool LoadInstance(std::shared_ptr<ManagerCallback> managerCallback);
-    void SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList,
-        std::shared_ptr<ManagerCallback> managerCallback);
+    bool LoadInstance();
+    void SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList);
     int LoadDlInstance(std::vector<std::shared_ptr<Interface>> &interfaceList);
 private:
     std::vector<std::shared_ptr<Instance>> instances;

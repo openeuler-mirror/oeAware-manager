@@ -31,10 +31,12 @@ ErrorCode QuerySubscribeGraphHandler::QuerySubGraph(const std::string &name,
     if (!memoryStore->IsInstanceExist(name)) {
          return ErrorCode::QUERY_DEP_NOT_EXIST;
     }
-    if (managerCallback->subscibers.count(name)) {
-        for (auto &topicStr : managerCallback->subscibers[name]) {
-            graph.emplace_back(std::make_pair(name, topicStr));
+    auto subscribers = instanceRunHandler->GetSubscribers();
+    for (auto &p : subscribers) {
+        if (!p.second.count(name)) {
+            continue;
         }
+        graph.emplace_back(std::make_pair(name, p.first));
     }
     return ErrorCode::OK;
 }

@@ -97,7 +97,7 @@ void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
 {
     (void)topic;
     if (pmuId == -1) {
-        std::cout << "CloseTopic failed" << std::endl;
+        WARN(logger, "PmuSpeCollector failed");
     } else {
         PmuDisable(pmuId);
         PmuClose(pmuId);

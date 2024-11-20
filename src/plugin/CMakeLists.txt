@@ -31,9 +31,9 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_counting_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_spe_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/pmu_uncore_data.h"   
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/docker_data.h"
-    DESTINATION "${CMAKE_BINARY_DIR}/include")
+    DESTINATION "${CMAKE_BINARY_DIR}/output/include")
 endif()
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/kernel_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/thread_info.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/collect/include/command_data.h"
-    DESTINATION "${CMAKE_BINARY_DIR}/include")
+    DESTINATION "${CMAKE_BINARY_DIR}/output/include")

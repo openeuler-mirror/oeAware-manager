@@ -14,66 +14,79 @@
 #include "message_protocol.h"
 #include "arg_parse.h"
 
+namespace oeaware {
 class CmdHandler {
 public:
-    virtual void handler(Msg &msg) = 0;
-    virtual void res_handler(Msg &msg) = 0;
-
-    static ArgParse &arg_parse;
+    virtual void Handler(Message &msg) = 0;
+    virtual void ResHandler(Message &msg) = 0;
 };
 
 class LoadHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 private:
-    void check(const std::string &type);
-    static std::unordered_set<std::string> types; 
+    void Check(const std::string &type);
+    static std::unordered_set<std::string> types;
 };
 
 class QueryHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 private:
-    void print_format();
+    void PrintFormat();
 };
 
 class RemoveHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 
 class QueryTopHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class EnabledHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class DisabledHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class ListHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
 class InstallHandler : public CmdHandler {
 public:
-    void handler(Msg &msg) override;
-    void res_handler(Msg &msg) override;
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
 };
 
-#endif // !CLIENT_CMD_HANDLER_H
+class StartHandler : public CmdHandler {
+public:
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
+};
+
+class StopHandler : public CmdHandler {
+public:
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
+};
+
+}
+
+#endif // !CLIENT_CMD_Handler_H

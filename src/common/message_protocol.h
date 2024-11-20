@@ -11,15 +11,13 @@
  ******************************************************************************/
 #ifndef COMMON_MESSAGE_PROTOCOL_H
 #define COMMON_MESSAGE_PROTOCOL_H
-
-#include <boost/serialization/vector.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>
+#include "serialize.h"
 
+namespace oeaware {
 const int MAX_RECV_BUFF_SIZE = 16384;
 const int MAX_EVENT_SIZE = 1024;
 const int PROTOCOL_LENGTH_SIZE = sizeof(size_t);
@@ -34,118 +32,121 @@ enum class Opt {
     REMOVE,
     QUERY,
     QUERY_ALL,
-    QUERY_DEP,
-    QUERY_ALL_DEPS,
+    QUERY_SUB_GRAPH,
+    QUERY_ALL_SUB_GRAPH,
     LIST,
     DOWNLOAD,
+    SUBSCRIBE,
+    UNSUBSCRIBE,
+    PUBLISH,
+    DATA,
     RESPONSE_OK,
     RESPONSE_ERROR,
     SHUTDOWN,
 };
 
-class Msg {
-private:
-    friend class boost::serialization::access;
-    template <typename Archive>
-    void serialize(Archive &ar, const unsigned int /*version*/) {
-        ar & _opt;
-        ar & _payload;
+enum class MessageType {
+    REQUEST,
+    RESPONSE,
+};
+
+struct Message {
+    Message() { }
+    Message(const Opt &opt, const std::vector<std::string> &payload) : opt(opt), payload(payload) { }
+    void Serialize(oeaware::OutStream &out) const
+    {
+        int op = static_cast<int>(opt);
+        out << op << payload;
     }
-public:
-    Msg() { }
-    int payload_size() const {
-        return this->_payload.size();
+    void Deserialize(oeaware::InStream &in)
+    {
+        int op;
+        in >> op >> payload;
+        opt = static_cast<oeaware::Opt>(op);
     }
-    std::string payload(int id) const {
-        return this->_payload[id];
-    }
-    Opt opt() {
-        return this->_opt;
-    }
-    void add_payload(std::string &context) {
-        this->_payload.emplace_back(context);
-    }
-    void add_payload(std::string &&context) {
-        this->_payload.emplace_back(context);
-    }
-    void set_opt(Opt opt) {
-        this->_opt = opt;
-    }
-    Opt get_opt() const {
-        return this->_opt;
-    }
-private:
-    Opt _opt;
-    std::vector<std::string> _payload;
+    Opt opt;
+    std::vector<std::string> payload;
 };
 
 class MessageHeader {
-private:
-    friend class boost::serialization::access;
-    template <typename Archive>
-    void serialize(Archive &ar, const unsigned int /*version*/) {
-        ar & code;
-    }
 public:
     MessageHeader() { }
-    void set_state_code(int code) {
-        this->code = code;
+    explicit MessageHeader(const MessageType &type) : type(type) { }
+    MessageType GetMessageType()
+    {
+        return this->type;
     }
-    int get_state_code() {
-        return this->code;
+    void Serialize(oeaware::OutStream &out) const
+    {
+        int iType = static_cast<int>(type);
+        out << iType;
+    }
+    void Deserialize(oeaware::InStream &in)
+    {
+        int iType;
+        in >> iType;
+        type = static_cast<MessageType>(iType);
     }
 private:
-    int code;
+    MessageType type;
 };
 
 class MessageProtocol {
 public:
-    MessageProtocol(): tot_length(0), header_length(0), header(""), body("") { }
-    size_t tot_length;
-    size_t header_length;
-    std::string header;
-    std::string body; // Msg serialized data
+    MessageProtocol() { }
+    MessageProtocol(const MessageHeader &header, const Message &message) : header(header), message(message) { }
+    std::string GetProtocolStr();
+    void SetHeader(const std::string &headerStr)
+    {
+        InStream in(headerStr);
+        in >> header;
+    }
+    void SetMessage(const std::string &content)
+    {
+        InStream in(content);
+        in >> message;
+    }
+    void SetHeader(const MessageHeader &newHeader)
+    {
+        this->header = newHeader;
+    }
+    void SetMessage(const Message &message)
+    {
+        this->message = message;
+    }
+    Message GetMessage()
+    {
+        return message;
+    }
+    MessageHeader GetHeader()
+    {
+        return header;
+    }
+private:
+    MessageHeader header;
+    Message message;
 };
 
 class SocketStream {
 public:
-    SocketStream() : read_buff(MAX_BUFF_SIZE, 0) { }
-    SocketStream(int sock) : sock(sock), read_buff(MAX_BUFF_SIZE, 0) { }
-    ssize_t read(char *buf, size_t size);
-    ssize_t write(const char *buf, size_t size);
-    void set_sock(int sock) {
-        this->sock = sock;
+    SocketStream() : readBuff(maxBuffSize, 0) { }
+    explicit SocketStream(int sock) : sock(sock), readBuff(maxBuffSize, 0) { }
+    ssize_t Read(char buf[], size_t size);
+    ssize_t Write(const char buf[], size_t size);
+    void SetSock(int newSock)
+    {
+        this->sock = newSock;
     }
 private:
     int sock;
-    std::vector<char> read_buff;
-    size_t read_buff_off = 0;
-    size_t read_buff_content_size = 0;
-    static const size_t MAX_BUFF_SIZE = 4096;
+    std::vector<char> readBuff;
+    size_t readBuffOff = 0;
+    size_t readBuffContentSize = 0;
+    static const size_t maxBuffSize = 4096;
 };
 
-bool handle_request(SocketStream &stream, MessageProtocol &msg_protocol);
-bool send_response(SocketStream &stream, const Msg &msg, const MessageHeader &header);
-
-template<typename T>
-std::string encode(const T &msg) {
-    std::stringstream ss;
-    boost::archive::binary_oarchive os(ss);
-    os << msg;
-    return ss.str();
-}
-
-template<typename T> 
-int decode(T &msg, const std::string &content) {
-    try {
-        std::stringstream ss(content);
-        boost::archive::binary_iarchive ia(ss);
-        ia >> msg;
-    } catch (const boost::archive::archive_exception& e) {
-        std::cerr << "Serialization failed: " << e.what() << "\n";
-        return -1;
-    }
-    return 0;
+bool RecvMessage(SocketStream &stream, MessageProtocol &msgProtocol);
+bool SendMessage(SocketStream &stream, MessageProtocol &msgProtocol);
 }
 
 #endif // !COMMON_MESSAGE_PROTOCOL_H

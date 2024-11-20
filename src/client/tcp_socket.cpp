@@ -10,49 +10,61 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "tcp_socket.h"
+#include <securec.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-bool TcpSocket::recv_msg(Msg &res, MessageHeader &header) {
+namespace oeaware {
+bool TcpSocket::RecvMsg(Message &res, MessageHeader &header)
+{
     MessageProtocol proto;
-    if (!handle_request(stream, proto)) {
+    if (!RecvMessage(stream, proto)) {
         printf("can't connect to server!\n");
         return false;
     }
-    decode(res, proto.body);
-    decode(header, proto.header);
+    res = proto.GetMessage();
+    header = proto.GetHeader();
     return true;
 }
 
-bool TcpSocket::send_msg(Msg &msg, MessageHeader &header) {
-    if (!send_response(stream, msg, header)) {
+bool TcpSocket::SendMsg(Message &msg, MessageHeader &header)
+{
+    MessageProtocol proto;
+    proto.SetHeader(header);
+    proto.SetMessage(msg);
+    if (!SendMessage(stream, proto)) {
         return false;
     }
     return true;
 }
 
-int TcpSocket::file_connect(const char *name) {
+int TcpSocket::FileConnect(const char *name)
+{
     struct sockaddr_un un;
     int len;
-    memset(&un, 0, sizeof(un));
+    memset_s(&un, sizeof(un), 0, sizeof(un));
     un.sun_family = AF_UNIX;
-    strcpy(un.sun_path, name);
+    int maxNameLength = 100;
+    strcpy_s(un.sun_path, maxNameLength, name);
     len = offsetof(struct sockaddr_un, sun_path) + strlen(name);
-    if (connect(sock, (struct sockaddr*)&un, len) < 0) {
+    if (connect(sock, reinterpret_cast<struct sockaddr*>(&un), len) < 0) {
         printf("can't connect to server!\n");
         return -1;
     }
     return 0;
 }
 
-bool TcpSocket::init() {
-    if( (sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+bool TcpSocket::Init(const std::string &path)
+{
+    sockPath = path;
+    if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         printf("socket create error!\n");
+        return -1;
+    }
+    if (FileConnect(sockPath.c_str()) < 0) {
         return false;
     }
-    if (file_connect(SOCK_PATH.c_str()) < 0) {
-        return false;
-    }
-    stream.set_sock(sock);
+    stream.SetSock(sock);
     return true;
+}
 }

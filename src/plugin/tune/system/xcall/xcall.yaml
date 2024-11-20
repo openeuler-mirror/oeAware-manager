@@ -1,0 +1,6 @@
+redis:
+    - xcall_1: 1
+mysql:
+    - xcall_2: 1
+node:
+    - xcall_1: 1

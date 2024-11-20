@@ -9,63 +9,64 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "plugin_manager.h"
 #include <csignal>
+#include "plugin_manager.h"
+#include "data_register.h"
+#include "utils.h"
 
-Logger logger;
-
-void print_help() {
-    printf("Usage: ./oeaware [path]\n"
-            "      ./oeaware --help\n"
-           "Examples:\n"
-           "    ./oeaware /etc/oeAware/config.yaml\n");
-}
-
-void signal_handler(int signum) {
-    if (signum != SIGINT && signum != SIGTERM) {
-        ERROR("Unknown signal: " << signum);
-        exit(signum);
+int main(int argc, char **argv)
+{
+    oeaware::Logger::GetInstance().Register("Main");
+    auto logger = oeaware::Logger::GetInstance().Get("Main");
+    if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR) {
+        ERROR(logger, "Sig Error!");
+        exit(EXIT_FAILURE);
     }
-    auto &plugin_manager = PluginManager::get_instance();
-    plugin_manager.send_msg(Message(Opt::SHUTDOWN, MessageType::INTERNAL));
-}
-
-int main(int argc, char **argv) {
-    signal(SIGINT, signal_handler);  // ctrl + c
-    signal(SIGTERM, signal_handler);  // systemctl stop
-    std::shared_ptr<Config> config = std::make_shared<Config>();
-    if (argc < 2) {
-        ERROR("System need an argument!");
-        print_help();
+    std::shared_ptr<oeaware::Config> config = std::make_shared<oeaware::Config>();
+    int argCnt = 2;
+    if (argc < argCnt) {
+        ERROR(logger, "System need an argument!");
+        oeaware::PrintHelp();
         exit(EXIT_FAILURE);
     }
     if (std::string(argv[1]) == "--help") {
-        print_help();
+        oeaware::PrintHelp();
         exit(EXIT_SUCCESS);
     }
-    if (!file_exist(argv[1])) {
-        ERROR("Config file " << argv[1] << " does not exist!");
+    if (!oeaware::FileExist(argv[1])) {
+        ERROR(logger, "Config file " << argv[1] << " does not exist!");
         exit(EXIT_FAILURE);
     }
     std::string config_path(argv[1]);
-    if (!check_permission(config_path, S_IRUSR | S_IWUSR | S_IRGRP)) {
-        ERROR("Insufficient permission on " << config_path);
+    if (!oeaware::CheckPermission(config_path, S_IRUSR | S_IWUSR | S_IRGRP)) {
+        ERROR(logger, "Insufficient permission on " << config_path);
         exit(EXIT_FAILURE);
     }
-    if (!config->load(config_path)) {
-        ERROR("Config load error!");
+    if (!config->Load(config_path)) {
+        ERROR(logger, "Config load error!");
         exit(EXIT_FAILURE);
     }
-    logger.init(config);
-    std::shared_ptr<SafeQueue<Message>> handler_msg = std::make_shared<SafeQueue<Message>>();
-    std::shared_ptr<SafeQueue<Message>> res_msg = std::make_shared<SafeQueue<Message>>();
-    INFO("[MessageManager] Start message manager!");
-    MessageManager &message_manager = MessageManager::get_instance();
-    message_manager.init(handler_msg, res_msg);
-    message_manager.run();
-    INFO("[PluginManager] Start plugin manager!");
-    PluginManager& plugin_manager = PluginManager::get_instance();
-    plugin_manager.init(config, handler_msg, res_msg);
-    plugin_manager.run();
+    if (oeaware::Logger::GetInstance().Init(config->GetLogPath(), config->GetLogLevel()) < 0) {
+        ERROR(logger, "logger init failed!");
+        exit(EXIT_FAILURE);
+    }
+    INFO(logger, "log path: " << config->GetLogPath() << ", log level: " << config->GetLogLevel());
+    auto recvMessage = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
+    auto sendMessage = std::make_shared<oeaware::SafeQueue<oeaware::EventResult>>();
+    auto recvData = std::make_shared<oeaware::SafeQueue<oeaware::Event>>();
+    INFO(logger, "Start message manager!");
+    oeaware::MessageManager &messageManager = oeaware::MessageManager::GetInstance();
+    if (!messageManager.Init(recvMessage, sendMessage, recvData)) {
+        ERROR(logger, "MessageManager init failed!");
+        exit(EXIT_FAILURE);
+    }
+    messageManager.Run();
+    oeaware::Register::GetInstance().InitRegisterData();
+    INFO(logger, "Start plugin manager!");
+    oeaware::PluginManager& pluginManager = oeaware::PluginManager::GetInstance();
+    pluginManager.Init(config, recvMessage, sendMessage, recvData);
+    pluginManager.Run();
+    pluginManager.Exit();
+    messageManager.Exit();
     return 0;
 }

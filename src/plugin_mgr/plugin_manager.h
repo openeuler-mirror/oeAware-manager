@@ -11,68 +11,55 @@
  ******************************************************************************/
 #ifndef PLUGIN_MGR_PLUGIN_MANAGER_H
 #define PLUGIN_MGR_PLUGIN_MANAGER_H
-
 #include "instance_run_handler.h"
-#include "config.h"
-#include "memory_store.h"
 #include "message_manager.h"
-#include "error_code.h"
+#include "event/event_handler.h"
 
+namespace oeaware {
 class PluginManager {
 public:
     PluginManager(const PluginManager&) = delete;
     PluginManager& operator=(const PluginManager&) = delete;
-    static PluginManager& get_instance() {
-        static PluginManager plugin_manager;
-        return plugin_manager;
+    static PluginManager& GetInstance()
+    {
+        static PluginManager pluginManager;
+        return pluginManager;
     }
-    int run();
-    void init(std::shared_ptr<Config> config, std::shared_ptr<SafeQueue<Message>> handler_msg,
-    std::shared_ptr<SafeQueue<Message>> res_msg);
-    const MemoryStore& get_memory_store() {
-        return this->memory_store;
+    void Run();
+    void Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,
+        EventQueue recvData);
+    void Exit();
+    void SendMsg(const Event &msg)
+    {
+        recvMessage->Push(msg);
     }
-    void exit();
-    void send_msg(const Message &msg) {
-        handler_msg->push(msg);
-    }
-    const void* get_data_buffer(const std::string &name);
 private:
     PluginManager() { }
-    void pre_load();
-    void pre_enable();
-    void pre_load_plugin(); 
-    ErrorCode load_plugin(const std::string &path);
-    ErrorCode remove(const std::string &name);
-    ErrorCode query_all_plugins(std::string &res);
-    ErrorCode query_plugin(const std::string &name, std::string &res);
-    ErrorCode query_dependency(const std::string &name, std::string &res);
-    ErrorCode query_all_dependencies(std::string &res);
-    ErrorCode instance_enabled(const std::string &name);
-    ErrorCode instance_disabled(const std::string &name);
-    ErrorCode add_list(std::string &res);
-    ErrorCode download(const std::string &name, std::string &res);
-    std::string instance_dep_check(const std::string &name);
-    int load_dl_instance(std::shared_ptr<Plugin> plugin, Interface **interface_list);
-    void save_instance(std::shared_ptr<Plugin> plugin, Interface *interface_list, int len);
-    bool load_instance(std::shared_ptr<Plugin> plugin);
-    void batch_load();
-    void batch_remove();
-    void update_instance_state();
-    bool end_with(const std::string &s, const std::string &ending);
-    std::string get_plugin_in_dir(const std::string &path);
-    void send_msg_to_instance_run_handler(std::shared_ptr<InstanceRunMessage> msg) {
-        instance_run_handler->recv_queue_push(msg);
+    void InitEventHandler(std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue);
+    void PreLoad();
+    void PreEnable();
+    void PreLoadPlugin();
+    void UpdateInstanceState();
+    std::string GetPluginInDir(const std::string &path);
+    void SendMsgToInstancRunHandler(std::shared_ptr<InstanceRunMessage> msg)
+    {
+        instanceRunHandler->RecvQueuePush(msg);
     }
+    void EnablePlugin(const std::string &name);
+    void EnableInstance(const EnableItem &item);
 private:
-    std::unique_ptr<InstanceRunHandler> instance_run_handler;
+    std::shared_ptr<InstanceRunHandler> instanceRunHandler;
     std::shared_ptr<Config> config;
-    std::shared_ptr<SafeQueue<Message>> handler_msg;
-    std::shared_ptr<SafeQueue<Message>> res_msg;
-    MemoryStore memory_store;
+    std::shared_ptr<SafeQueue<Event>> recvMessage;
+    std::shared_ptr<SafeQueue<EventResult>> sendMessage;
+    std::unordered_map<Opt, std::shared_ptr<Handler>> eventHandler;
+    std::shared_ptr<MemoryStore> memoryStore;
+    log4cplus::Logger logger;
 };
 
-bool check_permission(std::string path, int mode);
-bool file_exist(const std::string &file_name);
+void PrintHelp();
+void SignalHandler(int signum);
 
-#endif 
+}
+
+#endif

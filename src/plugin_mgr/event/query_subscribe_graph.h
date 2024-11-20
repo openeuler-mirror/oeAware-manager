@@ -23,7 +23,6 @@ public:
 private:
     ErrorCode QuerySubGraph(const std::string &name, std::vector<std::pair<std::string, std::string>> &graph);
     std::string GenerateDot(const std::vector<std::pair<std::string, std::string>> &graph);
-
     std::shared_ptr<InstanceRunHandler> instanceRunHandler;
 };
 }

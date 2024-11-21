@@ -102,7 +102,6 @@ static int _kallsyms_lookup_kprobe(struct kprobe *p, struct pt_regs *regs)
 
 static int handler_smc(int ifd) {
     long ret;
-    int tmperr;
     struct socket *sock;
     
     struct fd f = fdget(ifd);
@@ -112,6 +111,7 @@ static int handler_smc(int ifd) {
     }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
+    int tmperr;
     sock = sock_from_file(f.file, &tmperr);
 #else
     sock = sock_from_file(f.file);

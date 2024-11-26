@@ -113,6 +113,7 @@ static bool IsSymlink(const std::string &path)
     }
     return S_ISLNK(st.st_mode);
 }
+
 void KernelConfig::GetAllEth()
 {
     const std::string path = "/sys/class/net";

@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "message_manager.h"
 #include <thread>
+#include <pwd.h>
 #include <securec.h>
 #include "default_path.h"
 #include "utils.h"
@@ -41,15 +42,56 @@ int Epoll::EventWait(struct epoll_event *events, int maxEvents, int timeout)
     return epoll_wait(epfd, events, maxEvents, timeout);
 }
 
+static std::vector<std::string> GetUserFromGroup(const std::string &groupName)
+{
+    std::vector<std::string> users;
+    std::ifstream file("/etc/group");
+    if (!file.is_open()) {
+        return users;
+    }
+    std::string line;
+    size_t userPartIndex = 3;
+    while (std::getline(file, line)) {
+        std::vector<std::string> parts = SplitString(line, ":");
+        if (parts.size() > userPartIndex && parts[0] == groupName) {
+            std::vector<std::string> userParts = SplitString(parts[userPartIndex], ",");
+            users.insert(users.end(), userParts.begin(), userParts.end());
+            break;
+        }
+    }
+    file.close();
+    return users;
+}
+
+static int GetUid(const std::string &name)
+{
+    struct passwd pwd;
+    struct passwd *result;
+    char buf[1024];
+    int res = getpwnam_r(name.c_str(), &pwd, buf, sizeof(buf), &result);
+    if (res != 0 || result == nullptr) {
+        return -1;
+    }
+    return pwd.pw_uid;
+}
+
 void TcpSocket::InitGroups()
 {
     std::vector<std::string> groupNames{"oeaware", "root"};
+    groups[0].emplace_back(0);
     for (auto &groupName : groupNames) {
         auto gid = GetGidByGroupName(groupName);
         if (gid < 0) {
             continue;
         }
-         groups.emplace_back(gid);
+        auto users = GetUserFromGroup(groupName);
+        for (auto &user : users) {
+            auto uid = GetUid(user);
+            if (uid < 0) {
+                continue;
+            }
+            groups[gid].emplace_back(uid);
+        }
     }
 }
 
@@ -67,6 +109,11 @@ bool TcpSocket::StartListen()
     if (chmod(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
         ERROR(logger, path << " chmod error!");
         return false;
+    }
+    std::string cmd = "setfacl -m g:oeaware:rw " + path;
+    auto ret = system(cmd.c_str());
+    if (ret) {
+        WARN(logger, "failed to set the communication permission of the oeaware user group.");
     }
     if (domainSocket->Listen() < 0) {
         ERROR(logger, "listen error!");
@@ -136,7 +183,6 @@ static void GetEventResult(Message &msg, EventResultQueue sendMessage)
 }
 
 const int DISCONNECTED = -1;
-const int DISCONNECTED_AND_UNSUBCRIBE = -2;
 
 void TcpMessageHandler::Init(EventQueue newRecvMessage, EventResultQueue newSendMessage, EventQueue newRecvData)
 {
@@ -240,6 +286,23 @@ void TcpMessageHandler::Start()
     }
 }
 
+bool TcpSocket::CheckFileGroups(const std::string &path)
+{
+    struct stat st;
+    if (lstat(path.c_str(), &st) < 0) {
+        return false;
+    }
+    for (auto &p : groups) {
+        bool ok = std::any_of(p.second.begin(), p.second.end(), [&](uid_t uid) {
+            return uid == st.st_uid;
+        });
+        if (ok) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void TcpSocket::SaveConnection()
 {
     struct sockaddr_un un;
@@ -255,12 +318,12 @@ void TcpSocket::SaveConnection()
     memcpy_s(name, maxNameLength, un.sun_path, len);
     name[len] = 0;
     bool isSdk = false;
-    if (strcmp(name, DEFAULT_SDK_CONN_PATH.c_str()) == 0) {
+    if (len > 0) {
         isSdk = true;
     }
     // check permission
-    if (isSdk && !CheckFileGroups(DEFAULT_SDK_CONN_PATH, groups)) {
-        WARN(logger, "sdk permission error");
+    if (isSdk && !CheckFileGroups(name)) {
+        WARN(logger, "sdk permission error, " << name);
         return;
     }
     if (!epoll->EventCtl(EPOLL_CTL_ADD, conn)) {
@@ -274,6 +337,9 @@ void TcpSocket::SaveConnection()
         type |= CMD_CONN;
     }
     tcpMessageHandler.AddConn(conn, type);
+    if (isSdk) {
+        INFO(logger, "a sdk connection is established, " << name);
+    }
     DEBUG(logger, "client connected!");
 }
 

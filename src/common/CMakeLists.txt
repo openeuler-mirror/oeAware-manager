@@ -22,6 +22,13 @@ target_link_libraries(${PROJECT_NAME} log4cplus)
 target_link_libraries(${PROJECT_NAME} yaml-cpp)
 target_link_libraries(${PROJECT_NAME} curl boundscheck)
 
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+target_link_directories(${PROJECT_NAME} PUBLIC
+    ${LIB_KPERF_LIBPATH}
+)
+target_link_libraries(${PROJECT_NAME} kperf)
+endif()
+
 file(COPY
     "${CMAKE_CURRENT_SOURCE_DIR}/data_list.h"
 DESTINATION "${CMAKE_BINARY_DIR}/output/include")

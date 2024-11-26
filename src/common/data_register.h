@@ -13,18 +13,21 @@
 #define COMMON_DATA_REGISTER_H
 #include <unordered_map>
 #include "serialize.h"
+#include "data_list.h"
 
 namespace oeaware {
 using DeserializeFunc = int(*)(void**, InStream &in);
 using SerializeFunc = int(*)(const void*, OutStream &out);
-using FreeData = void(*)(void *);
+using DataFreeFunc = void(*)(void *);
 
 struct RegisterEntry {
     RegisterEntry() { }
     RegisterEntry(const SerializeFunc &se, const DeserializeFunc &de) : se(se), de(de) { }
+    RegisterEntry(const SerializeFunc &se, const DeserializeFunc &de, const DataFreeFunc &free) : se(se),
+        de(de), free(free) { }
     SerializeFunc se;
     DeserializeFunc de;
-    FreeData free;
+    DataFreeFunc free;
 };
 
 class Register {
@@ -40,17 +43,20 @@ public:
     void InitRegisterData();
     DeserializeFunc GetDataDeserialize(const std::string &name);
     SerializeFunc GetDataSerialize(const std::string &name);
+    DataFreeFunc GetDataFreeFunc(const std::string &name);
     void RegisterData(const std::string &name, const RegisterEntry &func);
 private:
     Register() { };
 
-    std::unordered_map<std::string, RegisterEntry> deserializeFuncs;
+    std::unordered_map<std::string, RegisterEntry> registerEntry;
 };
-
-int DataListSerialize(const void *data, OutStream &out);
-int DataListDeserialize(void *data, InStream &in);
+void DataListFree(DataList *dataList);
+int DataListSerialize(const DataList *dataList, OutStream &out);
+int DataListDeserialize(DataList *dataList, InStream &in);
 int ResultDeserialize(void *data, InStream &in);
-int TopicSerialize(const void *topic, OutStream &out);
+int TopicSerialize(const CTopic *topic, OutStream &out);
+int TopicDeserialize(CTopic *topic, InStream &in);
+void TopicFree(CTopic *topic);
 }
 
 #endif

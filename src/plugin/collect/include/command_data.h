@@ -26,7 +26,7 @@ typedef struct {
     int attrLen;
     char *itemAttr[ATTR_MAX_LENGTH];
     CommandIter *items;
-} SarData, CommandData;
+} CommandData;
 #ifdef __cplusplus
 }
 #endif

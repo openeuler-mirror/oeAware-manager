@@ -16,68 +16,107 @@
 
 namespace oeaware {
 
-int TopicSerialize(const void *topic, OutStream &out)
+void TopicFree(CTopic *topic)
 {
-    auto tmpTopic = static_cast<const CTopic*>(topic);
-    std::string instanceName(tmpTopic->instanceName);
-    std::string topicName(tmpTopic->topicName);
-    std::string params(tmpTopic->params);
+    if (topic == nullptr) {
+        return;
+    }
+    if (topic->instanceName != nullptr) {
+        delete[] topic->instanceName;
+        topic->instanceName = nullptr;
+    }
+    if (topic->topicName != nullptr) {
+        delete[] topic->topicName;
+        topic->topicName = nullptr;
+    }
+    if (topic->params != nullptr) {
+        delete[] topic->params;
+        topic->params = nullptr;
+    }
+}
+
+int TopicSerialize(const CTopic *topic, OutStream &out)
+{
+    std::string instanceName(topic->instanceName);
+    std::string topicName(topic->topicName);
+    std::string params(topic->params);
     out << instanceName << topicName << params;
     return 0;
 }
 
-int TopicDeserialize(void *topic, InStream &in)
+int TopicDeserialize(CTopic *topic, InStream &in)
 {
    std::string instanceName;
    std::string topicName;
    std::string params;
    in >> instanceName >> topicName >> params;
-   ((CTopic*)topic)->instanceName = new char[instanceName.size() + 1];
-   ((CTopic*)topic)->topicName = new char[topicName.size() + 1];
-   ((CTopic*)topic)->params = new char[params.size() + 1];
+   topic->instanceName = new char[instanceName.size() + 1];
+   topic->topicName = new char[topicName.size() + 1];
+   topic->params = new char[params.size() + 1];
    
-   auto ret = strcpy_s(((CTopic*)topic)->instanceName, instanceName.size() + 1, instanceName.data());
+   auto ret = strcpy_s(topic->instanceName, instanceName.size() + 1, instanceName.data());
    if (ret != EOK) return ret;
-   ret = strcpy_s(((CTopic*)topic)->topicName, topicName.size() + 1, topicName.data());
+   ret = strcpy_s(topic->topicName, topicName.size() + 1, topicName.data());
    if (ret != EOK) return ret;
-   ret = strcpy_s(((CTopic*)topic)->params, params.size() + 1, params.data());
+   ret = strcpy_s(topic->params, params.size() + 1, params.data());
    if (ret != EOK) return ret;
    return 0;
 }
 
-int DataListSerialize(const void *dataList, OutStream &out)
+void DataListFree(DataList *dataList)
 {
-    auto tmpList = static_cast<const DataList*>(dataList);
-    TopicSerialize(&tmpList->topic, out);
-    out << tmpList->len;
-    auto &reg = Register::GetInstance();
-    auto func = reg.GetDataSerialize(Concat({tmpList->topic.instanceName, tmpList->topic.topicName}, "::"));
-     if (func == nullptr) {
-        func = reg.GetDataSerialize(tmpList->topic.instanceName);
+    if (dataList == nullptr) {
+        return;
     }
-    for (uint64_t i = 0; i < tmpList->len; ++i) {
-        func(tmpList->data[i], out);
+    auto &reg = Register::GetInstance();
+    DataFreeFunc free = reg.GetDataFreeFunc(Concat({dataList->topic.instanceName, dataList->topic.topicName}, "::"));
+    if (free == nullptr) {
+        free = reg.GetDataFreeFunc(dataList->topic.instanceName);
+    }
+    if (free != nullptr) {
+        for (uint64_t i = 0; i < dataList->len; ++i) {
+            free(dataList->data[i]);
+        }
+    }
+    TopicFree(&dataList->topic);
+    if (dataList->data != nullptr) {
+        delete[] dataList->data;
+        dataList->data = nullptr;
+    }
+}
+
+int DataListSerialize(const DataList *dataList, OutStream &out)
+{
+    TopicSerialize(&dataList->topic, out);
+    out << dataList->len;
+    auto &reg = Register::GetInstance();
+    auto func = reg.GetDataSerialize(Concat({dataList->topic.instanceName, dataList->topic.topicName}, "::"));
+     if (func == nullptr) {
+        func = reg.GetDataSerialize(dataList->topic.instanceName);
+    }
+    for (uint64_t i = 0; i < dataList->len; ++i) {
+        func(dataList->data[i], out);
     }
     return 0;
 }
 
-int DataListDeserialize(void *dataList, InStream &in)
+int DataListDeserialize(DataList *dataList, InStream &in)
 {
     CTopic topic;
     TopicDeserialize(&topic, in);
     uint64_t size;
     in >> size;
-    ((DataList*)dataList)->topic = topic;
-    ((DataList*)dataList)->len = size;
-    ((DataList*)dataList)->data = new void* [size];
+    dataList->topic = topic;
+    dataList->len = size;
+    dataList->data = new void* [size];
     auto &reg = Register::GetInstance();
     auto func = reg.GetDataDeserialize(Concat({topic.instanceName, topic.topicName}, "::"));
     if (func == nullptr) {
         func = reg.GetDataDeserialize(topic.instanceName);
     }
     for (uint64_t i = 0; i < size; ++i) {
-        ((DataList*)dataList)->data[i] = nullptr;
-        auto ret = func(&(((DataList*)dataList)->data[i]), in);
+        dataList->data[i] = nullptr;
+        auto ret = func(&(dataList->data[i]), in);
         if (ret) {
             return ret;
         }
@@ -85,6 +124,16 @@ int DataListDeserialize(void *dataList, InStream &in)
     return 0;
 }
 
+void ResultFree(Result *result)
+{
+    if (result == nullptr) {
+        return;
+    }
+    if (result->payload != nullptr) {
+        delete[] result->payload;
+        result->payload = nullptr;
+    }
+}
 
 int ResultDeserialize(void *data, InStream &in)
 {
@@ -96,6 +145,17 @@ int ResultDeserialize(void *data, InStream &in)
     return ret;
 }
 #if defined(__arm__) || defined(__aarch64__)
+void PmuBaseDataFree(void *data)
+{
+    auto tmpData = static_cast<PmuCountingData*>(data);
+    if (tmpData == nullptr) {
+        return;
+    }
+    PmuDataFree(tmpData->pmuData);
+    tmpData->pmuData = nullptr;
+    tmpData->len = 0;
+}
+
 int PmuCountingDataSerialize(const void *data, OutStream &out)
 {
     auto tmpData = static_cast<const PmuCountingData*>(data);
@@ -456,6 +516,19 @@ int PmuUncoreDataDeserialize(void **data, InStream &in)
 }
 #endif
 
+void ThreadInfoFree(void *data)
+{
+    auto threadInfo = static_cast<ThreadInfo*>(data);
+    if (threadInfo == nullptr) {
+        return;
+    }
+    if (threadInfo->name != nullptr) {
+        delete[] threadInfo->name;
+        threadInfo->name = nullptr;
+    }
+    delete threadInfo;
+}
+
 int ThreadInfoSerialize(const void *data, OutStream &out)
 {
     auto threadInfo = static_cast<const ThreadInfo*>(data);
@@ -474,6 +547,32 @@ int ThreadInfoDeserialize(void **data, InStream &in)
     threadInfo->name = new char[name.size() + 1];
     strcpy_s(threadInfo->name, name.size() + 1, name.data());
     return 0;
+}
+
+void KernelDataFree(void *data)
+{
+    auto tmpData = static_cast<const KernelData*>(data);
+    if (tmpData == nullptr) {
+        return;
+    }
+    KernelDataNode *node = tmpData->kernelData;
+    for (int i = 0; i < tmpData->len; ++i) {
+        auto tmp = node->next;
+        if (node == nullptr) {
+            break;
+        }
+        if (node->key != nullptr) {
+            delete[] node->key;
+            node->key = nullptr;
+        }
+        if (node->value != nullptr) {
+            delete[] node->value;
+            node->value = nullptr;
+        }
+        delete node;
+        node = tmp;
+    }
+    delete tmpData;
 }
 
 int KernelDataSerialize(const void *data, OutStream &out)
@@ -523,17 +622,47 @@ int KernelDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
+void CommandDataFree(void *data)
+{
+    CommandData *commandData = (CommandData*)data;
+    if (commandData == nullptr) {
+        return;
+    }
+    for (int i = 0; i < commandData->attrLen; ++i) {
+        if (commandData->itemAttr[i] != nullptr) {
+            delete[] commandData->itemAttr[i];
+            commandData->itemAttr[i] = nullptr;
+        }
+    }
+    if (commandData->items == nullptr) {
+        delete commandData;
+        return;
+    }
+    for (int i = 0; i < commandData->itemLen; ++i) {
+        for (int j = 0; j < commandData->attrLen; ++j) {
+            if (commandData->items[i].value[j] != nullptr) {
+                delete[] commandData->items[i].value[j];
+                commandData->items[i].value[j] = nullptr;
+            }
+        }
+    }
+    delete[] commandData->items;
+    commandData->items = nullptr;
+    
+    delete commandData;
+}
+
 int CommandDataSerialize(const void *data, OutStream &out)
 {
-    auto sarData = (SarData*)data;
-    out << sarData->attrLen << sarData->itemLen;
-    for (int i = 0; i < sarData->attrLen; ++i) {
-        std::string attr(sarData->itemAttr[i]);
+    auto commandData = (CommandData*)data;
+    out << commandData->attrLen << commandData->itemLen;
+    for (int i = 0; i < commandData->attrLen; ++i) {
+        std::string attr(commandData->itemAttr[i]);
         out << attr;
     }
-    for (int i = 0; i < sarData->itemLen; ++i) {
-        for (int j = 0; j < sarData->attrLen; ++j) {
-            std::string item(sarData->items[i].value[j]);
+    for (int i = 0; i < commandData->itemLen; ++i) {
+        for (int j = 0; j < commandData->attrLen; ++j) {
+            std::string item(commandData->items[i].value[j]);
             out << item;
         }
     }
@@ -542,8 +671,8 @@ int CommandDataSerialize(const void *data, OutStream &out)
 
 int CommandDataDeserialize(void **data, InStream &in)
 {
-    *data = new SarData();
-    auto sarData = static_cast<SarData*>(*data);
+    *data = new CommandData();
+    auto sarData = static_cast<CommandData*>(*data);
     in >> sarData->attrLen >> sarData->itemLen;
     int ret;
     for (int i = 0; i < sarData->attrLen; ++i) {
@@ -568,6 +697,15 @@ int CommandDataDeserialize(void **data, InStream &in)
         }
     }
     return 0;
+}
+
+void AnalysisDataFree(void *data)
+{
+    auto analysisData = static_cast<AdaptData*>(data);
+    if (analysisData == nullptr) {
+        return;
+    }
+    delete analysisData;
 }
 
 int AnalysisDataSerialize(const void *data, OutStream &out)
@@ -600,44 +738,55 @@ int AnalysisDataDeserialize(void **data, InStream &in)
 
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
-    deserializeFuncs[name] = entry;
+    registerEntry[name] = entry;
 }
 
 void Register::InitRegisterData()
 {
 #if defined(__arm__) || defined(__aarch64__)
-    RegisterData("pmu_counting_collector", RegisterEntry(PmuCountingDataSerialize, PmuCountingDataDeserialize));
+    RegisterData("pmu_counting_collector", RegisterEntry(PmuCountingDataSerialize, PmuCountingDataDeserialize,
+        PmuBaseDataFree));
 
-    RegisterData("pmu_sampling_collector", RegisterEntry(PmuSamplingDataSerialize, PmuSamplingDataDeserialize));
+    RegisterData("pmu_sampling_collector", RegisterEntry(PmuSamplingDataSerialize, PmuSamplingDataDeserialize,
+        PmuBaseDataFree));
 
-    RegisterData("pmu_spe_collector", RegisterEntry(PmuSpeDataSerialize, PmuSpeDataDeserialize));
+    RegisterData("pmu_spe_collector", RegisterEntry(PmuSpeDataSerialize, PmuSpeDataDeserialize, PmuBaseDataFree));
 
-    RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize));
+    RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
+        PmuBaseDataFree));
 #endif
-    RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
+    RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
 
-    RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize));
+    RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
 
-    RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
+    RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
 
-    RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize));
-    RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize));
+    RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
+
 	RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)
 {
-    if (!deserializeFuncs.count(name)) {
+    if (!registerEntry.count(name)) {
         return nullptr;
     }
-    return deserializeFuncs[name].se;
+    return registerEntry[name].se;
 }
 
 DeserializeFunc Register::GetDataDeserialize(const std::string &name)
 {
-    if (!deserializeFuncs.count(name)) {
+    if (!registerEntry.count(name)) {
         return nullptr;
     }
-    return deserializeFuncs[name].de;
+    return registerEntry[name].de;
+}
+
+DataFreeFunc Register::GetDataFreeFunc(const std::string &name)
+{
+    if (!registerEntry.count(name)) {
+        return nullptr;
+    }
+    return registerEntry[name].free;
 }
 }

@@ -70,6 +70,7 @@ void Impl::HandleRecv()
                 for (auto handle : topicHandle[key]) {
                     handle(&dataList);
                 }
+                DataListFree(&dataList);
                 break;
             }
             default:

@@ -181,7 +181,7 @@ void InstanceRunHandler::PublishData(std::shared_ptr<InstanceRunMessage> &msg)
         auto instance = memoryStore->GetInstance(subscriber);
         instance->interface->UpdateData(msg->dataList);
     }
-    // free dataList
+    DataListFree(&msg->dataList);
 }
 
 bool InstanceRunHandler::HandleMessage()

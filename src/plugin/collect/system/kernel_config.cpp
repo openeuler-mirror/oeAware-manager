@@ -17,6 +17,7 @@
 #include <securec.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include "command_base.h"
 
 KernelConfig::KernelConfig(): oeaware::Interface()
 {
@@ -258,12 +259,20 @@ void KernelConfig::WriteSysParam(const std::string &path, const std::string &val
     INFO(logger, "successfully wrote value{" << value <<"} to "  << path << ".");
 }
 
+std::vector<std::string> KernelConfig::cmdGroup{"sysctl", "ifconfig", "/sbin/blockdev"};
+
 void KernelConfig::SetKernelConfig()
 {
     for (auto &p : setSystemParams) {
         WriteSysParam(p.first, p.second);
     }
     for (auto &cmd : cmdRun) {
+        auto cmdParts = oeaware::SplitString(cmd, " ");
+        if (cmdParts.empty() || std::find(cmdGroup.begin(), cmdGroup.end(), cmdParts[0]) == cmdGroup.end() ||
+            !CommandBase::ValidateCmd(cmd)) {
+            WARN(logger, "cmd{" << cmd << "} invalid.");
+            continue;
+        }
         FILE *pipe = popen(cmd.data(), "r");
         if (!pipe) {
             WARN(logger, "{" << cmd << "} run failed.");

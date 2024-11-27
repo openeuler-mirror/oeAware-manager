@@ -27,8 +27,7 @@ public:
     void Disable() override;
     void Run() override;
 private:
-    std::vector<std::string> topicStr = {"mpstat", "iostat", "vmstat", "sar", "pidstat", "lscpu", "zone_reclaim_mode",
-                                         "meminfo", "ethtool", "ifconfig", "os-release", "version"};
+    std::vector<std::string> topicStr = {"mpstat", "iostat", "vmstat", "sar", "pidstat"};
     std::unordered_map<std::string, std::unique_ptr<CommandBase>> collectors;
     std::unordered_map<std::string, std::thread> collectThreads;
     std::unordered_map<std::string, std::thread> publishThreads;

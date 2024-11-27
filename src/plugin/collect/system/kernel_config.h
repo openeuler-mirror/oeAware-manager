@@ -62,6 +62,7 @@ private:
     std::unordered_map<std::string, std::string> kernelParams;
 
     std::vector<std::string> cmdRun;
+    static std::vector<std::string> cmdGroup;
     std::vector<std::string> allEths;
 };
 

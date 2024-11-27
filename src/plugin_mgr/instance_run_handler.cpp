@@ -61,7 +61,8 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
     if (!topicState[topic.instanceName][topic.topicName][topic.params]) {
         result = instance->interface->OpenTopic(topic);
         if (result.code < 0) {
-            WARN(logger, "topic open failed, " << result.payload);
+            WARN(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
+                LogText(topic.params) << "} open failed, " << result.payload);
             DisableInstance(instance->name);
             return result;
         }

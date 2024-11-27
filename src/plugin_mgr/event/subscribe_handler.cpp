@@ -14,24 +14,20 @@
 namespace oeaware {
 Result SubscribeHandler::Subscribe(const std::string &name, const Topic &topic)
 {
-    Result result;
     if (!memoryStore->IsInstanceExist(topic.instanceName)) {
         WARN(logger, "The subscribed instance " << topic.instanceName << " does not exist.");
-        result.code = -1;
-        return result;
+        return Result(FAILED, "instance does not exist.");
     }
     auto instance = memoryStore->GetInstance(topic.instanceName);
     if (!instance->supportTopics.count(topic.topicName)) {
         WARN(logger, "The subscribed topic " << topic.topicName << " does not exist.");
-        result.code = -1;
-        return result;
+        return Result(FAILED, "topic does not exist.");
     }
     auto msg = std::make_shared<InstanceRunMessage>(RunType::SUBSCRIBE,
         std::vector<std::string>{topic.GetType(), name});
     instanceRunHandler->RecvQueuePush(msg);
     msg->Wait();
-    result = msg->result;
-    return result;
+    return msg->result;
 }
 
 EventResult SubscribeHandler::Handle(const Event &event)

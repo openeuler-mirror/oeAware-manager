@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 project(system_collector)
-include_directories(../include)
+include_directories(command)
 add_compile_options(-O2 -fPIC -Wall -Wextra)
 add_library(system_collector SHARED
             thread_collector.cpp

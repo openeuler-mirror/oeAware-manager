@@ -44,4 +44,13 @@ public:
     void Close();
 };
 
+class PopenProcess {
+public:
+    int Pclose();
+    void Popen(const std::string &cmd);
+    
+    FILE *stream;
+    pid_t pid;
+};
+
 #endif

@@ -156,4 +156,20 @@ std::vector<std::string> SplitString(const std::string &str, const std::string &
     }
     return tokens;
 }
+bool CreateDir(const std::string &path)
+{
+    size_t  pos = 0;
+    do {
+        pos = path.find_first_of("/", pos + 1);
+        std::string subPath = path.substr(0, pos);
+        struct stat buffer;
+        if (stat(subPath.c_str(), &buffer) == 0) {
+            continue;
+        }
+        if (mkdir(subPath.c_str(), S_IRWXU | S_IRWXG) != 0) {
+            return false;
+        }
+    } while (pos != std::string::npos);
+    return true;
+}
 }

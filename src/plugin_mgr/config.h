@@ -130,7 +130,6 @@ private:
 };
 
 std::string GetPath();
-bool CreateDir(const std::string &path);
 }
 
 #endif

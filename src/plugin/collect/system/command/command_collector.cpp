@@ -32,15 +32,16 @@ CommandCollector::CommandCollector(): oeaware::Interface()
 void CommandCollector::CollectThread(const oeaware::Topic &topic, CommandBase* collector)
 {
     std::string cmd = collector->GetCommand(topic);
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe) {
+    PopenProcess p;
+    p.Popen(cmd);
+    if (!p.stream) {
         return;
     }
     char buffer[256];
-    while (collector->isRunning && fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    while (collector->isRunning && fgets(buffer, sizeof(buffer), p.stream) != nullptr) {
         collector->ParseLine(std::string(buffer));
     }
-    pclose(pipe);
+    p.Pclose();
     
     collector->Close();
 }

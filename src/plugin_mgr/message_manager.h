@@ -73,12 +73,13 @@ private:
     bool StartListen();
     void SaveConnection();
     void HandleEvents(struct epoll_event *events, int num);
+    bool CheckFileGroups(const std::string &path);
 private:
     log4cplus::Logger logger;
     std::unique_ptr<DomainSocket> domainSocket;
     std::unique_ptr<Epoll> epoll;
     TcpMessageHandler tcpMessageHandler;
-    std::vector<gid_t> groups;
+    std::unordered_map<int, std::vector<uid_t>> groups;
     const int maxRequestNum = 20;
     const int maxNameLength = 108;
 };

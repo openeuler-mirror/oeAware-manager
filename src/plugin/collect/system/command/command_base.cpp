@@ -10,6 +10,45 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "command_base.h"
+#include <unistd.h>
+#include <sys/wait.h>
+
+int PopenProcess::Pclose()
+{
+    if (fclose(stream) == EOF) {
+        return -1;
+    }
+    stream = nullptr;
+    if (kill(pid, SIGTERM) == -1) {
+        return -1;
+    }
+    return 0;
+}
+
+void PopenProcess::Popen(const std::string &cmd)
+{
+    int pipeFd[2];
+    if (pipe(pipeFd) == -1) {
+        return;
+    }
+    pid = fork();
+    if (pid == -1) {
+        close(pipeFd[0]);
+        close(pipeFd[1]);
+    } else if (pid == 0) {
+        close(pipeFd[0]);
+        dup2(pipeFd[1], STDOUT_FILENO);
+        close(pipeFd[1]);
+        execl("/bin/bash", "bash", "-c", cmd.data(), nullptr);
+        _exit(1);
+    }
+    close(pipeFd[1]);
+    stream = fdopen(pipeFd[0], "r");
+    if (!stream) {
+        close(pipeFd[0]);
+        return;
+    }
+}
 
 CommandBase::CommandBase()
 {
@@ -23,18 +62,19 @@ CommandBase::CommandBase()
 bool CommandBase::ValidateArgs(const oeaware::Topic& topic)
 {
     auto cmd = GetCommand(topic);
-    FILE *pipe = popen(cmd.c_str(), "r");
-    if (!pipe) {
+    PopenProcess p;
+    p.Popen(cmd);
+    if (!p.stream) {
         return false;
     }
     char buffer[128];
     bool isValid = false;
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    if (fgets(buffer, sizeof(buffer), p.stream) != nullptr) {
         if (strstr(buffer, "Linux") != nullptr || strstr(buffer, "procs") != nullptr) {
             isValid = true;
         }
     }
-    pclose(pipe);
+    p.Pclose();
     return isValid;
 }
 

@@ -80,7 +80,17 @@ void Impl::HandleRecv()
 }
 int Impl::Init()
 {
-    domainSocket = std::make_shared<DomainSocket>(DEFAULT_SDK_CONN_PATH);
+    auto home = getenv("HOME");
+    std::string homeDir;
+    if (home == nullptr) {
+        homeDir = "/var/run/oeAware";
+    } else {
+        homeDir = home;
+        homeDir += "/.oeaware";
+    }
+    
+    CreateDir(homeDir);
+    domainSocket = std::make_shared<DomainSocket>(homeDir + "/oeaware-sdk.sock");
     domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
     resultQueue = std::make_shared<SafeQueue<Result>>();
     int sock = domainSocket->Socket();

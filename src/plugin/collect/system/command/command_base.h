@@ -35,9 +35,12 @@ public:
     oeaware::Topic topic;
     std::unordered_map<std::string, std::vector<std::string>> attrsFirst;
     std::vector<std::string> skipLine{"---swap--"};
+    static std::vector<std::string> command;
+    static std::vector<std::string> illegal;
     CommandBase();
     virtual ~CommandBase() = default;
     static bool ValidateArgs(const oeaware::Topic& topic);
+    static bool ValidateCmd(const std::string &cmd);
     void ParseLine(const std::string& line);
     static std::string GetCommand(const oeaware::Topic& topic);
     bool FillDataStruct(void* dataStruct);

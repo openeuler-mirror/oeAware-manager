@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "command_base.h"
+#include <algorithm>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -59,23 +60,25 @@ CommandBase::CommandBase()
     attrsFirst["vmstat"] = {"swpd"};
 }
 
-bool CommandBase::ValidateArgs(const oeaware::Topic& topic)
+std::vector<std::string> CommandBase::command{"mpstat", "iostat", "vmstat", "sar", "pidstat"};
+std::vector<std::string> CommandBase::illegal{"|", ";", "&", "$", ">", "<", "`", "\n"};
+
+bool CommandBase::ValidateCmd(const std::string &cmd)
 {
-    auto cmd = GetCommand(topic);
-    PopenProcess p;
-    p.Popen(cmd);
-    if (!p.stream) {
-        return false;
-    }
-    char buffer[128];
-    bool isValid = false;
-    if (fgets(buffer, sizeof(buffer), p.stream) != nullptr) {
-        if (strstr(buffer, "Linux") != nullptr || strstr(buffer, "procs") != nullptr) {
-            isValid = true;
+    for (auto word : illegal) {
+        if (strstr(cmd.c_str(), word.c_str())) {
+            return false;
         }
     }
-    p.Pclose();
-    return isValid;
+    return true;
+}
+
+bool CommandBase::ValidateArgs(const oeaware::Topic& topic)
+{
+    if (std::find(command.begin(), command.end(), topic.topicName) == command.end()) {
+        return false;
+    }
+    return ValidateCmd(topic.params);
 }
 
 void CommandBase::ParseLine(const std::string& line)

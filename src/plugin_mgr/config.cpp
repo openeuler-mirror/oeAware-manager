@@ -61,6 +61,10 @@ void Config::SetEnableList(const YAML::Node &node)
         std::string pluginName = enableList[i]["name"].as<std::string>();
         YAML::Node instances = enableList[i]["instances"];
         EnableItem enableItem(pluginName);
+        if (!instances.IsSequence()) {
+            WARN(logger, "the format of the enable list is incorrect.");
+            continue;
+        }
         if (!instances.IsDefined() || instances.IsNull()) {
             enableItem.SetEnabled(true);
         } else {
@@ -75,6 +79,7 @@ void Config::SetEnableList(const YAML::Node &node)
 
 bool Config::Load(const std::string &path)
 {
+    logger = Logger::GetInstance().Get("Main");
     YAML::Node node;
     struct stat buffer;
     if (stat(path.c_str(), &buffer) != 0) {

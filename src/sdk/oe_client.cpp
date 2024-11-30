@@ -22,6 +22,7 @@
 namespace oeaware {
 class Impl {
 public:
+    Impl() noexcept : domainSocket(nullptr), socketStream(nullptr) { }
     int Init();
     int Subscribe(const CTopic &topic, Callback callback);
     int Unsubscribe(const CTopic &topic);
@@ -114,6 +115,9 @@ int Impl::Init()
 int Impl::HandleRequest(const Opt &opt, const std::vector<std::string> &payload)
 {
     MessageProtocol protocol(MessageHeader(MessageType::REQUEST), Message(opt, payload));
+    if (socketStream == nullptr) {
+        return -1;
+    }
     SendMessage(*socketStream, protocol);
     Result result;
     if (!resultQueue->WaitTimeAndPop(result)) {
@@ -166,28 +170,28 @@ void Impl::Close()
 
 static oeaware::Impl impl;
 
-int Init()
+int OeInit()
 {
     oeaware::Register::GetInstance().InitRegisterData();
     return impl.Init();
 }
 
-int Subscribe(const CTopic *topic, Callback callback)
+int OeSubscribe(const CTopic *topic, Callback callback)
 {
     return impl.Subscribe(*topic, callback);
 }
 
-int Unsubscribe(const CTopic *topic)
+int OeUnsubscribe(const CTopic *topic)
 {
     return impl.Unsubscribe(*topic);
 }
 
-int Publish(const DataList *dataList)
+int OePublish(const DataList *dataList)
 {
     return impl.Publish(*dataList);
 }
 
-void Close()
+void OeClose()
 {
     impl.Close();
 }

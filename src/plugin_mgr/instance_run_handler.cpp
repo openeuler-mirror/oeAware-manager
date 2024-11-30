@@ -26,6 +26,7 @@ Result InstanceRunHandler::EnableInstance(const std::string &name)
         return result;
     }
     instance->enabled = true;
+    instance->enableCnt++;
     if (instance->interface->GetType() & SCENARIO) {
         scheduleQueue.push(ScheduleInstance{instance, time + instance->interface->GetPeriod()});
     } else if (instance->interface->GetType() & TUNE) {
@@ -196,7 +197,7 @@ bool InstanceRunHandler::HandleMessage()
         DEBUG(logger, "handle message " << (int)msg->GetType());
         switch (msg->GetType()) {
             case RunType::ENABLED: {
-                EnableInstance(msg->payload[0]);
+                msg->result = EnableInstance(msg->payload[0]);
                 break;
             }
             case RunType::DISABLED: {

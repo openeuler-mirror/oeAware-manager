@@ -16,11 +16,11 @@
 extern "C" {
 #endif
 typedef int(*Callback)(const DataList *);
-int Init();
-int Subscribe(const CTopic *topic, Callback callback);
-int Unsubscribe(const CTopic *topic);
-int Publish(const DataList *dataList);
-void Close();
+int OeInit();
+int OeSubscribe(const CTopic *topic, Callback callback);
+int OeUnsubscribe(const CTopic *topic);
+int OePublish(const DataList *dataList);
+void OeClose();
 #ifdef __cplusplus
 }
 #endif

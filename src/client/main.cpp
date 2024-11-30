@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
 		std::string analysis = argv[1];
 		if (analysis == "analysis") {
 			CTopic topic = {"analysis_aware", "analysis_aware", ""};
-			Init();
-			Subscribe(&topic, AnalysisCallback);
+			OeInit();
+			OeSubscribe(&topic, AnalysisCallback);
 			std::unique_lock<std::mutex> lock(g_mutex);
 			g_cv.wait(lock, []{ return g_finish; });
 			return 0;

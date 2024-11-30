@@ -127,6 +127,7 @@ private:
     std::string logType;
     std::unordered_map<std::string, PluginInfo> pluginList;
     std::vector<EnableItem> enableList;
+    log4cplus::Logger logger;
 };
 
 std::string GetPath();

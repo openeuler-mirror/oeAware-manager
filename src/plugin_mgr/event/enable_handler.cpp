@@ -29,6 +29,9 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
     instanceRunHandler->RecvQueuePush(msg);
     /* Wait for InstanceRunHandler to finsh this task. */
     msg->Wait();
+    if (msg->result.code < 0) {
+        return ErrorCode::ENABLE_INSTANCE_ENV;
+    }
     return ErrorCode::OK;
 }
 

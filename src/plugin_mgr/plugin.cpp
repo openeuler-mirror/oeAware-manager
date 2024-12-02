@@ -72,6 +72,6 @@ std::string Instance::GetInfo() const
 {
     std::string stateText = this->state ? pluginStateOn : pluginStateOff;
     std::string runText = this->enabled ? pluginEnabled : pluginDisabled;
-    return name + "(" + stateText + ", " + runText + ")";
+    return name + "(" + stateText + ", " + runText + ", count: " + std::to_string(enableCnt) + ")";
 }
 }

@@ -23,6 +23,7 @@ struct Instance {
     std::string pluginName;
     bool state = true;
     bool enabled;
+    uint64_t enableCnt = 0;
     std::shared_ptr<Interface> interface;
     std::unordered_map<std::string, Topic> supportTopics;
     const static std::string pluginEnabled;

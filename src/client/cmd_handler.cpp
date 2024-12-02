@@ -33,7 +33,7 @@ void LoadHandler::Handler(Message &msg)
 void LoadHandler::ResHandler(Message &msg)
 {
     if (msg.opt == Opt::RESPONSE_OK) {
-        std::cout << "Plugin loaded successfully.";
+        std::cout << "Plugin loaded successfully.\n";
     } else {
         std::cout << "Plugin loaded failed, because "<< msg.payload[0] << ".\n";
     }
@@ -54,9 +54,10 @@ void QueryHandler::PrintFormat()
 {
     std::cout << "format:\n"
             "[plugin]\n"
-            "\t[instance]([dependency status], [running status])\n"
+            "\t[instance]([dependency status], [running status], [enable cnt])\n"
             "dependency status: available means satisfying dependency, otherwise unavailable.\n"
-            "running status: running means that instance is running, otherwise close.\n";
+            "running status: running means that instance is running, otherwise close.\n"
+            "enable cnt: number of instances enabled.\n";
 }
 
 void QueryHandler::ResHandler(Message &msg)

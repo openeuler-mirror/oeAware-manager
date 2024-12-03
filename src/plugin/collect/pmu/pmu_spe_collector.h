@@ -28,7 +28,7 @@ public:
     void Disable() override;
     void Run() override;
 private:
-    void DynamicAdjustPeriod(uint64_t interval);
+    void DynamicAdjustPeriod(int interval);
     void InitSpeAttr(struct PmuAttr &attr);
     int OpenSpe();
 
@@ -38,6 +38,9 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     const int timeout = 50;
     const int periodThreshold = 2;
+    const int minAttrPeriod = 2048;
+    const int maxAttrPeriod = 2048000;
+    int readTimeMs = 0; // last period PmuRead() time
 };
 
 #endif

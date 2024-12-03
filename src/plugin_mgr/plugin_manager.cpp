@@ -12,7 +12,7 @@
 #include "plugin_manager.h"
 #include <csignal>
 #include <dirent.h>
-#include "utils.h"
+#include "oeaware/utils.h"
 #include "event/load_handler.h"
 #include "event/remove_handler.h"
 #include "event/query_handler.h"

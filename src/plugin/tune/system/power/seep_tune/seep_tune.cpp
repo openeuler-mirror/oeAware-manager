@@ -11,7 +11,6 @@
  ******************************************************************************/
 
 #include "seep_tune.h"
-#include "interface.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -21,7 +20,7 @@ using namespace oeaware;
 
 Seep::Seep()
 {
-    name = "seep_tune";
+    name = OE_SEEP_TUNE;
     description = "";
     version = "1.0.0";
     period = -1;

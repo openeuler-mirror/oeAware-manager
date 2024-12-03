@@ -12,7 +12,7 @@
 #ifndef SEEP_TUNE_H
 #define SEEP_TUNE_H
 
-#include "interface.h"
+#include "oeaware/interface.h"
 
 namespace oeaware
 {

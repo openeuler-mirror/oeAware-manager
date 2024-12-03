@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) 2024 Huawei Technologies Co., Ltd.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -9,21 +9,16 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#ifndef OEAWARE_DEFAULT_PATH_H
+#define OEAWARE_DEFAULT_PATH_H
+#include <string>
 
-#ifndef PMU_SPE_DATA_H
-#define PMU_SPE_DATA_H
-#include "pmu.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-typedef struct {
-    struct PmuData *pmuData;
-    int len;
-    uint64_t interval;
-} PmuSpeData;
-#ifdef __cplusplus
+namespace oeaware {
+const std::string DEFAULT_PLUGIN_PATH = "/usr/lib64/oeAware-plugin";
+const std::string DEFAULT_RUN_PATH = "/var/run/oeAware";
+const std::string DEFAULT_LOG_PATH = "/var/log/oeAware";
+const std::string DEFAULT_SERVER_LISTEN_PATH = "/var/run/oeAware/oeAware-server";
+const std::string DEFAULT_SDK_CONN_PATH = "/var/run/oeAware/oeAware-sdk";
 }
-#endif
 
 #endif

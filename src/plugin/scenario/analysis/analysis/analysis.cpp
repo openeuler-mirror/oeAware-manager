@@ -16,7 +16,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include "pmu_plugin.h"
+#include "oeaware/data/pmu_plugin.h"
 
 const int TUNE_PID_LOW_BOUND = 1000;
 const uint64_t ACCESS_THRESHOLD = 200;

@@ -14,11 +14,10 @@
 #include <queue>
 #include <unordered_set>
 #include "event.h"
-#include "safe_queue.h"
-#include "logger.h"
+#include "oeaware/logger.h"
 #include "memory_store.h"
 #include "data_register.h"
-#include "instance_run_message.h"
+#include "oeaware/instance_run_message.h"
 
 namespace oeaware {
 class ScheduleInstance {

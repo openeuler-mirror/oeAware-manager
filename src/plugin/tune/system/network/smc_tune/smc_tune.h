@@ -12,7 +12,7 @@
 
 #ifndef OEAWARE_MANAGER_SMC_TUNE_H
 #define OEAWARE_MANAGER_SMC_TUNE_H
-#include "interface.h"
+#include "oeaware/interface.h"
 
 namespace oeaware {
 class SmcTune : public Interface {

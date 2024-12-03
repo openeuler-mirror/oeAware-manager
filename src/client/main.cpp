@@ -14,7 +14,7 @@
 #include <condition_variable>
 #include "client.h"
 #include "oe_client.h"
-#include "adapt_data.h"
+#include "oeaware/data/adapt_data.h"
 
 std::condition_variable g_cv;
 std::mutex g_mutex;

@@ -11,7 +11,7 @@
  ******************************************************************************/
 #include "cmd_handler.h"
 #include <fstream>
-#include "utils.h"
+#include "oeaware/utils.h"
 
 namespace oeaware {
 std::unordered_set<std::string> LoadHandler::types = {"collector", "scenario", "tune"};

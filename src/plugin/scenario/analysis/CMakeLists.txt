@@ -23,9 +23,6 @@ target_include_directories(analysis_base PUBLIC
 target_link_libraries(analysis_base numa boundscheck)
 
 add_library(analysis_oeaware SHARED ${oeaware_src})
-target_include_directories(analysis_oeaware PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-)
 
 target_link_libraries(analysis_oeaware analysis_base)
 set_target_properties(analysis_oeaware PROPERTIES

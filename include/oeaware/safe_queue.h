@@ -9,8 +9,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_SAFE_QUEUE_H
-#define COMMON_SAFE_QUEUE_H
+#ifndef OEAWARE_SAFE_QUEUE_H
+#define OEAWARE_SAFE_QUEUE_H
 #include <deque>
 #include <mutex>
 #include <condition_variable>
@@ -70,4 +70,4 @@ private:
 };
 }
 
-#endif // !COMMON_QUEUE_H
+#endif

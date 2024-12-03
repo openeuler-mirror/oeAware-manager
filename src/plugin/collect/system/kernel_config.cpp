@@ -17,13 +17,14 @@
 #include <securec.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "utils.h"
+#include "oeaware/utils.h"
 #include "command_base.h"
+#include "oeaware/data/kernel_data.h"
 #include "data_register.h"
 
 KernelConfig::KernelConfig(): oeaware::Interface()
 {
-    this->name = "kernel_config";
+    this->name = OE_KERNEL_CONFIG_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect or set kernel config";
     this->priority = 0;
@@ -233,7 +234,7 @@ void KernelConfig::PublishKernelParams()
                 WARN(logger, "invalid params: " << name << ".");
                 continue;
             }
-            KernelDataNode *newNode = createNode(name.data(), value.data());
+            KernelDataNode *newNode = CreateNode(name.data(), value.data());
             if (newNode == nullptr) {
                 WARN(logger, "KernelDataNode failed to allocate memory.");
                 continue;

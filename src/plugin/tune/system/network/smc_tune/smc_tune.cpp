@@ -9,16 +9,16 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#include "smc_tune.h"
 #include <stdlib.h>
 #include "smc_ueid.h"
-#include "smc_tune.h"
 
 #define SMC_OP SmcOperator::getInstance()
 using namespace oeaware;
 int log_level = 0;
 SmcTune::SmcTune()
 {
-    name = "smc_tune";
+    name = OE_SMC_TUNE;
     description = "collect information of key thread";
     version = "1.0.0";
     period = -1;

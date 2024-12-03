@@ -11,14 +11,13 @@
  ******************************************************************************/
 
 #include "stealtask_tune.h"
-#include "interface.h"
 #include <fstream>
 
 using namespace oeaware;
 
 StealTask::StealTask()
 {
-    name = "stealtask_tune";
+    name = OE_STEALTASK_TUNE;
     description = "";
     version = "1.0.0";
     period = -1;

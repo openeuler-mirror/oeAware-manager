@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
 project(docker_collector)
-include_directories(../include)
 add_compile_options(-O2 -fPIC -Wall -Wextra)
 add_library(docker_collector SHARED
             docker_adapt.cpp

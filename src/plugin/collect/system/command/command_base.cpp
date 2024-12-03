@@ -13,7 +13,8 @@
 #include <algorithm>
 #include <unistd.h>
 #include <sys/wait.h>
-
+#include "oeaware/data/command_data.h"
+#include "oeaware/data_list.h"
 int PopenProcess::Pclose()
 {
     if (fclose(stream) == EOF) {

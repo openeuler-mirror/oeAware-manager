@@ -40,7 +40,7 @@ static bool GetContainersInfo(int64_t &val, const std::string &container_id, con
 
 DockerAdapt::DockerAdapt()
 {
-    name = DOCKER_COLLECTOR;
+    name = OE_DOCKER_COLLECTOR;
     description = "collect information of docker";
     version = "1.0.0";
     period = PERIOD;

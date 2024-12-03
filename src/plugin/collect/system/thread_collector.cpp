@@ -23,7 +23,7 @@
 
 ThreadCollector::ThreadCollector()
 {
-    name = "thread_collector";
+    name = OE_THREAD_COLLECTOR;
     description = "collect information of thread";
     version = "1.0.0";
     period = 500;

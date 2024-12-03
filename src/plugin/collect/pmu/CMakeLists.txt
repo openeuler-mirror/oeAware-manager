@@ -27,8 +27,6 @@ set(pmu_src
 add_library(pmu SHARED ${pmu_src})
 
 include_directories(pmu PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    ${CMAKE_CURRENT_SOURCE_DIR}/plugin
     ${LIB_KPERF_INCPATH}
 )
 

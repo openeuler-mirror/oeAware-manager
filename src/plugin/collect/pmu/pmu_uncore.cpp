@@ -9,12 +9,12 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#include "pmu_uncore.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <dirent.h>
 #include <securec.h>
-#include "pmu_uncore.h"
 
 static int hhaNum = 0;
 static struct UncoreConfig *uncoreRxOuter = nullptr;

@@ -11,8 +11,7 @@
  ******************************************************************************/
 #include "load_handler.h"
 #include <sys/stat.h>
-#include "utils.h"
-#include "default_path.h"
+#include "oeaware/utils.h"
 
 namespace oeaware {
 ErrorCode LoadHandler::LoadPlugin(const std::string &name)

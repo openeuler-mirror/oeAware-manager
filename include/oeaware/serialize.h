@@ -9,8 +9,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_SERIALIZE_H
-#define COMMON_SERIALIZE_H
+#ifndef OEAWARE_SERIALIZE_H
+#define OEAWARE_SERIALIZE_H
 #include <vector>
 #include <string>
 #include <cstring>

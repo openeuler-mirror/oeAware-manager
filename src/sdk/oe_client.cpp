@@ -13,10 +13,10 @@
 #include <unordered_map>
 #include <thread>
 #include "domain_socket.h"
-#include "utils.h"
+#include "oeaware/utils.h"
 #include "message_protocol.h"
-#include "safe_queue.h"
-#include "default_path.h"
+#include "oeaware/safe_queue.h"
+#include "oeaware/default_path.h"
 #include "data_register.h"
 
 namespace oeaware {

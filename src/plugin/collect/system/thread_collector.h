@@ -14,8 +14,8 @@
 #include <unordered_map>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "interface.h"
-#include "thread_info.h"
+#include "oeaware/interface.h"
+#include "oeaware/data/thread_info.h"
 
 class ThreadCollector: public oeaware::Interface {
 public:

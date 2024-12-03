@@ -15,7 +15,7 @@
 #include <vector>
 #include <memory>
 #include <dlfcn.h>
-#include "interface.h"
+#include "oeaware/interface.h"
 
 namespace oeaware {
 struct Instance {

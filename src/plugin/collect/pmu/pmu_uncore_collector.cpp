@@ -9,19 +9,18 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "pmu_uncore_collector.h"
 #include <algorithm>
 #include <iostream>
 #include <securec.h>
 #include <dirent.h>
-#include "pmu_uncore_collector.h"
-#include "pmu_uncore_data.h"
+#include "oeaware/data/pmu_uncore_data.h"
 #include "pmu_uncore.h"
-#include "pcerrc.h"
+#include "libkperf/pcerrc.h"
 
 PmuUncoreCollector::PmuUncoreCollector(): oeaware::Interface()
 {
-    this->name = "pmu_uncore_collector";
+    this->name = OE_PMU_UNCORE_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect uncore information of pmu";
     this->priority = 0;

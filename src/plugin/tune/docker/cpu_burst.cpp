@@ -13,7 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
-#include "pmu_counting_data.h"
+#include "oeaware/data/pmu_counting_data.h"
 
 constexpr double NINETY_PERCENT = 0.9;
 constexpr int MILLISECONDS_IN_SECOND = 1000;
@@ -74,7 +74,7 @@ void CpuBurst::Update(const DataList &dataList)
     auto topic_name = dataList.topic.topicName;
     if (instance_name == std::string("pmu_counting_collector") && topic_name == std::string("cycles")) {
         UpdatePmu(dataList);
-    } else if (instance_name == std::string(DOCKER_COLLECTOR) && topic_name == std::string(DOCKER_COLLECTOR)) {
+    } else if (instance_name == std::string(OE_DOCKER_COLLECTOR) && topic_name == std::string(OE_DOCKER_COLLECTOR)) {
         UpdateDocker(dataList);
     }
 }

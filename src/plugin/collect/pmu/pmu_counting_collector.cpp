@@ -9,16 +9,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "pmu_counting_collector.h"
 #include <algorithm>
 #include <iostream>
 #include <securec.h>
-#include "pmu_counting_collector.h"
-#include "pmu_counting_data.h"
+#include "oeaware/data/pmu_counting_data.h"
 
 PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
 {
-    this->name = "pmu_counting_collector";
+    this->name = OE_PMU_COUNTING_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect counting information of pmu";
     this->priority = 0;

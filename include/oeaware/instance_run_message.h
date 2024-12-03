@@ -10,11 +10,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef INSTANCE_RUN_MESSAGE_H
-#define INSTANCE_RUN_MESSAGE_H
+#ifndef OEAWARE_INSTANCE_RUN_MESSAGE_H
+#define OEAWARE_INSTANCE_RUN_MESSAGE_H
 #include <mutex>
 #include <condition_variable>
-#include "topic.h"
+#include <oeaware/topic.h>
 
 namespace oeaware {
 enum class RunType {
@@ -70,16 +70,5 @@ enum class InstanceMessageType {
     UNSUBSCRIBE,
     PUBLISH_DATA,
 };
-
-class InstanceMessage {
-    // InstanceMessage() {}
-    // explicit InstanceMessage(RunType type) : type(type) { }
-    // InstanceMessage(RunType type, const std::vector<std::string> &payload) : payload(payload), type(type) { }
-    InstanceMessageType type;
-    std::vector<std::string> payload;
-    Result result;
-    const DataList *dataList;
-};
-
 }
 #endif

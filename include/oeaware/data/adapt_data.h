@@ -10,24 +10,18 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#ifndef COMMAND_DATA_H
-#define COMMAND_DATA_H
+#ifndef OEAWARE_DATA_ADAPT_DATA_H
+#define OEAWARE_DATA_ADAPT_DATA_H
 
-#define ATTR_MAX_LENGTH 20
 #ifdef __cplusplus
 extern "C" {
 #endif
 typedef struct {
-    char *value[ATTR_MAX_LENGTH];
-} CommandIter;
-
-typedef struct {
-    int itemLen;
-    int attrLen;
-    char *itemAttr[ATTR_MAX_LENGTH];
-    CommandIter *items;
-} CommandData;
+	char **data;
+	int len;
+} AdaptData;
 #ifdef __cplusplus
 }
 #endif
+
 #endif

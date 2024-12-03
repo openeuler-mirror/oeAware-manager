@@ -9,16 +9,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "pmu_sampling_collector.h"
 #include <algorithm>
 #include <iostream>
 #include <securec.h>
-#include "pmu_sampling_collector.h"
-#include "pmu_sampling_data.h"
+#include "oeaware/data/pmu_sampling_data.h"
 
 PmuSamplingCollector::PmuSamplingCollector(): oeaware::Interface()
 {
-    this->name = "pmu_sampling_collector";
+    this->name = OE_PMU_SAMPLING_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect sampling information of pmu";
     this->priority = 0;

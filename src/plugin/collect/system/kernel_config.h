@@ -14,9 +14,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
-#include "data_list.h"
-#include "interface.h"
-#include "kernel_data.h"
+#include "oeaware/interface.h"
+
 /*
  * topic: get_kernel_config, obtain the kernel parameter information.
  * params: kernel params name, including

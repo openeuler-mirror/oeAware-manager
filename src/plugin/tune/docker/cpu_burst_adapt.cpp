@@ -22,7 +22,7 @@ constexpr int PRIORITY = 2;
 
 CpuBurstAdapt::CpuBurstAdapt()
 {
-    name = "docker_cpu_burst";
+    name = OE_DOCKER_CPU_BURST_TUNE;
     description = "";
     version = "1.0.0";
     period = PERIOD;
@@ -59,8 +59,8 @@ oeaware::Result CpuBurstAdapt::Enable(const std::string &param)
     topic.instanceName = "pmu_counting_collector";
     topic.topicName = "cycles";
     oeaware::Result ret_pmu = Subscribe(topic);
-    topic.instanceName = DOCKER_COLLECTOR;
-    topic.topicName = DOCKER_COLLECTOR;
+    topic.instanceName = OE_DOCKER_COLLECTOR;
+    topic.topicName = OE_DOCKER_COLLECTOR;
     oeaware::Result ret_docker = Subscribe(topic);
     if (ret_pmu.code != OK || ret_docker.code != OK)
         return oeaware::Result(FAILED, "Subscribe failed!");

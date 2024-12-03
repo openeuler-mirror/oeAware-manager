@@ -14,7 +14,7 @@
 
 CommandCollector::CommandCollector(): oeaware::Interface()
 {
-    this->name = "command_collector";
+    this->name = OE_COMMAND_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect information of command";
     this->priority = 0;

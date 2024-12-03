@@ -9,8 +9,6 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
-#include "interface.h"
 #include "cpu_burst_adapt.h"
 using namespace oeaware;
 

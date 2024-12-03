@@ -11,9 +11,9 @@
  ******************************************************************************/
 #ifndef ANALYSIS_AWARE_H
 #define ANALYSIS_AWARE_H
-#include "interface.h"
+#include "oeaware/interface.h"
 #include "analysis.h"
-#include "pmu.h"
+#include "libkperf/pmu.h"
 
 namespace oeaware {
 class AnalysisAware : public Interface {

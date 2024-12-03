@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#include "interface.h"
+#include "oeaware/interface.h"
 #include "cpu/stealtask_tune/stealtask_tune.h"
 #include "network/smc_tune/smc_tune.h"
 #include "xcall/xcall_tune.h"

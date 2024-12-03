@@ -6,7 +6,7 @@ SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now")
 find_package(GTest CONFIG REQUIRED)
 
 include_directories(../src/common)
-
+include_directories(../include)
 add_executable(serialize_test
     ${SRC_DIR}/common/utils.cpp
     serialize_test.cpp

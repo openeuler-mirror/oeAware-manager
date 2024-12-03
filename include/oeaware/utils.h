@@ -9,11 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_UTILS_H
-#define COMMON_UTILS_H
+#ifndef OEAWARE_UTILS_H
+#define OEAWARE_UTILS_H
 #include <string>
 #include <vector>
-#include "data_list.h"
+#include <oeaware/data_list.h>
 
 namespace oeaware {
 bool Download(const std::string &url, const std::string &path);
@@ -34,4 +34,4 @@ bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const
     const std::string &params);
 }
 
-#endif // !COMMON_UTILS_H
+#endif

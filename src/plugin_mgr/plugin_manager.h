@@ -12,7 +12,7 @@
 #ifndef PLUGIN_MGR_PLUGIN_MANAGER_H
 #define PLUGIN_MGR_PLUGIN_MANAGER_H
 #include "instance_run_handler.h"
-#include "message_manager.h"
+#include "config.h"
 #include "event/event_handler.h"
 
 namespace oeaware {

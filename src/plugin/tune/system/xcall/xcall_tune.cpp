@@ -12,11 +12,11 @@
 #include "xcall_tune.h"
 #include <iostream>
 #include <yaml-cpp/yaml.h>
-#include "data_list.h"
+#include "oeaware/data/thread_info.h"
 
 XcallTune::XcallTune()
 {
-    name = "xcall_tune";
+    name = OE_XCALL_TUNE;
     description = "collect information of key thread";
     version = "1.0.0";
     period = defaultPeriod;

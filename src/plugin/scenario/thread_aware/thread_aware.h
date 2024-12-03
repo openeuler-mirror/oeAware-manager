@@ -11,8 +11,8 @@
  ******************************************************************************/
 #ifndef THREAD_AWARE_H
 #define THREAD_AWARE_H
-#include "interface.h"
-#include "thread_info.h"
+#include "oeaware/interface.h"
+#include "oeaware/data/thread_info.h"
 
 namespace oeaware {
 class ThreadAware : public Interface {

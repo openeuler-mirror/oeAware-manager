@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <gtest/gtest.h>
-#include "utils.h"
 
 TEST(XcallTune, ReadConfig)
 {

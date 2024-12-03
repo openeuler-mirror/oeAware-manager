@@ -14,8 +14,7 @@
 #define PMU_SAMPLING_COLLECTOR_H
 #include <unordered_map>
 #include <chrono>
-#include "data_list.h"
-#include "interface.h"
+#include "oeaware/interface.h"
 
 constexpr int NET_RECEIVE_TRACE_SAMPLE_PERIOD = 10;
 constexpr int CYCLES_FREQ = 100;

@@ -10,18 +10,25 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#ifndef PMU_SAMPLING_DATA_H
-#define PMU_SAMPLING_DATA_H
-#include "pmu.h"
+#ifndef OEAWARE_DATA_KERNEL_DATA_H
+#define OEAWARE_DATA_KERNEL_DATA_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct KernelDataNode {
+    char *key;
+    char *value;
+    struct KernelDataNode *next;
+} KernelDataNode;
+
 typedef struct {
-    struct PmuData *pmuData;
     int len;
-    uint64_t interval;
-} PmuSamplingData;
+    KernelDataNode *kernelData;
+} KernelData;
+
+KernelDataNode* CreateNode(const char *key, const char *value);
 #ifdef __cplusplus
 }
 #endif

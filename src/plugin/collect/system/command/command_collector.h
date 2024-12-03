@@ -14,7 +14,7 @@
 #define COMMAND_COLLECTOR_H
 
 #include "command_base.h"
-#include "interface.h"
+#include "oeaware/interface.h"
 
 class CommandCollector : public oeaware::Interface {
 public:

@@ -12,8 +12,8 @@
 #ifndef COMMON_DATA_REGISTER_H
 #define COMMON_DATA_REGISTER_H
 #include <unordered_map>
-#include "serialize.h"
-#include "data_list.h"
+#include "oeaware/serialize.h"
+#include "oeaware/data_list.h"
 
 namespace oeaware {
 using DeserializeFunc = int(*)(void**, InStream &in);

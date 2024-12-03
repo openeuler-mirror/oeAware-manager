@@ -15,8 +15,8 @@
 #include <unordered_set>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "interface.h"
-#include "docker_data.h"
+#include "oeaware/interface.h"
+#include "oeaware/data/docker_data.h"
 
 class DockerAdapt : public oeaware::Interface {
 public:

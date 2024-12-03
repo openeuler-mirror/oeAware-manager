@@ -10,9 +10,9 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#ifndef PMU_COUNTING_DATA_H
-#define PMU_COUNTING_DATA_H
-#include "pmu.h"
+#ifndef OEAWARE_DATA_PMU_SAMPLING_DATA_H
+#define OEAWARE_DATA_PMU_SAMPLING_DATA_H
+#include <libkperf/pmu.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +21,7 @@ typedef struct {
     struct PmuData *pmuData;
     int len;
     uint64_t interval;
-} PmuCountingData;
+} PmuSamplingData;
 #ifdef __cplusplus
 }
 #endif

@@ -9,12 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "ub_tune.h"
 #include <algorithm>
 #include <fstream>
-#include "interface.h"
-#include "thread_info.h"
-#include "ub_tune.h"
+#include "oeaware/interface.h"
+#include "oeaware/data/thread_info.h"
 
 using namespace oeaware;
 
@@ -24,7 +23,7 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
 }
 
 UnixBenchTune::UnixBenchTune() {
-    name = "unixbench_tune";
+    name = OE_UNIXBENCH_TUNE;
     description = "";
     version = "1.0.0";
     period = 500;

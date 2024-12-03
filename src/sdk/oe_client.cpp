@@ -12,6 +12,7 @@
 #include "oe_client.h"
 #include <unordered_map>
 #include <thread>
+#include <unistd.h>
 #include "domain_socket.h"
 #include "oeaware/utils.h"
 #include "message_protocol.h"
@@ -39,6 +40,9 @@ private:
     std::mutex pubMutex;
     std::unordered_map<std::string, std::vector<Callback>> topicHandle;
     std::shared_ptr<SafeQueue<Result>> resultQueue;
+    std::mutex quitMutex;
+    bool isQuit;
+    std::condition_variable cond;
     bool finished = false;
 };
 
@@ -47,7 +51,7 @@ void Impl::HandleRecv()
     while (!finished) {
         MessageProtocol protocol;
         if (!RecvMessage(*socketStream, protocol)) {
-            break;
+            continue;
         }
         Message message = protocol.GetMessage();
         Result result;
@@ -78,6 +82,9 @@ void Impl::HandleRecv()
                 break;
         }
     }
+    std::unique_lock<std::mutex> lock(quitMutex);
+    isQuit = true;
+    cond.notify_one();
 }
 int Impl::Init()
 {
@@ -91,6 +98,8 @@ int Impl::Init()
     }
     
     CreateDir(homeDir);
+    isQuit = false;
+    finished = false;
     domainSocket = std::make_shared<DomainSocket>(homeDir + "/oeaware-sdk.sock");
     domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
     resultQueue = std::make_shared<SafeQueue<Result>>();
@@ -98,6 +107,10 @@ int Impl::Init()
     if (sock < 0) {
         return -1;
     }
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     socketStream = std::make_shared<SocketStream>(sock);
     if (domainSocket->Bind() < 0) {
         return -1;
@@ -163,8 +176,15 @@ int Impl::Publish(const DataList &dataList)
 
 void Impl::Close()
 {
-    domainSocket->Close();
     finished = true;
+    // wait handrev over.
+    std::unique_lock<std::mutex> lock(quitMutex);
+    cond.wait(lock, [this] {return isQuit;});
+    domainSocket->Close();
+    domainSocket.reset();
+    resultQueue.reset();
+    socketStream.reset();
+    topicHandle.clear();
 }
 }
 

@@ -131,6 +131,11 @@ class SocketStream {
 public:
     SocketStream() : readBuff(maxBuffSize, 0) { }
     explicit SocketStream(int sock) : sock(sock), readBuff(maxBuffSize, 0) { }
+    ~SocketStream()
+    {
+        readBuff.clear();
+        sock = 0;
+    }
     ssize_t Read(char buf[], size_t size);
     ssize_t Write(const char buf[], size_t size);
     void SetSock(int newSock)

@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fstream>
 #include <regex>
+#include <securec.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include <grp.h>
@@ -172,4 +173,32 @@ bool CreateDir(const std::string &path)
     } while (pos != std::string::npos);
     return true;
 }
+
+bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const std::string &topicName,
+    const std::string &params)
+{
+    dataList->topic.instanceName = new char[instanceName.size() + 1];
+    if (dataList->topic.instanceName == nullptr) {
+        return false;
+    }
+    strcpy_s(dataList->topic.instanceName, instanceName.size() + 1, instanceName.data());
+    dataList->topic.topicName = new char[topicName.size() + 1];
+    if (dataList->topic.topicName == nullptr) {
+        delete[] dataList->topic.instanceName;
+        dataList->topic.instanceName = nullptr;
+        return false;
+    }
+    strcpy_s(dataList->topic.topicName, topicName.size() + 1, topicName.data());
+    dataList->topic.params = new char[params.size() + 1];
+    if (dataList->topic.params == nullptr) {
+        delete[] dataList->topic.instanceName;
+        delete[] dataList->topic.topicName;
+        dataList->topic.instanceName = nullptr;
+        dataList->topic.topicName = nullptr;
+        return false;
+    }
+    strcpy_s(dataList->topic.params, params.size() + 1, params.data());
+    return true;
+}
+
 }

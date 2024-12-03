@@ -13,6 +13,7 @@
 #define COMMON_UTILS_H
 #include <string>
 #include <vector>
+#include "data_list.h"
 
 namespace oeaware {
 bool Download(const std::string &url, const std::string &path);
@@ -29,6 +30,8 @@ std::string Concat(const std::vector<std::string>& strings, const std::string &s
 // Separate "str" with the separator "split"
 std::vector<std::string> SplitString(const std::string &str, const std::string &split);
 bool CreateDir(const std::string &path);
+bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const std::string &topicName,
+    const std::string &params);
 }
 
 #endif // !COMMON_UTILS_H

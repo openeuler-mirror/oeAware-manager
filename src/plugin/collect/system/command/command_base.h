@@ -34,7 +34,7 @@ public:
     std::string nowType;
     oeaware::Topic topic;
     std::unordered_map<std::string, std::vector<std::string>> attrsFirst;
-    std::vector<std::string> skipLine{"---swap--"};
+    std::vector<std::string> skipLine{"---swap--", "Average:"};
     static std::vector<std::string> command;
     static std::vector<std::string> illegal;
     CommandBase();

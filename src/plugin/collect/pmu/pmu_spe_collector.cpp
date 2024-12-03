@@ -63,15 +63,26 @@ int PmuSpeCollector::OpenSpe()
     return pd;
 }
 
-void PmuSpeCollector::DynamicAdjustPeriod(uint64_t interval)
+void PmuSpeCollector::DynamicAdjustPeriod(int interval)
 {
+    if (pmuId == -1) {
+        return;
+    }
     if (interval > timeout) {
         PmuDisable(pmuId);
         PmuClose(pmuId);
         attrPeriod *= periodThreshold;
+        if (attrPeriod > maxAttrPeriod) {
+            attrPeriod = maxAttrPeriod;
+        }
+        INFO(logger, "PmuSpeCollector dynamic adjust period to " <<
+            attrPeriod << ", PmuRead interval is " << interval << " ms.");
         pmuId = OpenSpe();
-        PmuEnable(pmuId);
+        if (pmuId != -1) {
+            PmuEnable(pmuId);
+        }
     }
+    // later add code to decrease period when interval is too small
 }
 
 oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
@@ -79,7 +90,8 @@ oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
     if (topic.instanceName != this->name || topic.topicName != topicStr) {
         return oeaware::Result(FAILED, "OpenTopic failed");
     }
-
+    attrPeriod = minAttrPeriod;
+    readTimeMs = 0;
     if (pmuId == -1) {
         pmuId = OpenSpe();
         if (pmuId == -1) {
@@ -124,27 +136,31 @@ void PmuSpeCollector::UpdateData(const DataList &dataList)
 
 void PmuSpeCollector::Run()
 {
-    if (pmuId != -1) {
-        PmuSpeData *data = new PmuSpeData();
-        PmuDisable(pmuId);
-        data->len = PmuRead(pmuId, &(data->pmuData));
-        PmuEnable(pmuId);
-
-        auto now = std::chrono::high_resolution_clock::now();
-        data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
-        DynamicAdjustPeriod(data->interval);
-        timestamp = std::chrono::high_resolution_clock::now();
-
-        DataList dataList;
-        dataList.topic.instanceName = new char[name.size() + 1];
-        strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
-        dataList.topic.topicName = new char[topicStr.size() + 1];
-        strcpy_s(dataList.topic.topicName, topicStr.size() + 1, topicStr.data());
-        dataList.topic.params = new char[1];
-        dataList.topic.params[0] = 0;
-        dataList.len = 1;
-        dataList.data = new void* [1];
-        dataList.data[0] = data;
-        Publish(dataList);
+    // adjust period will pmuclose and free spe data
+    // so adjust period should be done after other plugins have finished using SPE data
+    DynamicAdjustPeriod(readTimeMs);
+    if (pmuId == -1) {
+        return;
     }
+    PmuSpeData *data = new PmuSpeData();
+    PmuDisable(pmuId);
+    auto readBegin = std::chrono::high_resolution_clock::now();
+    data->len = PmuRead(pmuId, &(data->pmuData));
+    readTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - readBegin).count();
+    PmuEnable(pmuId);
+    auto now = std::chrono::high_resolution_clock::now();
+    data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
+    timestamp = std::chrono::high_resolution_clock::now();
+    DataList dataList;
+    dataList.topic.instanceName = new char[name.size() + 1];
+    strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
+    dataList.topic.topicName = new char[topicStr.size() + 1];
+    strcpy_s(dataList.topic.topicName, topicStr.size() + 1, topicStr.data());
+    dataList.topic.params = new char[1];
+    dataList.topic.params[0] = 0;
+    dataList.len = 1;
+    dataList.data = new void *[1];
+    dataList.data[0] = data;
+    Publish(dataList);
 }

@@ -67,6 +67,7 @@ int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
     if (topic.topicName == "cycles") {
         attr.freq = CYCLES_FREQ;
         attr.useFreq = 1;
+        attr.symbolMode = RESOLVE_ELF;
     } else {
         attr.period = NET_RECEIVE_TRACE_SAMPLE_PERIOD;
     }

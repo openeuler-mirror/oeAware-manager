@@ -20,10 +20,11 @@
 /*
  * topic: get_kernel_config, obtain the kernel parameter information.
  * params: kernel params name, including
- *  1. sysctl -a -N
- *  2. kernel_version, os_release, meminfo, zone_reclaim_mode
- *  3. lscpu, ifconfig, ethtool@{name}.
- *  params :
+ * 1. sysctl -a -N
+ *
+ * topic: get_cmd, the trustlist command is supported.
+ * params: each command is seqarated by "@@", include "cat", "grep", "awk", "pgrep", "ls", "ethtool".
+ *
  * topic: set_kernel_config, modify kernel parameters.
  * DataList:
  *  data: KernelData, [key, value]:
@@ -41,29 +42,27 @@ public:
     void Disable() override;
     void Run() override;
 private:
+    void PublishCmd();
+    void PublishKernelParams();
     void PublishKernelConfig();
     void SetKernelConfig();
+    bool InitCmd(std::stringstream &ss, const std::string &topicType);
     void InitFileParam();
     void AddCommandParam(const std::string &cmd);
     void WriteSysParam(const std::string &path, const std::string &value);
     void GetAllEth();
 
-    std::vector<std::string> topicStr = {"get_kernel_config", "set_kernel_config"};
-
-    const std::vector<std::vector<std::string>> kernelParamPath{{"kernel_version", "/proc/version"},
-        {"os_release", "/etc/os-release"}, {"meminfo", "/proc/meminfo"},
-        {"zone_reclaim_mode", "/proc/sys/vm/zone_reclaim_mode"}};
+    std::vector<std::string> topicStr = {"get_kernel_config", "get_cmd", "set_kernel_config"};
     // key: topic type, value: parameters to be queried.
     std::unordered_map<std::string, std::unordered_set<std::string>> getTopics;
+    std::unordered_map<std::string, std::vector<std::string>> getCmds;
     std::vector<std::pair<std::string, std::string>> setSystemParams;
     
     std::unordered_map<std::string, std::string> sysctlParams;
-    // Stores system parameters, include lscpu, ifconfig, file path.
-    std::unordered_map<std::string, std::string> kernelParams;
-
     std::vector<std::string> cmdRun;
+    static std::vector<std::string> getCmdGroup;
     static std::vector<std::string> cmdGroup;
-    std::vector<std::string> allEths;
+    const std::string cmdSeparator = "@@";
 };
 
 #endif

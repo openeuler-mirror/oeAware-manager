@@ -9,8 +9,8 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
 #include "command_collector.h"
+#include <unistd.h>
 
 CommandCollector::CommandCollector(): oeaware::Interface()
 {
@@ -41,8 +41,9 @@ void CommandCollector::CollectThread(const oeaware::Topic &topic, CommandBase* c
     while (collector->isRunning && fgets(buffer, sizeof(buffer), p.stream) != nullptr) {
         collector->ParseLine(std::string(buffer));
     }
+    int waitTime = 10 * 1000;
+    usleep(waitTime);
     p.Pclose();
-    
     collector->Close();
 }
 

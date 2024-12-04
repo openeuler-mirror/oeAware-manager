@@ -17,7 +17,9 @@
 #include <securec.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include "utils.h"
 #include "command_base.h"
+#include "data_register.h"
 
 KernelConfig::KernelConfig(): oeaware::Interface()
 {
@@ -35,6 +37,31 @@ KernelConfig::KernelConfig(): oeaware::Interface()
     }
 }
 
+bool KernelConfig::InitCmd(std::stringstream &ss, const std::string &topicType)
+{
+    std::string cmd;
+    std::string word;
+    while (ss >> word) {
+        if (word == cmdSeparator) {
+            if (!CommandBase::ValidateCmd(cmd)) {
+                return false;
+            }
+            getCmds[topicType].emplace_back(cmd);
+            cmd = "";
+            continue;
+        }
+        if (!cmd.empty()) {
+            cmd += " ";
+        }
+        cmd += word;
+    }
+    if (!CommandBase::ValidateCmd(cmd)) {
+        return false;
+    }
+    getCmds[topicType].emplace_back(cmd);
+    return true;
+}
+
 oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
 {
     if (find(topicStr.begin(), topicStr.end(), topic.topicName) == topicStr.end()) {
@@ -42,9 +69,12 @@ oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
     }
     std::stringstream ss(topic.params);
     std::string word;
-    while (ss >> word) {
-        if (topic.topicName == "get_kernel_config") {
-            getTopics[topic.GetType()].insert(word);
+    std::string topicType = topic.GetType();
+    if (topic.topicName == "get_cmd" && !InitCmd(ss, topicType)) {
+        return oeaware::Result(FAILED, "params invalid.");
+    } else if (topic.topicName == "get_kernel_config") {
+        while (ss >> word) {
+            getTopics[topicType].insert(word);
         }
     }
     return oeaware::Result(OK);
@@ -53,85 +83,9 @@ oeaware::Result KernelConfig::OpenTopic(const oeaware::Topic &topic)
 void KernelConfig::CloseTopic(const oeaware::Topic &topic)
 {
     getTopics.erase(topic.GetType());
+    getCmds.erase(topic.GetType());
     setSystemParams.clear();
     cmdRun.clear();
-}
-
-void KernelConfig::InitFileParam()
-{
-    for (auto &v : kernelParamPath) {
-        std::string path = v[1];
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            continue;
-        }
-        std::string key = v[0];
-        std::string line;
-        std::string value = "";
-        while (std::getline(file, line)) {
-            if (line.empty()) {
-                continue;
-            }
-            value += line;
-            value += '\n';
-        }
-        kernelParams[key] = value;
-        file.close();
-    }
-}
-
-void KernelConfig::AddCommandParam(const std::string &cmd)
-{
-    FILE *pipe = popen(cmd.data(), "r");
-    if (!pipe) {
-        return;
-    }
-    char buffer[1024];
-    std::string value;
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        value += buffer;
-    }
-    pclose(pipe);
-    auto v = oeaware::SplitString(cmd, " ");
-    std::vector<std::string> skipSpace;
-    for (auto &word : v) {
-        if (word.empty()) continue;
-        skipSpace.emplace_back(word);
-    }
-    if (skipSpace.size() > 1 && v[0] == "ethtool") {
-        kernelParams[v[0] + "@" + v[1]] = value;
-        return;
-    }
-    kernelParams[cmd] = value;
-}
-
-static bool IsSymlink(const std::string &path)
-{
-    struct stat st;
-    if (lstat(path.c_str(), &st) != 0) {
-        perror("lstat failed");
-        return false;
-    }
-    return S_ISLNK(st.st_mode);
-}
-
-void KernelConfig::GetAllEth()
-{
-    const std::string path = "/sys/class/net";
-    std::vector<std::string> interfaces;
-    DIR* dir = opendir(path.c_str());
-    if (dir == nullptr) {
-        WARN(logger, "failed to open directory: " << path << ".");
-        return;
-    }
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string name(entry->d_name);
-        if (name != "." && name != ".." && IsSymlink(path + "/" + name)) {
-            allEths.push_back(name);
-        }
-    }
-    closedir(dir);
 }
 
 oeaware::Result KernelConfig::Enable(const std::string &param)
@@ -156,21 +110,12 @@ oeaware::Result KernelConfig::Enable(const std::string &param)
         sysctlParams[values[0]] = values[1];
     }
     pclose(pipe);
-    InitFileParam();
-    GetAllEth();
-    AddCommandParam("lscpu");
-    AddCommandParam("ifconfig");
-    for (auto &eth : allEths) {
-        AddCommandParam("ethtool " + eth);
-    }
-
     return oeaware::Result(OK);
 }
 
 void KernelConfig::Disable()
 {
     sysctlParams.clear();
-    kernelParams.clear();
     setSystemParams.clear();
     getTopics.clear();
     cmdRun.clear();
@@ -196,32 +141,103 @@ void KernelConfig::UpdateData(const DataList &dataList)
     return;
 }
 
-void KernelConfig::PublishKernelConfig()
+std::vector<std::string> KernelConfig::getCmdGroup{"cat", "grep", "awk", "pgrep", "ls", "ethtool"};
+
+static void SetKernelData(KernelData *data, const std::string &ret)
 {
-    if (getTopics.empty()) {
+    data->kernelData = new KernelDataNode();
+    if (data->kernelData == nullptr) {
         return;
     }
+    data->len = 1;
+    data->kernelData->key = new char[1];
+    if (data->kernelData->key == nullptr) {
+        delete data->kernelData;
+        data->kernelData = nullptr;
+        return;
+    }
+    data->kernelData->key[0] = 0;
+    data->kernelData->value = new char[ret.size() + 1];
+    if (data->kernelData->value == nullptr) {
+        delete data->kernelData;
+        delete[] data->kernelData->key;
+        data->kernelData->key = nullptr;
+        data->kernelData = nullptr;
+        return;
+    }
+    strcpy_s(data->kernelData->value, ret.size() + 1, ret.data());
+    data->kernelData->next = nullptr;
+}
+
+void KernelConfig::PublishCmd()
+{
+    for (auto &p : getCmds) {
+        oeaware::Topic topic = oeaware::Topic::GetTopicFromType(p.first);
+        DataList dataList;
+        if (!oeaware::SetDataListTopic(&dataList, topic.instanceName, topic.topicName, topic.params)) {
+            continue;
+        }
+        KernelData *data = new KernelData();
+        if (data == nullptr) {
+            WARN(logger, "KernelData failed to allocate memory.");
+            continue;
+        }
+        std::string cmd = "";
+        for (auto &cmdPart : p.second) {
+            if (!cmd.empty()) {
+                cmd += " | ";
+            }
+            cmd += cmdPart;
+        }
+        PopenProcess pipe;
+        pipe.Popen(cmd);
+        char buffer[1024];
+        std::string ret = "";
+        while (fgets(buffer, sizeof(buffer), pipe.stream) != nullptr) {
+            ret += buffer;
+        }
+        if (pipe.Pclose() < 0) {
+            WARN(logger, "pipe close error.");
+        }
+        SetKernelData(data, ret);
+        dataList.len = 1;
+        dataList.data = new void* [1];
+        if (dataList.data == nullptr) {
+            oeaware::Register::GetInstance().GetDataFreeFunc("kernel_config")(data);
+            continue;
+        }
+        dataList.data[0] = data;
+        Publish(dataList);
+    }
+}
+
+void KernelConfig::PublishKernelParams()
+{
     for (auto &p : getTopics) {
         oeaware::Topic topic = oeaware::Topic::GetTopicFromType(p.first);
         DataList dataList;
-        dataList.topic.instanceName = new char[topic.instanceName.size() + 1];
-        strcpy_s(dataList.topic.instanceName, topic.instanceName.size() + 1, topic.instanceName.data());
-        dataList.topic.topicName = new char[topic.topicName.size() + 1];
-        strcpy_s(dataList.topic.topicName, topic.topicName.size() + 1, topic.topicName.data());
-        dataList.topic.params = new char[topic.params.size() + 1];
-        strcpy_s(dataList.topic.params, topic.params.size() + 1, topic.params.data());
+        if (!oeaware::SetDataListTopic(&dataList, topic.instanceName, topic.topicName, topic.params)) {
+            continue;
+        }
         KernelData *data = new KernelData();
+        if (data == nullptr) {
+            WARN(logger, "KernelData failed to allocate memory.");
+            continue;
+        }
         KernelDataNode *tmp = nullptr;
         for (auto &name : p.second) {
             std::string value = "";
             if (sysctlParams.count(name)) {
                 value = sysctlParams[name];
-            } else if (kernelParams.count(name)) {
-                value = kernelParams[name];
             } else {
+                WARN(logger, "invalid params: " << name << ".");
                 continue;
             }
             KernelDataNode *newNode = createNode(name.data(), value.data());
+            if (newNode == nullptr) {
+                WARN(logger, "KernelDataNode failed to allocate memory.");
+                continue;
+            }
             if (data->kernelData == NULL) {
                 data->kernelData = newNode;
                 tmp = newNode;
@@ -237,6 +253,15 @@ void KernelConfig::PublishKernelConfig()
         dataList.data[0] = data;
         Publish(dataList);
     }
+}
+
+void KernelConfig::PublishKernelConfig()
+{
+    if (getTopics.empty() && getCmds.empty()) {
+        return;
+    }
+    PublishCmd();
+    PublishKernelParams();
 }
 
 void KernelConfig::WriteSysParam(const std::string &path, const std::string &value)

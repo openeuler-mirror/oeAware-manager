@@ -14,7 +14,6 @@
 #include "oeaware/data/adapt_data.h"
 
 namespace oeaware {
-
 void TopicFree(CTopic *topic)
 {
     if (topic == nullptr) {
@@ -754,7 +753,7 @@ void Register::InitRegisterData()
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
 #endif
-    RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
+    RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
 
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
 

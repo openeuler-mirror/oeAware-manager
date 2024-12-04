@@ -68,20 +68,17 @@ void ThreadAware::UpdateData(const DataList &dataList)
     tmpData.clear();
     for (uint64_t i = 0; i < dataList.len; ++i) {
         ThreadInfo *data = (ThreadInfo *)dataList.data[i];
-        tmpData.emplace_back(*data);
+        ThreadInfo info;
+        info.pid = data->pid;
+        info.tid = data->tid;
+        info.name = new char[strlen(data->name) + 1];
+        strcpy_s(info.name, strlen(data->name) + 1, data->name);
+        tmpData.emplace_back(info);
     }
 }
 
 void ThreadAware::Run()
 {
-    for (auto &threadInfo : tmpData) {
-        for (size_t j = 0; j < keyList.size(); ++j) {
-            if (threadInfo.name == keyList[j]) {
-                threadWhite.emplace_back(threadInfo);
-                break;
-            }
-        }
-    }
     DataList dataList;
     dataList.topic.instanceName = new char[name.size() + 1];
     strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
@@ -89,13 +86,23 @@ void ThreadAware::Run()
     strcpy_s(dataList.topic.topicName, name.size() + 1, name.data());
     dataList.topic.params = new char[1];
     dataList.topic.params[0] = 0;
-    dataList.len = threadWhite.size();
-    dataList.data = new void* [dataList.len];
-    for (uint64_t i = 0; i < dataList.len; ++i) {
-        dataList.data[i] = &threadWhite[i];
+    dataList.data = new void* [keyList.size()];
+    uint64_t i = 0;
+    for (size_t j = 0; j < keyList.size(); ++j) {
+        for (auto &threadInfo : tmpData) {
+            if (threadInfo.name == keyList[j]) {
+                auto info = new ThreadInfo();
+                info->pid = threadInfo.pid;
+                info->tid = threadInfo.tid;
+                info->name = new char[strlen(threadInfo.name) + 1];
+                strcpy_s(info->name, strlen(threadInfo.name) + 1, threadInfo.name);
+                dataList.data[i++] = info;
+                break;
+            }
+        }
     }
+    dataList.len = i;
     Publish(dataList);
-    threadWhite.clear();
 }
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)

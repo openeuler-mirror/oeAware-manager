@@ -13,6 +13,7 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "oeaware/data/thread_info.h"
+#include "oeaware/utils.h"
 
 XcallTune::XcallTune()
 {
@@ -21,7 +22,7 @@ XcallTune::XcallTune()
     version = "1.0.0";
     period = defaultPeriod;
     priority = defaultPriority;
-    type = oeaware::TUNE | oeaware::RUN_ONCE;
+    type = oeaware::TUNE;
 }
 
 oeaware::Result XcallTune::OpenTopic(const oeaware::Topic &topic)
@@ -37,10 +38,11 @@ void XcallTune::CloseTopic(const oeaware::Topic &topic)
 
 void XcallTune::UpdateData(const DataList &dataList)
 {
+    threadId.clear();
     for (uint64_t i = 0; i < dataList.len; ++i) {
         ThreadInfo *threadInfo = (ThreadInfo*)dataList.data[i];
         if (xcallTune.count(threadInfo->name)) {
-            threadId[threadInfo->name] = threadInfo->pid;
+            threadId[threadInfo->name].insert(threadInfo->pid);
         }
     }
 }
@@ -73,17 +75,28 @@ int XcallTune::ReadConfig(const std::string &path)
 oeaware::Result XcallTune::Enable(const std::string &param)
 {
     (void)param;
+    if (!oeaware::FileExist("/proc/1/xcall")) {
+        return oeaware::Result(FAILED, "xcall does not support.");
+    }
     int ret = ReadConfig("/usr/lib64/oeAware-plugin/xcall.yaml");
-    Subscribe(oeaware::Topic{"thread_scenario", "thread_scenario", ""});
+    Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
     return oeaware::Result(ret);
 }
 
 void XcallTune::Disable()
 {
-    Unsubscribe(oeaware::Topic{"thread_scenario", "thread_scenario", ""});
+    Unsubscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
+    for (auto &p : openedXcall) {
+        if (!oeaware::FileExist(p.first)) {
+            continue;
+        }
+        for (auto &value : p.second) {
+            WriteSysParam(p.first, "!"+value);
+        }
+    }
 }
 
-static int WriteSysParam(const std::string &path, const std::string &value)
+int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
 {
     std::ofstream sysFile(path);
     if (!sysFile.is_open()) {
@@ -102,16 +115,19 @@ static int WriteSysParam(const std::string &path, const std::string &value)
 
 void XcallTune::Run()
 {
-    for (auto &p : threadId) {
-        std::string path = "/proc/" + std::to_string(p.second) + "/xcall";
-        for (auto v : xcallTune[p.first]) {
-            if (v.first != "xcall_1") {
-                continue;
-            }
-            if (WriteSysParam(path, v.second) == 0) {
-                INFO(logger, "xcall applied, path: " << path << ".");
-            } else {
-                WARN(logger, "xcall applied failed, path: " << path << ".");
+    for (auto &item : threadId) {
+        for (auto &pid : item.second) {
+            std::string path = "/proc/" + std::to_string(pid) + "/xcall";
+            for (auto v : xcallTune[item.first]) {
+                if (v.first != "xcall_1" || openedXcall.count(path)) {
+                    continue;
+                }
+                if (WriteSysParam(path, v.second) == 0) {
+                    openedXcall[path].emplace_back(v.second);
+                    INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second << "}.");
+                } else {
+                    WARN(logger, "xcall applied failed, path: " << path << ".");
+                }
             }
         }
     }

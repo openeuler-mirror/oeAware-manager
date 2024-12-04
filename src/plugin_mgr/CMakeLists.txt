@@ -19,7 +19,7 @@ add_executable (oeaware
                 ${SOURCE}
                 ${EVENT_SOURCE}
                 ) 
-target_link_libraries(oeaware common boundscheck)
+target_link_libraries(oeaware common)
 if (${CMAKE_CXX_COMPILER_VERSION} LESS "10.3.1")
     target_link_libraries(oeaware -lpthread -ldl)
 endif()

@@ -9,12 +9,12 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_INTERFACE_H
-#define COMMON_INTERFACE_H
-#include "data_list.h"
-#include "logger.h"
-#include "safe_queue.h"
-#include "instance_run_message.h"
+#ifndef OEAWARE_INTERFACE_H
+#define OEAWARE_INTERFACE_H
+#include <oeaware/data_list.h>
+#include <oeaware/logger.h>
+#include <oeaware/safe_queue.h>
+#include <oeaware/instance_run_message.h>
 
 namespace oeaware {
 // Instance type.

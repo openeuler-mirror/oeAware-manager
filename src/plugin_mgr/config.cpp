@@ -12,7 +12,7 @@
 #include "config.h"
 #include <iostream>
 #include <unistd.h>
-#include "default_path.h"
+#include "oeaware/default_path.h"
 
 namespace oeaware {
 bool CheckPluginList(YAML::Node pluginListItem)

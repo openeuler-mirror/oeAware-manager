@@ -17,9 +17,7 @@
 #include <securec.h>
 #include <mutex>
 #include <atomic>
-#include "data_list.h"
-#include "topic.h"
-#include "command_data.h"
+#include "oeaware/topic.h"
 
 class CommandBase {
 public:

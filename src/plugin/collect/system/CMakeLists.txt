@@ -10,7 +10,8 @@ add_library(system_collector SHARED
             ./command/command_collector.cpp
             ./command/command_base.cpp
             )
-target_include_directories(system_collector PRIVATE src/common)
+target_include_directories(system_collector PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(system_collector PRIVATE ${CMAKE_SOURCE_DIR}/src/common)
 target_link_libraries(system_collector common)
 set_target_properties(system_collector PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

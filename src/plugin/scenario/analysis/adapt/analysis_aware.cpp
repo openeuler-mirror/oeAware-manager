@@ -12,14 +12,12 @@
 #include "analysis_aware.h"
 #include <string>
 #include <iostream>
-#include "adapt_data.h"
- /* oeaware manager interface */
-#include "interface.h"
+#include "oeaware/data/adapt_data.h"
 /* dependent external plugin interfaces */
-#include "pmu_plugin.h"
-#include "pmu_counting_data.h"
-#include "pmu_sampling_data.h"
-#include "pmu_spe_data.h"
+#include "oeaware/data/pmu_plugin.h"
+#include "oeaware/data/pmu_counting_data.h"
+#include "oeaware/data/pmu_sampling_data.h"
+#include "oeaware/data/pmu_spe_data.h"
 /* external plugin dependent interfaces */
 
 /* internal data processing interface */

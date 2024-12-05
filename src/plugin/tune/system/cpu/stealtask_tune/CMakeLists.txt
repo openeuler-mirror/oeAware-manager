@@ -8,8 +8,6 @@ else()
 endif()
 add_compile_options(-fPIC -Wall -Wextra)
 
-include_directories(../include)
-
 add_library(stealtask_tune STATIC
         stealtask_tune.cpp
 )

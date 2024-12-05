@@ -15,7 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>
-#include "serialize.h"
+#include "oeaware/serialize.h"
 
 namespace oeaware {
 const int MAX_RECV_BUFF_SIZE = 16384;

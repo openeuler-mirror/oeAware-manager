@@ -12,7 +12,7 @@
 #ifndef STEALTASK_TUNE_H
 #define STEALTASK_TUNE_H
 
-#include "interface.h"
+#include "oeaware/interface.h"
 
 namespace oeaware {
 class StealTask : public Interface{

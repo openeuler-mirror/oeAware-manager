@@ -11,10 +11,10 @@
  ******************************************************************************/
 #include <securec.h>
 #include <iostream>
-#include "kernel_data.h"
+#include "oeaware/data/kernel_data.h"
 
 
-KernelDataNode* createNode(const char *key, const char *value)
+KernelDataNode* CreateNode(const char *key, const char *value)
 {
     KernelDataNode *node = new KernelDataNode;
     if (node == NULL) {

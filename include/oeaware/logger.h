@@ -9,13 +9,13 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_LOGGER_H
-#define COMMON_LOGGER_H
+#ifndef OEAWARE_LOGGER_H
+#define OEAWARE_LOGGER_H
 #include <memory>
 #include <unordered_map>
 #include <log4cplus/log4cplus.h>
 #include <log4cplus/loglevel.h>
-#include "default_path.h"
+#include <oeaware/default_path.h>
 
 namespace oeaware {
 #define INFO(logger, fmt) LOG4CPLUS_INFO(logger, fmt)

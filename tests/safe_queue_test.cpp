@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <future>
 #include <chrono>
-#include "safe_queue.h"
+#include "oeaware/safe_queue.h"
 
 TEST(SafeQueue, TryPop)
 {

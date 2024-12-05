@@ -12,7 +12,7 @@
 
 #ifndef CPU_BURST_ADAPT_H
 #define CPU_BURST_ADAPT_H
-#include "interface.h"
+#include "oeaware/interface.h"
 
 class CpuBurstAdapt : public oeaware::Interface {
 public:

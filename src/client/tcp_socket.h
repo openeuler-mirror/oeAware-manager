@@ -13,7 +13,7 @@
 #define CLIENT_TCP_SOCKET_H
 #include <unistd.h>
 #include "message_protocol.h"
-#include "default_path.h"
+#include "oeaware/default_path.h"
 
 namespace oeaware {
 class TcpSocket {

@@ -9,15 +9,14 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "pmu_spe_collector.h"
 #include <algorithm>
 #include <securec.h>
-#include "pmu_spe_collector.h"
-#include "pmu_spe_data.h"
+#include "oeaware/data/pmu_spe_data.h"
 
 PmuSpeCollector::PmuSpeCollector(): oeaware::Interface()
 {
-    this->name = "pmu_spe_collector";
+    this->name = OE_PMU_SPE_COLLECTOR;
     this->version = "1.0.0";
     this->description = "collect spe information of pmu";
     this->priority = 0;

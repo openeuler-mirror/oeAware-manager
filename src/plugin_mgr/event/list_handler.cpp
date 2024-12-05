@@ -12,8 +12,8 @@
 #include "list_handler.h"
 #include <dirent.h>
 #include <sys/stat.h>
-#include "utils.h"
-#include "default_path.h"
+#include "oeaware/utils.h"
+#include "oeaware/default_path.h"
 
 namespace oeaware {
 std::string ListHandler::GetPluginInDir(const std::string &path)

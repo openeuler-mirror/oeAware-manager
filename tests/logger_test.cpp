@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <gtest/gtest.h>
-#include "logger.h"
+#include "oeaware/logger.h"
 
 TEST(Serialize, Logger)
 {

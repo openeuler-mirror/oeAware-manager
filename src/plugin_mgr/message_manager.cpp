@@ -13,8 +13,8 @@
 #include <thread>
 #include <pwd.h>
 #include <securec.h>
-#include "default_path.h"
-#include "utils.h"
+#include "oeaware/default_path.h"
+#include "oeaware/utils.h"
 
 namespace oeaware {
 static const int CMD_CONN = 1;

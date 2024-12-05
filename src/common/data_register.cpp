@@ -1,18 +1,17 @@
 #include "data_register.h"
 #include <securec.h>
-#include "data_list.h"
-#include "utils.h"
+#include "oeaware/utils.h"
 #if defined(__arm__) || defined(__aarch64__)
-#include "pmu_counting_data.h"
-#include "pmu_sampling_data.h"
-#include "pmu_spe_data.h"
-#include "pmu_uncore_data.h"
-#include "symbol.h"
+#include "oeaware/data/pmu_counting_data.h"
+#include "oeaware/data/pmu_sampling_data.h"
+#include "oeaware/data/pmu_spe_data.h"
+#include "oeaware/data/pmu_uncore_data.h"
+#include "libkperf/symbol.h"
 #endif
-#include "thread_info.h"
-#include "kernel_data.h"
-#include "command_data.h"
-#include "adapt_data.h"
+#include "oeaware/data/thread_info.h"
+#include "oeaware/data/kernel_data.h"
+#include "oeaware/data/command_data.h"
+#include "oeaware/data/adapt_data.h"
 
 namespace oeaware {
 

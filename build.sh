@@ -53,6 +53,8 @@ elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "ON" ]]; then
     git checkout $libkperf_version
     sh build.sh
     cd ..
+    mkdir ${script_dir}/include/oeaware/data/libkperf
+    cp ${libkperf_inc}/* ${script_dir}/include/oeaware/data/libkperf
 elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "OFF" ]]; then
     echo "[NOTE] use libkperf by rpm"
     libkperf_inc=/usr/include/libkperf
@@ -60,5 +62,5 @@ elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "OFF" ]]; then
 fi
 
 
-cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${libkperf_inc}
+cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data
 make -j$(nproc)

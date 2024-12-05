@@ -9,8 +9,24 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_DATA_LIST_H
-#define COMMON_DATA_LIST_H
+#ifndef OEAWARE_DATA_LIST_H
+#define OEAWARE_DATA_LIST_H
+// Names of all instances.
+#define OE_PMU_COUNTING_COLLECTOR    "pmu_counting_collector"
+#define OE_PMU_SAMPLING_COLLECTOR    "pmu_sampling_collector"
+#define OE_PMU_SPE_COLLECTOR         "pmu_spe_collector"
+#define OE_PMU_UNCORE_COLLECTOR      "pmu_uncore_collector"
+#define OE_DOCKER_COLLECTOR          "docker_collector"
+#define OE_KERNEL_CONFIG_COLLECTOR   "kernel_config"
+#define OE_THREAD_COLLECTOR          "thread_collector"
+#define OE_COMMAND_COLLECTOR         "command_collector"
+#define OE_UNIXBENCH_TUNE            "unixbench_tune"
+#define OE_DOCKER_CPU_BURST_TUNE     "docker_cpu_burst"
+#define OE_STEALTASK_TUNE            "stealtask_tune"
+#define OE_SMC_TUNE                  "smc_tune"
+#define OE_SEEP_TUNE                 "seep_tune"
+#define OE_XCALL_TUNE                "xcall_tune"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

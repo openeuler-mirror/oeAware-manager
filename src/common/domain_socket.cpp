@@ -12,7 +12,7 @@
 #include "domain_socket.h"
 #include <unistd.h>
 #include <securec.h>
-#include "default_path.h"
+#include "oeaware/default_path.h"
 
 namespace oeaware {
 int DomainSocket::CreateSockAddrUn(struct sockaddr_un &un, const std::string &sunPath)

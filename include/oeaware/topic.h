@@ -9,10 +9,10 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef COMMON_TOPIC_H
-#define COMMON_TOPIC_H
-#include "utils.h"
-#include "serialize.h"
+#ifndef OEAWARE_TOPIC_H
+#define OEAWARE_TOPIC_H
+#include <oeaware/utils.h>
+#include <oeaware/serialize.h>
 
 namespace oeaware {
 struct Topic {

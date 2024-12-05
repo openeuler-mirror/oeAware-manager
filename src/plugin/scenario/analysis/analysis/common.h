@@ -12,7 +12,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "pmu.h"
+#include "libkperf/pmu.h"
 #include <vector>
 #include <unordered_map>
 #include "env.h"

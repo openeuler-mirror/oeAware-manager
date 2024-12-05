@@ -9,7 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "logger.h"
+#include "oeaware/logger.h"
 #include <sys/stat.h>
 
 namespace oeaware {

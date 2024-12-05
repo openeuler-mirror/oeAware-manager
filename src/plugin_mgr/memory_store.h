@@ -12,7 +12,6 @@
 #ifndef PLUGIN_MGR_MEMORY_STORE_H
 #define PLUGIN_MGR_MEMORY_STORE_H
 #include <unordered_map>
-#include "logger.h"
 #include "plugin.h"
 
 namespace oeaware {

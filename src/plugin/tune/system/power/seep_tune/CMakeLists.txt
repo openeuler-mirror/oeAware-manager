@@ -8,7 +8,6 @@ else()
 endif()
 add_compile_options(-fPIC -Wall -Wextra)
 
-include_directories(../include)
 add_library(seep_tune STATIC
         seep_tune.cpp
 )

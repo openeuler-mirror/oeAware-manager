@@ -11,8 +11,8 @@
  ******************************************************************************/
 #include <csignal>
 #include "plugin_manager.h"
-#include "data_register.h"
-#include "utils.h"
+#include "message_manager.h"
+#include "oeaware/utils.h"
 
 int main(int argc, char **argv)
 {

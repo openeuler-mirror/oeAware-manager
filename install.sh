@@ -1,5 +1,5 @@
 mkdir -p /usr/include/oeaware
-cp -r build/output/include/* /usr/include/oeaware
+cp -r build/output/bin/include/* /usr/include/
 cp -r build/output/bin/* /bin/
 mkdir -p /etc/oeaware
 cp config.yaml /etc/oeaware

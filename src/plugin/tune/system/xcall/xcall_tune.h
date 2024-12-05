@@ -11,11 +11,9 @@
  ******************************************************************************/
 #ifndef XCALL_TUNE_H
 #define XCALL_TUNE_H
-#include "interface.h"
 #include <unordered_map>
 #include <vector>
-#include "data_list.h"
-#include "thread_info.h"
+#include "oeaware/interface.h"
 
 class XcallTune : public oeaware::Interface {
 public:

@@ -11,7 +11,7 @@
  ******************************************************************************/
 #ifndef SDK_OE_CLIENT_H
 #define SDK_OE_CLIENT_H
-#include "data_list.h"
+#include "oeaware/data_list.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

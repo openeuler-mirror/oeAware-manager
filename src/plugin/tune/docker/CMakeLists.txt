@@ -18,8 +18,6 @@ add_library(docker_tune SHARED
 )
 
 include_directories(docker_tune PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    ${CMAKE_CURRENT_SOURCE_DIR}/plugin
     ${LIB_KPERF_INCPATH}
 )
 

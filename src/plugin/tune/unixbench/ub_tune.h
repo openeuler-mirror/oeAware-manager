@@ -15,7 +15,7 @@
 #include <set>
 #include <numa.h>
 #include <sched.h>
-#include "interface.h"
+#include "oeaware/interface.h"
 #define MAX_CPU 4096
 #define MAX_NODE 8
 #define DEFAULT_BIND_NODE 0

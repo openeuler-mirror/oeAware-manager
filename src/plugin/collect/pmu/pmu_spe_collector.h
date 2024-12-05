@@ -14,8 +14,7 @@
 #define PMU_SPE_COLLECTOR_H
 #include <unordered_map>
 #include <chrono>
-#include "data_list.h"
-#include "interface.h"
+#include "oeaware/interface.h"
 
 class PmuSpeCollector : public oeaware::Interface {
 public:

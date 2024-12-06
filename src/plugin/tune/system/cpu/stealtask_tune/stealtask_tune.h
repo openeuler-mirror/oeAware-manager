@@ -29,8 +29,11 @@ public:
 private:
     bool isInit = false;
     const std::string CMDLINE_PATH = "/proc/cmdline";
-    std::string cmdline {};
+    std::string schedFeaturesPath{};
+    std::string cmdline{};
     void ReadConfig();
+    bool InitSchedFeaturesPath();
+    bool SetSchedFeatures(const std::string &schedFeatures);
 };
 }
 

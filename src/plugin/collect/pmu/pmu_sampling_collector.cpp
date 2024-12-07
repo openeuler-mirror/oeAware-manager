@@ -24,10 +24,10 @@ PmuSamplingCollector::PmuSamplingCollector(): oeaware::Interface()
     this->type = 0;
     this->period = 100;
     for (const auto &it : topicStr) {
-        pmuId[it] = -1;
         oeaware::Topic topic;
         topic.instanceName = this->name;
         topic.topicName = it;
+        topic.params = "";
         supportTopics.push_back(topic);
     }
 }
@@ -81,35 +81,43 @@ int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
 oeaware::Result PmuSamplingCollector::OpenTopic(const oeaware::Topic &topic)
 {
     if (topic.instanceName != this->name) {
-        return oeaware::Result(FAILED, "OpenTopic failed");
+        return oeaware::Result(FAILED, "OpenTopic:" + topic.GetType() + " failed, instanceName is not match");
+    }
+
+    if (topic.params != "") {
+        return oeaware::Result(FAILED, "OpenTopic:" + topic.GetType() + " failed, params is not empty");
     }
 
     for (auto &iter : topicStr) {
-        if (iter == topic.topicName) {
-            if (pmuId[iter] == -1) {
-                pmuId[iter] = OpenSampling(topic);
-                if (pmuId[iter] == -1) {
-                    return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
-                }
-                PmuEnable(pmuId[iter]);
-                timestamp = std::chrono::high_resolution_clock::now();
-                return oeaware::Result(OK);
-            }
+        if (iter != topic.topicName) {
+            continue;
         }
+        if (topicParams[iter].open) {
+            WARN(logger, topic.GetType() << " has been opened before!");
+            return oeaware::Result(OK);
+        }
+        topicParams[iter].pmuId = OpenSampling(topic);
+        if (topicParams[iter].pmuId == -1) {
+            return oeaware::Result(FAILED, "OpenTopic failed, PmuOpen failed");
+        }
+        PmuEnable(topicParams[iter].pmuId);
+        topicParams[iter].timestamp = std::chrono::high_resolution_clock::now();
+        topicParams[iter].open = true;
+        return oeaware::Result(OK);
     }
-
-    return oeaware::Result(FAILED);
+    return oeaware::Result(FAILED, "OpenTopic " + topic.GetType() + "failed, no support topic!");
 }
 
 void PmuSamplingCollector::CloseTopic(const oeaware::Topic &topic)
 {
-    if (pmuId[topic.topicName] == -1) {
-        std::cout << "CloseTopic failed" << std::endl;
-    } else {
-        PmuDisable(pmuId[topic.topicName]);
-        PmuClose(pmuId[topic.topicName]);
-        pmuId[topic.topicName] = -1;
+    if (!topicParams[topic.topicName].open) {
+        WARN(logger, "CloseTopic failed, " + topic.GetType() + " not open.");
+        return;
     }
+    PmuDisable(topicParams[topic.topicName].pmuId);
+    PmuClose(topicParams[topic.topicName].pmuId);
+    topicParams[topic.topicName].pmuId = -1;
+    topicParams[topic.topicName].open = false;
 }
 
 oeaware::Result PmuSamplingCollector::Enable(const std::string &param)
@@ -131,28 +139,30 @@ void PmuSamplingCollector::UpdateData(const DataList &dataList)
 
 void PmuSamplingCollector::Run()
 {
-    for (auto &iter : pmuId) {
-        if (iter.second != -1) {
-            PmuSamplingData *data = new PmuSamplingData();
-            PmuDisable(iter.second);
-            data->len = PmuRead(iter.second, &(data->pmuData));
-            PmuEnable(iter.second);
-
-            auto now = std::chrono::high_resolution_clock::now();
-            data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(now - timestamp).count();
-            timestamp = now;
-
-            DataList dataList;
-            dataList.topic.instanceName = new char[name.size() + 1];
-            strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
-            dataList.topic.topicName = new char[iter.first.size() + 1];
-            strcpy_s(dataList.topic.topicName, iter.first.size() + 1, iter.first.data());
-            dataList.topic.params = new char[1];
-            dataList.topic.params[0] = 0;
-            dataList.data = new void* [1];
-            dataList.len = 1;
-            dataList.data[0] = data;
-            Publish(dataList);
+    for (auto &topicName : topicStr) {
+        if (!topicParams[topicName].open) {
+            continue;
         }
+        int pmuId = topicParams[topicName].pmuId;
+        PmuSamplingData *data = new PmuSamplingData();
+        PmuDisable(pmuId);
+        data->len = PmuRead(pmuId, &(data->pmuData));
+        PmuEnable(pmuId);
+        // calculate the actual collection time
+        auto now = std::chrono::high_resolution_clock::now();
+        data->interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - topicParams[topicName].timestamp).count();
+        topicParams[topicName].timestamp = now;
+        DataList dataList;
+        dataList.topic.instanceName = new char[name.size() + 1];
+        strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
+        dataList.topic.topicName = new char[topicName.size() + 1];
+        strcpy_s(dataList.topic.topicName, topicName.size() + 1, topicName.data());
+        dataList.topic.params = new char[1];
+        dataList.topic.params[0] = 0;
+        dataList.data = new void *[1];
+        dataList.len = 1;
+        dataList.data[0] = data;
+        Publish(dataList);
     }
 }

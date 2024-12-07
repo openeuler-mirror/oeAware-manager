@@ -27,12 +27,16 @@ public:
     void Disable() override;
     void Run() override;
 private:
-    std::unordered_map<std::string, int> pmuId;
+    struct TopicParam {
+        bool open = false;
+        int pmuId = -1;
+        std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    };
     std::vector<std::string> topicStr = {"cycles", "net:netif_rx", "L1-dcache-load-misses", "L1-dcache-loads",
         "L1-icache-load-misses", "L1-icache-loads", "branch-load-misses", "branch-loads", "dTLB-load-misses",
         "dTLB-loads", "iTLB-load-misses", "iTLB-loads", "cache-references", "cache-misses", "l2d_tlb_refill",
         "l2d_cache_refill", "l1d_tlb_refill", "l1d_cache_refill", "inst_retired", "instructions"};
-    std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    std::unordered_map<std::string, TopicParam> topicParams;
     void InitCountingAttr(struct PmuAttr &attr);
     int OpenCounting(const oeaware::Topic &topic);
 };

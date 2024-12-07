@@ -26,6 +26,7 @@ PmuSpeCollector::PmuSpeCollector(): oeaware::Interface()
     oeaware::Topic topic;
     topic.instanceName = this->name;
     topic.topicName = topicStr;
+    topic.params = "";
     supportTopics.push_back(topic);
 }
 
@@ -86,8 +87,8 @@ void PmuSpeCollector::DynamicAdjustPeriod(int interval)
 
 oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
 {
-    if (topic.instanceName != this->name || topic.topicName != topicStr) {
-        return oeaware::Result(FAILED, "OpenTopic failed");
+    if (topic.instanceName != this->name || topic.topicName != topicStr || topic.params != "") {
+        return oeaware::Result(FAILED, "OpenTopic: " + topic.GetType() + " failed, topic not match");
     }
     attrPeriod = minAttrPeriod;
     readTimeMs = 0;
@@ -106,14 +107,17 @@ oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)
 
 void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
 {
-    (void)topic;
-    if (pmuId == -1) {
-        WARN(logger, "PmuSpeCollector failed");
-    } else {
-        PmuDisable(pmuId);
-        PmuClose(pmuId);
-        pmuId = -1;
+    if (topic.instanceName != this->name || topic.topicName != topicStr || topic.params != "") {
+        WARN(logger, "CloseTopic:" + topic.GetType() + " failed, topic not match");
+        return;
     }
+    if (pmuId == -1) {
+        WARN(logger, "CloseTopic:" + topic.GetType() + " failed, pmuId = -1");
+        return;
+    }
+    PmuDisable(pmuId);
+    PmuClose(pmuId);
+    pmuId = -1;
 }
 
 oeaware::Result PmuSpeCollector::Enable(const std::string &param)

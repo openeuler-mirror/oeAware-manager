@@ -32,6 +32,8 @@ std::vector<std::string> SplitString(const std::string &str, const std::string &
 bool CreateDir(const std::string &path);
 bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const std::string &topicName,
     const std::string &params);
+uint64_t GetCpuCycles(int cpu);
+uint64_t GetCpuFreqByDmi();
 }
 
 #endif

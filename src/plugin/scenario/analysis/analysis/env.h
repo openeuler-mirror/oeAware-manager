@@ -36,6 +36,7 @@ public:
     int cpuNum;
     unsigned long pageMask = 0;
     uint64_t sysMaxCycles = 0;
+    uint64_t maxCpuFreqByDmi;
     std::vector<int> cpu2Node;
     std::vector<std::vector<int>> distance;
     std::vector<uint64_t> cpuMaxCycles; // per second

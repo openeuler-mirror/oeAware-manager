@@ -14,6 +14,7 @@
 #include <iostream>
 #include <unistd.h>
 #include "oeaware/data/pmu_counting_data.h"
+#include "oeaware/utils.h"
 
 constexpr double NINETY_PERCENT = 0.9;
 constexpr int MILLISECONDS_IN_SECOND = 1000;
@@ -35,34 +36,28 @@ static void SetCfsBurstUs(const std::string &id, int cfsBurstUs)
     return;
 }
 
-static uint64_t GetCpuCycles(int cpu)
-{
-    std::string freq_path = "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/cpufreq/scaling_cur_freq";
-    std::ifstream freq_file(freq_path);
-
-    if (!freq_file.is_open()) {
-        return 0;
-    }
-
-    uint64_t freq;
-    freq_file >> freq;
-    freq_file.close();
-
-    if (freq_file.fail()) {
-        return 0;
-    }
-
-    return freq * 1000; // 1000: kHz to Hz
-}
-
 bool CpuBurst::Init()
 {
     curSysCycles = 0;
+    maxCpuFreqByDmi = oeaware::GetCpuFreqByDmi();
+
     cpuNum = sysconf(_SC_NPROCESSORS_CONF);
-    for (unsigned int i = 0; i < cpuNum; i++) {
-        maxSysCycles += GetCpuCycles(i);
+    if (cpuNum <= 0) {
+        std::cout << "can not get cpu num" << std::endl;
+        return false;
     }
-    if (cpuNum <= 0 || maxSysCycles <= 0) {
+
+    for (unsigned int i = 0; i < cpuNum; i++) {
+        maxSysCycles += oeaware::GetCpuCycles(i);
+    }
+
+    if (maxSysCycles <= 0) {
+        std::cout << "use dmidecode to obtain cpu frequency" << std::endl;
+        maxSysCycles = maxCpuFreqByDmi * cpuNum;
+    }
+
+    if (maxSysCycles <= 0) {
+        std::cout << "can not get cpu frequency" << std::endl;
         return false;
     }
     return true;

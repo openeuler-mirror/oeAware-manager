@@ -29,10 +29,12 @@ namespace oeaware
         void Run() override;
 
     private:
-        bool isInit = false;
         unsigned int cpuNum = 0;
-        void ReadConfig();
-        bool WriteSeepFile(const unsigned int &cpu, const std::string &action);
+        std::vector<std::string> cpuScaling;
+        bool WriteFile(const std::string &filePath, const std::string &value);
+        bool Init();
+        bool InsertSeepKo();
+        bool WriteSeepFile(const unsigned int &cpu, const std::string &value);
     };
 }
 

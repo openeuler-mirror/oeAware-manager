@@ -21,11 +21,11 @@ using namespace oeaware;
 Seep::Seep()
 {
     name = OE_SEEP_TUNE;
-    description = "";
+    description = "seep governor is specifically designed for platforms with hardware-manager P-stats through CPPC";
     version = "1.0.0";
-    period = -1;
+    period = 1000;  // 1000 period is meaningless, only Enable() is executed, not Run()
     priority = 2;
-    type = 1;
+    type = oeaware::TUNE;
 }
 
 oeaware::Result Seep::OpenTopic(const oeaware::Topic &topic)
@@ -49,45 +49,84 @@ static bool IsFileExists(const std::string &path)
     return access(path.c_str(), F_OK) == 0;
 }
 
-static bool WriteFile(const std::string &filePath, const std::string &value)
+bool Seep::WriteFile(const std::string &filePath, const std::string &value)
 {
     std::ofstream file(filePath);
-    if (!file.is_open())
+    if (!file.is_open()) {
         return false;
+    }
     file << value;
+    if (!file.flush()) {
+        ERROR(logger, "Failed to echo " << value << " to " << filePath);
+        return false;
+    }
     file.close();
     return true;
 }
 
-bool Seep::WriteSeepFile(const unsigned int &cpu, const std::string &action)
+bool Seep::WriteSeepFile(const unsigned int &cpu, const std::string &value)
 {
-    std::string value = "0";
-    std::ostringstream seepPath;
-    seepPath << "/sys/devices/system/cpu/cpu" << cpu << "/cpufreq/auto_select";
-
-    if (action == "enable")
-        value = "1";
-
-    if (IsFileExists(seepPath.str()))
-    {
-        std::cout << "Writing " << value << " to: " << seepPath.str() << std::endl;
-
-        if (WriteFile(seepPath.str(), value))
-        {
-            std::cout << "Successfully " << action << " seep for cpu" << cpu << std::endl;
-            return true;
-        }
-        else
-        {
-            std::cerr << "Failed to " << action << " seep for cpu" << cpu << std::endl;
-            return false;
-        }
-    }
-    else
-    {
-        std::cerr << "cpu" << cpu << " seep directory not available" << std::endl;
+    std::string seepPath = "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/cpufreq/scaling_governor";
+    if (!IsFileExists(seepPath)) {
+        ERROR(logger, "cpu" << cpu << " seep directory not available");
         return false;
     }
+
+    DEBUG(logger, "Writing " << value << " to: " << seepPath);
+    if (WriteFile(seepPath, value)) {
+        DEBUG(logger, "Successfully write " << value << " for cpu" << cpu);
+        return true;
+    } else {
+        ERROR(logger, "Failed to write " << value << " for cpu" << cpu);
+        return false;
+    }
+}
+
+bool Seep::Init()
+{
+    for (int i = 0; i < cpuNum; i++) {
+        std::string path = "/sys/devices/system/cpu/cpu" + std::to_string(i) + "/cpufreq/scaling_governor";
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            return false;
+        }
+        std::string temp;
+        std::getline(file, temp);
+        cpuScaling.push_back(temp);
+        file.close();
+    }
+    return true;
+}
+
+bool Seep::InsertSeepKo()
+{
+    // 判断是否已经加载了 cpufreq_seep.ko
+    int result = 0;
+    std::ifstream file("/proc/modules");
+    if (!file) {
+        ERROR(logger, "failed to open file: /proc/modules");
+        return false;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find("cpufreq_seep") != std::string::npos) {
+            result = -1;
+            break;
+        }
+    }
+    if (result != 0) {
+        ERROR(logger, "failed to modprobe because cpufreq_seep is existed");
+        return false;
+    }
+
+    // modprobe cpufreq_seep
+    result = system("modprobe cpufreq_seep");
+    if (result != 0) {
+        ERROR(logger, "modprobe cpufreq_seep failed, please check bios configure: custom mode");
+        return false;
+    }
+
+    return true;
 }
 
 oeaware::Result Seep::Enable(const std::string &param)
@@ -95,31 +134,39 @@ oeaware::Result Seep::Enable(const std::string &param)
     (void)param;
     int result;
 
-    // 后续要考虑seep已经使能的情况下插件该如何管理，例如在初始化阶段可以获取各cpu的状态
-    if (!isInit)
-    {
-        int cpuNum = sysconf(_SC_NPROCESSORS_ONLN);
-        if (cpuNum == -1)
-        {
-            std::cerr << "Can not get the cpu num" << std::endl;
-            return oeaware::Result(FAILED);
-        }
+    // 后续要考虑seep已经使能的情况下插件该如何管理，以及部分cpu offline时的调优
+    // openEuler版本默认不加载seep调频模块，需要手动加载
+    result = InsertSeepKo();
+    if (!result) {
+        ERROR(logger, "modprobe cpufreq_seep.ko failed");
+        return oeaware::Result(FAILED, "modprobe cpufreq_seep.ko failed");
+    }
 
-        for (int i = 0; i < cpuNum; ++i)
-        {
-            result = WriteSeepFile(i, "enable");
-            if (!result)
-            {
-                std::cout << "Try to restore the enabled cpu" << std::endl;
-                for (int j = 0; j < i; ++j)
-                {
-                    WriteSeepFile(j, "disable");
-                }
-                return oeaware::Result(FAILED);
+    cpuNum = sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpuNum == -1) {
+        ERROR(logger, "can not get the cpu num");
+        return oeaware::Result(FAILED, "can not get the cpu num");
+    }
+
+    // 获取各cpu的初始状态
+    result = Init();
+    if (!result) {
+        ERROR(logger, "Init failed");
+        return oeaware::Result(FAILED, "Init failed");
+    }
+
+    // 设置scaling_governor为seep，可通过以下参数设置seep调频器的参数：
+    // 1、/sys/devices/system/cpu/cpuX/cpufreq/seep_auto_act_window，默认10，单位ms，表示bios的调频周期
+    // 2、/sys/devices/system/cpu/cpuX/cpufreq/seep_energy_perf，默认5，单位%，表示相比performance尽可能让性能损失不超过5%
+    for (int i = 0; i < cpuNum; ++i) {
+        result = WriteSeepFile(i, "seep");
+        if (!result) {
+            DEBUG(logger, "Try to restore the enabled cpu");
+            for (int j = 0; j < i; ++j) {
+                WriteSeepFile(j, cpuScaling[j]);
             }
+            return oeaware::Result(FAILED, "write seep to cpu" + std::to_string(i) + " failed");
         }
-
-        isInit = true;
     }
 
     return oeaware::Result(OK);
@@ -127,18 +174,12 @@ oeaware::Result Seep::Enable(const std::string &param)
 
 void Seep::Disable()
 {
-    for (unsigned int i = 0; i < cpuNum; ++i)
-    {
-        WriteSeepFile(i, "disable");
+    for (unsigned int i = 0; i < cpuNum; ++i) {
+        WriteSeepFile(i, cpuScaling[i]);
     }
-    isInit = false;
+    cpuScaling.clear();
 }
 
 void Seep::Run()
 {
-}
-
-void Seep::ReadConfig()
-{
-    // 后续需要支持几个参数配置
 }

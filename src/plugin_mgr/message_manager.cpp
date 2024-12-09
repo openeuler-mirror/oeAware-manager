@@ -338,7 +338,7 @@ void TcpSocket::SaveConnection()
     }
     tcpMessageHandler.AddConn(conn, type);
     if (isSdk) {
-        INFO(logger, "a sdk connection is established, " << name);
+        INFO(logger, "a sdk connection is established, fd: " << conn << ", " << name);
     }
     DEBUG(logger, "client connected!");
 }
@@ -352,7 +352,7 @@ void TcpSocket::HandleMessage(int fd)
         tcpMessageHandler.CloseConn(fd);
         epoll->EventCtl(EPOLL_CTL_DEL, fd);
         close(fd);
-        DEBUG(logger, "one client disconnected!");
+        INFO(logger, "client disconnected, fd: " << fd << ".");
     }
 }
 

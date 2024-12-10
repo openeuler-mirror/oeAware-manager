@@ -9,7 +9,7 @@ if (WITH_DEBUG)
     message("-- Note:pmu debug mode")
     add_compile_options(-g)
 endif()
-add_compile_options(-O2 -fPIC -Wall -Wextra)
+add_compile_options(-O2 -fPIC -Wall -Wextra -g)
 
 # libkperf
 message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")

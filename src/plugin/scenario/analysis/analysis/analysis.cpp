@@ -44,34 +44,47 @@ int Analysis::GetPeriod()
 void Analysis::Init()
 {
     env.Init();
-    InstanceInit();
     sysInfo.Init();  // initialized after env init
     loopCnt = 0;
 }
 
-void Analysis::UpdatePmu(const std::string &eventName, int dataLen, const PmuData *data)
+void Analysis::UpdatePmu(const std::string &topicName, int dataLen, const PmuData *data, uint64_t interval)
 {
-    if (eventName == "pmu_spe_sampling") {
+    if (dataLen <= 0 || data == nullptr) {
+        return;
+    }
+    if (topicName == "spe") {
         UpdateSpe(dataLen, data);
         UpdateAccess();
-    } else if (eventName == "pmu_netif_rx_counting") {
+    } else if (topicName == "net:netif_rx") {
         UpdateNetRx(dataLen, data);
-    } else if (eventName == "pmu_napi_gro_rec_entry") {
+    } else if (topicName == "net:napi_gro_receive_entry") {
         UpdateNapiGroRec(dataLen, data);
-    } else if (eventName == "pmu_skb_copy_datagram_iovec") {
+    } else if (topicName == "skb:skb_copy_datagram_iovec") {
         UpdateSkbCopyDataIovec(dataLen, data);
-    } else if (eventName == "pmu_cycles_sampling") {
-        UpdateCyclesSample(dataLen, data);
+    } else if (topicName == "cycles") {
+        UpdateCyclesSample(dataLen, data, interval);
     }
 }
 
-void Analysis::InstanceInit()
+void Analysis::InstanceInit(std::unordered_map<InstanceName, Instance> &tuneInstances)
 {
     tuneInstances[NUMA_TUNE].name = "tune_numa_mem_access";
-    tuneInstances[IRQ_TUNE].name = "tune_irq";
+    // tuneInstances[IRQ_TUNE].name = "tune_irq"; // not support yet
     tuneInstances[GAZELLE_TUNE].name = "gazelle";
     tuneInstances[SMC_TUNE].name = "smc_tune";
     tuneInstances[STEALTASK_TUNE].name = "stealtask_tune";
+
+    tuneInstances[NUMA_TUNE].solution =  "       step 1: if  `oeawarectl -q | grep tune_numa_mem_access` not exist, install numafast\n";
+    tuneInstances[NUMA_TUNE].solution += "               install : `oeawarectl -i numafast`\n";
+    tuneInstances[NUMA_TUNE].solution += "               load :    `oeawarectl -l libtune_numa.so`\n";
+    tuneInstances[NUMA_TUNE].solution += "       step 2: enable instance `oeaware -e tune_numa_mem_access`\n";
+    tuneInstances[SMC_TUNE].solution \
+        = "       enable instance: `oeawarectl -e smc_tune`\n";
+    tuneInstances[STEALTASK_TUNE].solution \
+        = "       enable instance: `oeawarectl -e stealtask_tune`\n";
+    tuneInstances[GAZELLE_TUNE].solution \
+        = "       reference: https://gitee.com/openeuler/gazelle \n";
 }
 
 void Analysis::UpdateSpe(int dataLen, const PmuData *data)
@@ -110,8 +123,9 @@ void Analysis::UpdateAccess()
     }
 }
 
-void Analysis::UpdateCyclesSample(int dataLen, const PmuData *data)
+void Analysis::UpdateCyclesSample(int dataLen, const PmuData *data, uint64_t interval)
 {
+    collectDataInfo[loopCnt].cyclsInterval += interval;
     auto &procs = sysInfo.procs;
     for (int i = 0; i < dataLen; i++) {
         if (!IsValidPmu(data[i])) {
@@ -174,7 +188,6 @@ void Analysis::UpdateRemoteNetInfo(const RecNetQueue &queData, const RecNetThrea
     procs[pid].threads[tid].realtimeInfo.netInfo.rxTimes[queData.dev][queData.queueMapping][threadsNode][irqNode]++;
 }
 
-
 void Analysis::UpdateRecNetQueue()
 {
     size_t id = 0, idNext = 0, matchTimes = 0;
@@ -199,32 +212,8 @@ void Analysis::UpdateRecNetQueue()
     recNetThreads.clear();
 }
 
-void Analysis::ShowSummary()
-{
-    std::cout << "============================ Analysis Summary ==============================" << std::endl;
-    std::cout << "| ";
-    const int nameWidth = 30;
-    const int suggestWidth = 10;
-    const int notesWidth = 30;
-    std::cout << std::left << std::setw(nameWidth) << "Tune Instance" << " | ";
-    std::cout << std::left << std::setw(suggestWidth) << "Suggest" << " | ";
-    std::cout << std::left << std::setw(notesWidth) << "Note" << " |" << std::endl;
-
-    for (auto &item : tuneInstances) {
-        auto &ins = item.second;
-        if (ins.name == "unknown") {
-            continue;
-        }
-        std::cout << "| ";
-        std::cout << std::left << std::setw(nameWidth) << ins.name << " | ";
-        std::cout << std::left << std::setw(suggestWidth) << (ins.suggest ? "Yes" : "No") << " | ";
-        std::cout << std::left << std::setw(notesWidth) << ins.notes << " |" << std::endl;
-    }
-    ShowNetInfoSummary();
-    std::cout << "Note : analysis plugin period is " << GetPeriod() << " ms, loop " << loopCnt << " times" << std::endl;
-}
-
-void Analysis::NumaTuneSuggest(const TaskInfo &taskInfo, bool isSummary)
+void Analysis::NumaTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+    const TaskInfo &taskInfo, bool isSummary)
 {
     tuneInstances[NUMA_TUNE].suggest = false;
     if (env.numaNum <= 1) {
@@ -262,7 +251,8 @@ static bool IsFrequentRemoteRecNetAccess(uint64_t times)
     return times > NET_REMOTE_RX_THRESHOLD;
 }
 
-void Analysis::NetTuneSuggest(const TaskInfo &taskInfo, bool isSummary)
+void Analysis::NetTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+    const TaskInfo &taskInfo, bool isSummary)
 {
     tuneInstances[IRQ_TUNE].suggest = false;
     tuneInstances[GAZELLE_TUNE].suggest = false;
@@ -285,22 +275,28 @@ void Analysis::NetTuneSuggest(const TaskInfo &taskInfo, bool isSummary)
         tuneInstances[GAZELLE_TUNE].notes = "Refer to network information";
         tuneInstances[SMC_TUNE].notes = "Refer to network information";
     } else {
-        tuneInstances[IRQ_TUNE].notes = "No network access";
-        tuneInstances[GAZELLE_TUNE].notes = "No network access";
-        tuneInstances[SMC_TUNE].notes = "No network access";
+        tuneInstances[IRQ_TUNE].notes = "Collecting very little network access";
+        tuneInstances[GAZELLE_TUNE].notes = "Collecting very little network access";
+        tuneInstances[SMC_TUNE].notes = "Collecting very little network access";
     }
 }
-
-void Analysis::StealTaskTuneSuggest(const TaskInfo &taskInfo, bool isSummary)
+void Analysis::StealTaskTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+    const TaskInfo &taskInfo, bool isSummary)
 {
     tuneInstances[STEALTASK_TUNE].suggest = false;
     if (isSummary && taskInfo.loopCnt == 0) {
         tuneInstances[STEALTASK_TUNE].notes = "Loop count error";
         return;
     }
-    uint64_t sysCyclesPerSecond = isSummary ? ceil(taskInfo.cycles * 1.0 / taskInfo.loopCnt) : taskInfo.cycles;
-    sysCyclesPerSecond = sysCyclesPerSecond / GetPeriod() * MS_PER_SEC; // later use real time
-    float cpuRatio = sysCyclesPerSecond * 1.0 / env.sysMaxCycles;
+    
+    uint64_t cyclsInterval = collectDataInfo[loopCnt].cyclsInterval;
+    if (isSummary) {
+        for (const auto &item : collectDataInfo) {
+            cyclsInterval += item.second.cyclsInterval;
+        }
+    }
+    uint64_t sysCyclesPerLoop = taskInfo.cycles / cyclsInterval * MS_PER_SEC;
+    float cpuRatio = env.sysMaxCycles == 0 ? 0 : sysCyclesPerLoop * 1.0 / env.sysMaxCycles;
     if (cpuRatio > STEAL_TASK_CYCLES_THRESHOLD) {
         tuneInstances[STEALTASK_TUNE].suggest = true;
     }
@@ -310,65 +306,51 @@ void Analysis::StealTaskTuneSuggest(const TaskInfo &taskInfo, bool isSummary)
     tuneInstances[STEALTASK_TUNE].notes = "CpuRatio(average) : " + tmp.str();
 }
 
-void Analysis::Summary()
+std::string Analysis::GetReportHeader(bool summary)
 {
-    sysInfo.TraceInfoSummary();
-    NumaTuneSuggest(sysInfo.summaryInfo, true);
-    NetTuneSuggest(sysInfo.summaryInfo, true);
-    StealTaskTuneSuggest(sysInfo.summaryInfo, true);
+    std::string header = "";
+    header += "============================================================================================\n";
+    if (summary) {
+        header += "                                     Summary Analysis Report\n";
+    } else {
+        header += "                                     Realtime Analysis Report\n";
+    }
+    header += "============================================================================================\n";
+    return header;
 }
 
-void Analysis::ShowNetInfoSummary()
-{
-    std::cout << "============================ Network Summary ==============================" << std::endl;
-    // Display network traffic in the future
-    std::cout << " Local network communication distribution " << std::endl;
-    const auto &netInfo = sysInfo.summaryInfo.netInfo;
-    std::cout << "  ";
-    for (size_t n = 0; n < netInfo.netRxTimes.size(); n++) {
-        std::cout << "Node" << std::to_string(n) << "   ";
-    }
-    std::cout << std::endl;
-    for (size_t n = 0; n < netInfo.netRxTimes.size(); n++) {
-        std::ostringstream tmp;
-        // 2 is used for precision, 6 is used for width
-        tmp << std::fixed << std::setprecision(2) << std::setw(6) << std::setfill(' ') \
-            << (netInfo.netRxTimes[n] * 1.0 / netInfo.netRxSum * 100); // 100 is used for percentage conversion
-        std::cout << tmp.str() << "% ";
-    }
-    std::cout << std::endl;
-    std::cout << " Remote network communication distribution(receive) " << std::endl;
-    std::vector<std::vector<uint64_t>> remoteRxTimes(env.numaNum, std::vector<uint64_t>(env.numaNum, 0));
-    netInfo.Node2NodeRxTimes(remoteRxTimes);
-    std::cout << " matrix representation of network thread nodes to irq nodes" << std::endl;
-    std::cout << "         ";
-    for (size_t n = 0; n < remoteRxTimes.size(); n++) {
-        std::cout << "Node" << std::to_string(n) << "   ";
-    }
-    std::cout << std::endl;
-    for (size_t n = 0; n < remoteRxTimes.size(); n++) {
-        std::cout << " Node" << std::to_string(n) << " ";
-        for (size_t m = 0; m < remoteRxTimes[n].size(); m++) {
-            std::ostringstream tmp;
-            // 2 is used for precision, 6 is used for width
-            tmp << std::fixed << std::setprecision(2) << std::setw(6) << std::setfill(' ') \
-                << remoteRxTimes[n][m] * 100.0 / netInfo.remoteRxSum;  // 100.0 is used for percentage conversion
-            std::cout << tmp.str() << "% ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "remote network receive " << \
-        netInfo.remoteRxSum * NET_RX_RECEIVE_SAMPLE_PERIOD << " packets. " << std::endl;
-}
-
-void Analysis::Analyze()
+void Analysis::Analyze(bool isSummary)
 {
     UpdateRecNetQueue();
+    sysInfo.Prepare();
     sysInfo.SummaryProcs();
     sysInfo.CalculateNumaScore();
     sysInfo.SummaryProcsNetInfo();
     sysInfo.SetLoopCnt(loopCnt);
     sysInfo.AppendTraceInfo();
+    // real time report
+    realtimeReport = "";
+    summaryReport = "";
+    std::unordered_map<InstanceName, Instance> tuneInstances;
+    InstanceInit(tuneInstances);
+    NumaTuneSuggest(tuneInstances, sysInfo.realtimeInfo, false);
+    NetTuneSuggest(tuneInstances, sysInfo.realtimeInfo, false);
+    StealTaskTuneSuggest(tuneInstances, sysInfo.realtimeInfo, false);
+    realtimeReport += GetReportHeader(false);
+    realtimeReport += GetSuggestReport(tuneInstances);
+    realtimeReport += GetNetInfoReport(sysInfo.realtimeInfo.netInfo);
+    // summary time report
+    if (isSummary) {
+        sysInfo.TraceInfoSummary(0, loopCnt);
+        InstanceInit(tuneInstances);
+        NumaTuneSuggest(tuneInstances, sysInfo.summaryInfo, true);
+        NetTuneSuggest(tuneInstances, sysInfo.summaryInfo, true);
+        StealTaskTuneSuggest(tuneInstances, sysInfo.summaryInfo, true);
+        summaryReport += GetReportHeader(true);
+        summaryReport += GetSuggestReport(tuneInstances);
+        summaryReport += GetNetInfoReport(sysInfo.summaryInfo.netInfo);
+        summaryReport += GetSolutionReport(tuneInstances);
+    }
     sysInfo.ClearRealtimeInfo();
     loopCnt++;
 }
@@ -376,102 +358,106 @@ void Analysis::Analyze()
 void Analysis::Exit()
 {
     sysInfo.Reset();
+    collectDataInfo.clear();
 }
 
-void Analysis::BuildNetInfoSummary()
+std::string Analysis::GetNetInfoReport(const NetworkInfo &netInfo)
 {
 	std::ostringstream output;
-    output << "============================ Network Summary ==============================";
-	analysisData.push_back(output.str());
-	output.str("");
+    output << " ========================================= Network =========================================\n";
+	output << "\n";
     // Display network traffic in the future
     output << " Local network communication distribution ";
-	analysisData.push_back(output.str());
-	output.str("");
-    const auto &netInfo = sysInfo.summaryInfo.netInfo;
+	output << "\n";
     output << "  ";
     for (size_t n = 0; n < netInfo.netRxTimes.size(); n++) {
         output << "Node" << std::to_string(n) << "   ";
     }
-	analysisData.push_back(output.str());
-	output.str("");
+	output << "\n";
     for (size_t n = 0; n < netInfo.netRxTimes.size(); n++) {
+        // 100 is used for percentage conversion
+        float percent = netInfo.netRxSum == 0 ? 0 : netInfo.netRxTimes[n] * 100.0 / netInfo.netRxSum;
         // 2 is used for precision, 6 is used for width
         output << std::fixed << std::setprecision(2) << std::setw(6) << std::setfill(' ') \
-            << (netInfo.netRxTimes[n] * 1.0 / netInfo.netRxSum * 100); // 100 is used for percentage conversion
-        output << "% ";
+            << percent << "% ";
     }
-	analysisData.push_back(output.str());
-	output.str("");
+	output << "\n";
     output << " Remote network communication distribution(receive) ";
-	analysisData.push_back(output.str());
-	output.str("");
+	output << "\n";
     std::vector<std::vector<uint64_t>> remoteRxTimes(env.numaNum, std::vector<uint64_t>(env.numaNum, 0));
     netInfo.Node2NodeRxTimes(remoteRxTimes);
     output<< " matrix representation of network thread nodes to irq nodes";
-	analysisData.push_back(output.str());
-	output.str("");	
+	output << "\n";
     output << "         ";
     for (size_t n = 0; n < remoteRxTimes.size(); n++) {
         output << "Node" << std::to_string(n) << "   ";
     }
-    analysisData.push_back(output.str());
-	output.str("");
+	output << "\n";
     for (size_t n = 0; n < remoteRxTimes.size(); n++) {
         output << " Node" << std::to_string(n) << " ";
         for (size_t m = 0; m < remoteRxTimes[n].size(); m++) {
+            // 100.0 is used for percentage conversion
+            float percent = netInfo.remoteRxSum == 0 ? 0 : remoteRxTimes[n][m] * 100.0 / netInfo.remoteRxSum;
             // 2 is used for precision, 6 is used for width
             output << std::fixed << std::setprecision(2) << std::setw(6) << std::setfill(' ') \
-                << remoteRxTimes[n][m] * 100.0 / netInfo.remoteRxSum;  // 100.0 is used for percentage conversion
-            output  << "% ";
+                << percent << "% ";
         }
-		analysisData.push_back(output.str());
-		output.str("");
+		output << "\n";
     }
-    output << "remote network receive " << \
+    // later add rx packet number in detail mode
+    // output << "remote network receive " << \
         netInfo.remoteRxSum * NET_RX_RECEIVE_SAMPLE_PERIOD << " packets. ";
-	analysisData.push_back(output.str());
+    std::string result = output.str();
+    return std::move(result);
 }
 
-void Analysis::BuildSummary()
+std::string Analysis::GetSuggestReport(const std::unordered_map<InstanceName, Instance> &tuneInstances)
 {
 	std::ostringstream output;
-	analysisData.clear();
-	output << "============================ Analysis Summary ==============================";
-	analysisData.push_back(output.str());
-	output.str("");
-	
-	output << "| ";
+    output << " ========================================= Suggest =========================================";
+	output << "\n ";
 	const int nameWidth = 30;
 	const int suggestWidth = 10;
 	const int notesWidth = 30;
 	output << std::left << std::setw(nameWidth) << "Tune Instance" << " | ";
 	output << std::left << std::setw(suggestWidth) << "Suggest" << " | ";
-	output << std::left << std::setw(notesWidth) << "Note" << " |" ;
-	analysisData.push_back(output.str());
-	output.str("");
+	output << std::left << std::setw(notesWidth) << "Note";
+	output << "\n";
 
-	for (auto &item : tuneInstances) {
-		auto &ins = item.second;
-		if (ins.name == "unknown") {
+	for (const auto &item : tuneInstances) {
+        auto &ins = item.second;
+        if (ins.name == "unknown") {
 			continue;
-		}
-		output << "| ";
-		output << std::left << std::setw(nameWidth) << ins.name << " | ";
+        }
+        output << " ";
+        output << std::left << std::setw(nameWidth) << ins.name << " | ";
 		output << std::left << std::setw(suggestWidth) << (ins.suggest ? "Yes" : "No") << " | ";
-		output << std::left << std::setw(notesWidth) << ins.notes << " |";
-		analysisData.push_back(output.str());
-		output.str("");
+		output << std::left << std::setw(notesWidth) << ins.notes;
+		output << "\n";
 	}
-	BuildNetInfoSummary();
-	output << "Note : analysis plugin period is " << GetPeriod() << " ms, loop " << loopCnt << " times";
-	analysisData.push_back(output.str());
+    std::string result = output.str();
+    return std::move(result);
 }
 
-std::vector<std::string> Analysis::GetAnalysisData()
+std::string Analysis::GetSolutionReport(const std::unordered_map<InstanceName, Instance> &tuneInstances)
 {
-	Summary();
-    BuildSummary();
-	return std::move(analysisData);
+    std::ostringstream output;
+    output << " ======================================== Solution ========================================";
+    output << "\n";
+    int solutionCnt = 0;
+    for (const auto &item : tuneInstances) {
+        auto &ins = item.second;
+        if (ins.name == "unknown" || !ins.suggest) {
+            continue;
+        }
+        solutionCnt++;
+        output << " ";
+        output << ins.name << "  \n";
+        output << ins.solution << "\n";
+    }
+    if (solutionCnt == 0) {
+        output << " No solution. \n";
+    }
+    std::string result = output.str();
+    return std::move(result);
 }
-

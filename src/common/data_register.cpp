@@ -11,7 +11,7 @@
 #include "oeaware/data/thread_info.h"
 #include "oeaware/data/kernel_data.h"
 #include "oeaware/data/command_data.h"
-#include "oeaware/data/adapt_data.h"
+#include "oeaware/data/analysis_data.h"
 
 namespace oeaware {
 void TopicFree(CTopic *topic)
@@ -699,38 +699,35 @@ int CommandDataDeserialize(void **data, InStream &in)
 
 void AnalysisDataFree(void *data)
 {
-    auto analysisData = static_cast<AdaptData*>(data);
+    auto analysisData = static_cast<AnalysisReport*>(data);
     if (analysisData == nullptr) {
         return;
     }
+    if (analysisData->data != nullptr) {
+        delete[] analysisData->data;
+        analysisData->data = nullptr;
+    }
     delete analysisData;
+    analysisData = nullptr;
 }
 
 int AnalysisDataSerialize(const void *data, OutStream &out)
 {
-    auto analysisData = static_cast<const AdaptData*>(data);
-	out << analysisData->len;
-	for (int i = 0; i < analysisData->len; i++) {
-		std::string tmpData(analysisData->data[i]);
-		out << tmpData;
-	}
+    auto analysisData = static_cast<const AnalysisReport*>(data);
+    out << analysisData->reportType;
+    out << std::string(analysisData->data);
     return 0;
 }
 
 int AnalysisDataDeserialize(void **data, InStream &in)
 {
-    *data = new AdaptData();
-    auto analysisData = static_cast<AdaptData*>(*data);
-    in >> analysisData->len;
-	analysisData->data = new char*[analysisData->len];
-
-	for (int i = 0; i < analysisData->len; i++) {
-	    std::string tmpData;
-    	in >> tmpData;
-    	analysisData->data[i] = new char[tmpData.size() + 1];
-		strcpy_s(analysisData->data[i], tmpData.size() + 1, tmpData.data());
-	}
-
+    *data = new AnalysisReport();
+    auto analysisData = static_cast<AnalysisReport *>(*data);
+    in >> analysisData->reportType;
+    std::string tmpData;
+    in >> tmpData;
+    analysisData->data = new char[tmpData.size() + 1];
+    strcpy_s(analysisData->data, tmpData.size() + 1, tmpData.data());
     return 0;
 }
 
@@ -754,14 +751,10 @@ void Register::InitRegisterData()
         PmuBaseDataFree));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize));
-
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
-
     RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
-
     RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
-
-	RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize));
+	RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize, AnalysisDataFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

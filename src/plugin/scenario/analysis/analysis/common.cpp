@@ -9,12 +9,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "common.h"
 #include <iostream>
+#include "common.h"
 
-void TraceInfoSummary(const std::vector<TaskInfo> &infos, TaskInfo &summary)
+void TraceInfoSummary(const std::vector<TaskInfo> &infos, TaskInfo &summary, int begin, int end)
 {
     for (auto &info : infos) {
+        if (info.loopCnt < begin || info.loopCnt > end) {
+            continue;
+        }
         for (size_t i = 0; i < info.access.size(); i++) {
             for (size_t j = 0; j < info.access[i].size(); j++) {
                 summary.access[i][j] += info.access[i][j];
@@ -27,7 +30,7 @@ void TraceInfoSummary(const std::vector<TaskInfo> &infos, TaskInfo &summary)
         summary.netInfo.netRxSum += info.netInfo.netRxSum;
         summary.netInfo.AddRxTimes(info.netInfo.rxTimes);
     }
-    summary.loopCnt = infos.size();
+    summary.loopCnt = end >= begin ? end - begin + 1 : 0;
     summary.CalculateNumaScore();
     summary.netInfo.SumRemoteRxTimes();
 }
@@ -110,7 +113,16 @@ void SystemInfo::Init()
     realtimeInfo.Init();
     summaryInfo.Init();
 }
-
+void SystemInfo::Prepare()
+{
+    for (auto &proc_item : procs) {
+        auto &proc = proc_item.second;
+        for (auto &thread_item : proc.threads) {
+            thread_item.second.tid  = thread_item.first;
+        }
+        proc.pid = proc_item.first;
+    }
+}
 void SystemInfo::SummaryProcs()
 {
     for (auto &proc_item : procs) {
@@ -183,17 +195,17 @@ void SystemInfo::AppendTraceInfo()
     traceInfo.emplace_back(realtimeInfo);
 }
 
-void SystemInfo::TraceInfoSummary()
+void SystemInfo::TraceInfoSummary(int begin, int end)
 {
     for (auto &proc_item : procs) {
         auto &proc = proc_item.second;
         for (auto &thread_item : proc.threads) {
             auto thread = thread_item.second;
-            ::TraceInfoSummary(thread.traceInfo, thread.summaryInfo);
+            ::TraceInfoSummary(thread.traceInfo, thread.summaryInfo, begin, end);
         }
-        ::TraceInfoSummary(proc.traceInfo, proc.summaryInfo);
+        ::TraceInfoSummary(proc.traceInfo, proc.summaryInfo, begin, end);
     }
-    ::TraceInfoSummary(traceInfo, summaryInfo);
+    ::TraceInfoSummary(traceInfo, summaryInfo, begin, end);
 }
 
 void SystemInfo::Reset()

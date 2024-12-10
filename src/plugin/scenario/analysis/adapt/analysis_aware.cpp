@@ -12,7 +12,9 @@
 #include "analysis_aware.h"
 #include <string>
 #include <iostream>
-#include "oeaware/data/adapt_data.h"
+#include "oeaware/data/analysis_data.h"
+ /* oeaware manager interface */
+#include "oeaware/interface.h"
 /* dependent external plugin interfaces */
 #include "oeaware/data/pmu_plugin.h"
 #include "oeaware/data/pmu_counting_data.h"
@@ -30,106 +32,147 @@ AnalysisAware::AnalysisAware()
 	priority = 1;
 	type = 0;
 	version = "1.0.0";
-	description = "pmu_spe_collector";
-    description += "-";
-    description += "pmu_counting_collector";
-    description += "-";
-    description += "pmu_sampling_collector";
-	supportTopics.emplace_back(Topic{"analysis_aware", "analysis_aware", ""});
+	supportTopics.emplace_back(Topic{ "analysis_aware", "analysis_report", "" });
+	description += "[introduction] \n";
+	description += "               analyze system runtime characteristics and recommend tune plugins\n";
+	description += "[version] \n";
+	description += "         " + version + "\n";
+	description += "[instance name]\n";
+	description += "                 " + name + "\n";
+	description += "[instance period]\n";
+	description += "                 " + std::to_string(period) + " ms\n";
+	description += "[provide topics]\n";
+	description += "                 topicName:analysis_report, params:\"\", usage:get realtime analysis report\n";
+	description += "                 topicName:analysis_report, params:quit, usage:get summary analysis report\n";
+	description += "[running require arch]\n";
+	description += "                      aarch64 only\n";
+	description += "[running require environment]\n";
+	description += "                 physical machine(not qemu), kernel version(4.19, 5.10, 6.6)\n";
+	description += "[running require topics]\n";
+	description += "                        1.pmu_spe_collector::spe\n";
+	description += "                        2.pmu_counting_collector::net:netif_rx\n";
+	description += "                        3.pmu_sampling_collector::cycles\n";
+	description += "                        4.pmu_sampling_collector::skb:skb_copy_datagram_iovec\n";
+	description += "                        5.pmu_sampling_collector::net:napi_gro_receive_entry\n";
+	description += "[usage] \n";
+	description += "        example:You can use `oeawarectl analysis -t 10` to get 10s report\n";
 }
 
 Result AnalysisAware::Enable(const std::string &param)
 {
 	(void)param;
-	Subscribe(Topic{"pmu_spe_collector", "spe", ""});
-	Subscribe(Topic{"pmu_counting_collector", "net:netif_rx", ""});
-	Subscribe(Topic{"pmu_sampling_collector", "cycles", ""});
-	Subscribe(Topic{"pmu_sampling_collector", "skb:skb_copy_datagram_iovec", ""});
-	Subscribe(Topic{"pmu_sampling_collector", "net:napi_gro_receive_entry", ""});
+	subscribeTopics.emplace_back(Topic{ "pmu_spe_collector", "spe", "" });
+	subscribeTopics.emplace_back(Topic{ "pmu_counting_collector", "net:netif_rx", "" });
+	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "cycles", "" });
+	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "skb:skb_copy_datagram_iovec", "" });
+	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "net:napi_gro_receive_entry", "" });
+	for (const auto &topic : subscribeTopics) {
+		Subscribe(topic);
+	}
 	analysis.Init();
 	return Result(OK);
 }
 
 void AnalysisAware::Disable()
 {
+	for (const auto &topic : subscribeTopics) {
+		Unsubscribe(topic);
+	}
 	analysis.Exit();
+}
+
+bool AnalysisAware::TopicStatus::Init(const oeaware::Topic &topic)
+{
+	open = false;
+	// check the legality of a single topic
+	if (topic.topicName == "analysis_report") {
+		if (topic.params != "" && topic.params != "quit") {
+			return false;
+		}
+		return true;
+	}
+	return false;
 }
 
 Result AnalysisAware::OpenTopic(const oeaware::Topic &topic)
 {
-	(void)topic;
+	// If the topic contains complex parameters in the future,
+	// add a check here to verify whether multiple topic combinations are valid
+	if (!topicStatus[topic.GetType()].Init(topic)) {
+		return Result(FAILED, "topic " + topic.topicName + " not support!");
+	}
+	topicStatus[topic.GetType()].open = true;
 	return Result(OK);
 }
 
 void AnalysisAware::CloseTopic(const oeaware::Topic &topic)
 {
-	(void)topic;
+	topicStatus[topic.GetType()].open = false;
 }
 
 void AnalysisAware::UpdateData(const DataList &dataList)
 {
 	std::string topicName = dataList.topic.topicName;
 	if (topicName == "spe") {
-		PmuSpeData* speData = static_cast<PmuSpeData*>(dataList.data[0]);
-		if (speData->len && speData->pmuData) {
-			pmuData[PMU_SPE].emplace_back(*(speData->pmuData));
-		}
+		PmuSpeData *dataTmp = static_cast<PmuSpeData *>(dataList.data[0]);
+		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
 	} else if (topicName == "net:netif_rx") {
-		PmuCountingData* countingData = static_cast<PmuCountingData*>(dataList.data[0]);
-		if (countingData->len && countingData->pmuData) {
-			pmuData[PMU_NETIF_RX].emplace_back(*(countingData->pmuData));
-		}
+		PmuCountingData *dataTmp = static_cast<PmuCountingData *>(dataList.data[0]);
+		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
 	} else if (topicName == "cycles") {
-		PmuSamplingData* samplingData = static_cast<PmuSamplingData*>(dataList.data[0]);
-		if (samplingData->len && samplingData->pmuData) {
-			pmuData[PMU_CYCLES_SAMPLING].emplace_back(*(samplingData->pmuData));
-		}
+		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
+		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, dataTmp->interval);
 	} else if (topicName == "skb:skb_copy_datagram_iovec") {
-		PmuSamplingData* samplingData = static_cast<PmuSamplingData*>(dataList.data[0]);
-		if (samplingData->len && samplingData->pmuData) {
-			pmuData[PMU_SKB_COPY_DATEGRAM_IOVEC].emplace_back(*(samplingData->pmuData));
-		}
+		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
+		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
 	} else if (topicName == "net:napi_gro_receive_entry") {
-		PmuSamplingData* samplingData = static_cast<PmuSamplingData*>(dataList.data[0]);
-		if (samplingData->len && samplingData->pmuData) {
-			pmuData[PMU_NAPI_GRO_REC_ENTRY].emplace_back(*(samplingData->pmuData));
+		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
+		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
+	}
+}
+
+void AnalysisAware::PublishData()
+{
+	for (auto &item : topicStatus) {
+		const auto &topic = Topic::GetTopicFromType(item.first);
+		auto &status = item.second;
+		if (status.open) {
+			DataList dataList;
+			dataList.topic.instanceName = new char[name.size() + 1];
+			strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
+			dataList.topic.topicName = new char[topic.topicName.size() + 1];
+			strcpy_s(dataList.topic.topicName, topic.topicName.size() + 1, topic.topicName.data());
+			dataList.topic.params = new char[topic.params.size() + 1];
+			strcpy_s(dataList.topic.params, topic.params.size() + 1, topic.params.data());
+			dataList.len = 1;
+			dataList.data = new void *[dataList.len];
+			AnalysisReport *report = new AnalysisReport();
+			bool isSummary = topic.params == "quit";
+			const std::string &str = analysis.GetReport(isSummary);
+			report->data = new char [str.size() + 1];
+			strcpy_s(report->data, str.size() + 1, str.data());
+			report->reportType = isSummary ? ANALYSIS_REPORT_SUMMARY : ANALYSIS_REPORT_REALTIME;
+			dataList.data[0] = report;
+			Publish(dataList);
 		}
 	}
 }
 
 void AnalysisAware::Run()
 {
-    UpdatePmu();
-    analysis.Analyze();
-	analysisData = analysis.GetAnalysisData();
-	AdaptData* data = new AdaptData();
-	data->len = analysisData.size();
-	data->data = new char*[data->len];
-	for (size_t i = 0; i < analysisData.size(); ++i) {
-		data->data[i] = new char[analysisData[i].size() + 1];
-		strcpy_s(data->data[i], analysisData[i].size() + 1, analysisData[i].data());
-	}
-	DataList dataList;
-	dataList.topic.instanceName = new char[name.size() + 1];
-	strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
-	dataList.topic.topicName = new char[name.size() + 1];
-	strcpy_s(dataList.topic.topicName, name.size() + 1, name.data());
-	dataList.topic.params = new char[1];
-	dataList.topic.params[0] = 0;
-	dataList.len = 1;
-	dataList.data = new void* [1];
-	dataList.data[0] = data;
-	Publish(dataList);
-	pmuData.clear();
-}
-
-void AnalysisAware::UpdatePmu()
-{
-	for (const auto& itMap : pmuData) {
-		for (const auto& itVec : itMap.second) {
-			analysis.UpdatePmu(itMap.first, 1, (PmuData *)&itVec);
+	bool isSummary = false;
+	for (auto &item : topicStatus) {
+		if (!item.second.open) {
+			continue;
+		}
+		const Topic &topic = Topic::GetTopicFromType(item.first);
+		if (topic.params == "quit") {
+			isSummary = true;
 		}
 	}
+	analysis.Analyze(isSummary);
+	PublishData();
+	pmuData.clear();
 }
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)

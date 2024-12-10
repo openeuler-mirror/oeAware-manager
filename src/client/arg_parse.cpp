@@ -33,6 +33,7 @@ void ArgParse::PrintHelp()
 {
     std::cout << "usage: oeawarectl [options]...\n"
            "  options\n"
+           "    analysis                run analysis mode.\n"
            "    -l|--load [plugin]      load plugin and need plugin type.\n"
            "    -r|--remove [plugin]    remove plugin from system.\n"
            "    -e|--enable [instance]  enable the plugin instance.\n"

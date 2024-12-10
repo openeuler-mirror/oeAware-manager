@@ -26,14 +26,18 @@ public:
 	Result Enable(const std::string &param) override;
 	void Disable() override;
 	void Run() override;
-
+	struct TopicStatus {
+		bool Init(const oeaware::Topic &topic);
+		bool open = false;
+	};
 private:
-	void UpdatePmu();
-
+	std::vector<Topic> subscribeTopics;
+	void PublishData();
 private:
 	Analysis analysis;
 	std::vector<std::string> analysisData;
-	std::unordered_map<std::string, std::vector<PmuData>> pmuData;
+	std::unordered_map<std::string, PmuData *> pmuData;
+	std::unordered_map<std::string, TopicStatus> topicStatus;
 };
 }
 #endif

@@ -12,12 +12,12 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "libkperf/pmu.h"
 #include <vector>
 #include <unordered_map>
-#include "env.h"
 #include <string>
- 
+#include "env.h"
+#include "libkperf/pmu.h"
+
 struct NetworkInfo {
     NetworkInfo();
     ~NetworkInfo() = default;
@@ -78,13 +78,14 @@ struct SystemInfo {
     TaskInfo summaryInfo;
     std::vector<TaskInfo> traceInfo;
     void Init();
+    void Prepare();
     void SummaryProcs();
     void CalculateNumaScore();
     void SummaryProcsNetInfo();
     void SetLoopCnt(uint64_t loopCnt);
     void ClearRealtimeInfo();
     void AppendTraceInfo();
-    void TraceInfoSummary();
+    void TraceInfoSummary(int begin, int end);
     void Reset();
 };
 

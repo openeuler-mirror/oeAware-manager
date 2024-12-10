@@ -11,7 +11,7 @@ set(analysis_src
 
 set(oeaware_src adapt/analysis_aware.cpp)
 
-add_compile_options(-g -fPIC -Wall -Wextra)
+add_compile_options(-g -fPIC -Wall -Wextra -O2)
 
 add_library(analysis_base OBJECT ${analysis_src})
 target_include_directories(analysis_base PUBLIC
@@ -27,5 +27,3 @@ add_library(analysis_oeaware SHARED ${oeaware_src})
 target_link_libraries(analysis_oeaware analysis_base)
 set_target_properties(analysis_oeaware PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
-
-

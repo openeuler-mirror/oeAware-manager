@@ -47,40 +47,53 @@ struct Instance {
     std::string name = "unknown";
     bool suggest = false;
     std::string notes;
+    std::string solution;
+};
+
+struct CollectDataInfo {
+    uint64_t cyclsInterval = 0;
 };
 
 class Analysis {
 private:
     SystemInfo sysInfo;
-    std::unordered_map<InstanceName, Instance> tuneInstances;
     std::vector<RecNetQueue> recNetQueue;
     std::vector<RecNetThreads> recNetThreads;
-	std::vector<std::string> analysisData;
+    std::vector<std::string> analysisData;
+    std::string realtimeReport;
+    std::string summaryReport;
+    std::unordered_map<uint64_t, CollectDataInfo> collectDataInfo; // key: loopCnt
+
     uint64_t loopCnt = 0;
-    void InstanceInit();
+    void InstanceInit(std::unordered_map<InstanceName, Instance> &tuneInstances);
     void UpdateSpe(int dataLen, const PmuData *data);
     void UpdateAccess();
-    void UpdateCyclesSample(int dataLen, const PmuData *data);
+    void UpdateCyclesSample(int dataLen, const PmuData *data, uint64_t interval);
     void UpdateNetRx(int dataLen, const PmuData *data);
     void UpdateNapiGroRec(int dataLen, const PmuData *data);
     void UpdateSkbCopyDataIovec(int dataLen, const PmuData *data);
     void UpdateRemoteNetInfo(const RecNetQueue &queData, const RecNetThreads &threadData);
     void UpdateRecNetQueue();
-    void NumaTuneSuggest(const TaskInfo &taskInfo, bool isSummary);
-    void NetTuneSuggest(const TaskInfo &taskInfo, bool isSummary);
-    void StealTaskTuneSuggest(const TaskInfo &taskInfo, bool isSummary);
-    void Summary();
-    void ShowNetInfoSummary();
-    void ShowSummary();
-	void BuildNetInfoSummary();
-    void BuildSummary();
+    void NumaTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+        const TaskInfo &taskInfo, bool isSummary);
+    void NetTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+        const TaskInfo &taskInfo, bool isSummary);
+    void StealTaskTuneSuggest(std::unordered_map<InstanceName, Instance> &tuneInstances,
+        const TaskInfo &taskInfo, bool isSummary);
+    std::string GetReportHeader(bool summary);
+    std::string GetNetInfoReport(const NetworkInfo &netInfo);
+    std::string GetSuggestReport(const std::unordered_map<InstanceName, Instance> &tuneInstances);
+    std::string GetSolutionReport(const std::unordered_map<InstanceName, Instance> &tuneInstances);
 public:
     Env &env = Env::GetInstance();
     int GetPeriod();
     void Init();
-    void UpdatePmu(const std::string &eventName, int dataLen, const PmuData *data);
-    void Analyze();
-	std::vector<std::string> GetAnalysisData();
+    void UpdatePmu(const std::string &topicName, int dataLen, const PmuData *data, uint64_t interval);
+    void Analyze(bool isSummary);
+    const std::string &GetReport(bool isSummary)
+    {
+        return isSummary ? summaryReport : realtimeReport;
+    }
     void Exit();
 };
 

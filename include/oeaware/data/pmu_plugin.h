@@ -20,14 +20,6 @@
 extern "C" {
 #endif
 
-#define PMU_CYCLES_COUNTING "pmu_cycles_counting"
-#define PMU_CYCLES_SAMPLING "pmu_cycles_sampling"
-#define PMU_UNCORE "pmu_uncore_counting"
-#define PMU_SPE "pmu_spe_sampling"
-#define PMU_NETIF_RX "pmu_netif_rx_counting"
-#define PMU_NAPI_GRO_REC_ENTRY "pmu_napi_gro_rec_entry"
-#define PMU_SKB_COPY_DATEGRAM_IOVEC "pmu_skb_copy_datagram_iovec"
-    
 #define NAPI_GRO_REC_ENTRY_DEVICE_LEN 64
 // ref : /sys/kernel/debug/tracing/events/net/napi_gro_receive_entry/format
 struct NapiGroRecEntryData {

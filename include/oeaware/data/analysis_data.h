@@ -10,16 +10,22 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#ifndef OEAWARE_DATA_ADAPT_DATA_H
-#define OEAWARE_DATA_ADAPT_DATA_H
+#ifndef OEAWARE_ANALYSIS_DATA_H
+#define OEAWARE_ANALYSIS_DATA_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+	ANALYSIS_REPORT_REALTIME,
+	ANALYSIS_REPORT_SUMMARY
+} AnalysisReportType;
 typedef struct {
-	char **data;
-	int len;
-} AdaptData;
+	int reportType; // AnalysisReportType
+	char *data;
+} AnalysisReport;
+
 #ifdef __cplusplus
 }
 #endif

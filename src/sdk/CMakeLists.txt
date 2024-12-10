@@ -13,7 +13,6 @@ target_link_libraries(${PROJECT_NAME} common)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/oe_client.h"
 DESTINATION "${CMAKE_BINARY_DIR}/output/include/oeaware")
 
-set(SDK_OUTPUT_LIBRARY_DIRECTORY ${CMAKE_BINARY_DIR}/output/sdk)
 file(MAKE_DIRECTORY ${SDK_OUTPUT_LIBRARY_DIRECTORY})
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${SDK_OUTPUT_LIBRARY_DIRECTORY})

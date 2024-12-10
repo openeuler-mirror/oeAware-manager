@@ -167,7 +167,7 @@ bool CreateDir(const std::string &path)
         if (stat(subPath.c_str(), &buffer) == 0) {
             continue;
         }
-        if (mkdir(subPath.c_str(), S_IRWXU | S_IRWXG) != 0) {
+        if (mkdir(subPath.c_str(), S_IRWXU | S_IXGRP | S_IRGRP | S_IROTH | S_IXOTH) != 0) {
             return false;
         }
     } while (pos != std::string::npos);

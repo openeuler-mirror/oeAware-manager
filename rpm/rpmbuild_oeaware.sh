@@ -2,13 +2,15 @@
 set -x
 spec_file="oeAware.spec"
 script_dir=$(cd $(dirname $0);pwd)
+commit_id=$(git rev-parse HEAD)
 cd $script_dir/
-version=$(awk '/Version:/{print $2}' "$spec_file")
+version=$commit_id
+name="oeAware-manager"
 
-rm -rf oeAware-buildbysrc-${version}
-mkdir oeAware-buildbysrc-${version}
-rsync  -r --exclude={'rpm','build','tests','docs'} ../* ./oeAware-buildbysrc-${version}
-tar cf oeAware-buildbysrc-${version}.tar.gz oeAware-buildbysrc-${version}/
-rm -rf /root/rpmbuild/SOURCES/oeAware-buildbysrc-${version}.tar.gz
-rsync oeAware-buildbysrc-${version}.tar.gz /root/rpmbuild/SOURCES/oeAware-buildbysrc-${version}.tar.gz
-rpmbuild -ba $spec_file
+rm -rf ${name}-${version}
+mkdir ${name}-${version}
+rsync  -r --exclude={'rpm','build','docs'} ../* ./${name}-${version}
+tar cf ${name}-${version}.tar.gz ${name}-${version}/
+rm -rf /root/rpmbuild/SOURCES/${name}-${version}.tar.gz
+rsync ${name}-${version}.tar.gz /root/rpmbuild/SOURCES/${name}-${version}.tar.gz
+rpmbuild --define "commit_id $commit_id" -ba $spec_file

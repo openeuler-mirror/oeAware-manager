@@ -35,7 +35,8 @@ private:
     int attrPeriod = 2048;
     std::string topicStr = "spe";
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
-    const int timeout = 50;
+    const int timeoutMs = 50;
+    const int notTimeoutMs = 10;
     const int periodThreshold = 2;
     const int minAttrPeriod = 2048;
     const int maxAttrPeriod = 2048000;

@@ -5,4 +5,4 @@ plugin_list:
   - name: numafast
     description: numafast is a userspace tool designed for Kunpeng Chips that aims to improve 
                  system performance by reducing cross-NUMA memory access.
-    url: https://repo.oepkgs.net/openeuler/rpm/openEuler-22.03-LTS-SP4/extras/aarch64/Packages/n/numafast-v2.0.0-1.aarch64.rpm
+    url: https://repo.oepkgs.net/openeuler/rpm/openEuler-22.03-LTS-SP4/extras/aarch64/Packages/n/numafast-v2.2.2-1.aarch64.rpm

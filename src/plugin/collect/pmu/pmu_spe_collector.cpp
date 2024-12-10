@@ -68,21 +68,31 @@ void PmuSpeCollector::DynamicAdjustPeriod(int interval)
     if (pmuId == -1) {
         return;
     }
-    if (interval > timeout) {
-        PmuDisable(pmuId);
-        PmuClose(pmuId);
+    int srcPeriod = attrPeriod;
+    // The values of the upper and lower bounds of the interval cannot be close,
+    // otherwise it may lead to frequent modifications of the attrPeriod
+    if (interval > timeoutMs) {
         attrPeriod *= periodThreshold;
         if (attrPeriod > maxAttrPeriod) {
             attrPeriod = maxAttrPeriod;
         }
-        INFO(logger, "PmuSpeCollector dynamic adjust period to " <<
-            attrPeriod << ", PmuRead interval is " << interval << " ms.");
-        pmuId = OpenSpe();
-        if (pmuId != -1) {
-            PmuEnable(pmuId);
+    } else if (interval < notTimeoutMs) {
+        attrPeriod /= periodThreshold;
+        if (attrPeriod < minAttrPeriod) {
+            attrPeriod = minAttrPeriod;
         }
     }
-    // later add code to decrease period when interval is too small
+    if (attrPeriod == srcPeriod) {
+        return;
+    }
+    PmuDisable(pmuId);
+    PmuClose(pmuId);
+    INFO(logger, "PmuSpeCollector dynamic adjust period from " << srcPeriod << " to " <<
+        attrPeriod << ", PmuRead interval is " << interval << " ms.");
+    pmuId = OpenSpe();
+    if (pmuId != -1) {
+        PmuEnable(pmuId);
+    }
 }
 
 oeaware::Result PmuSpeCollector::OpenTopic(const oeaware::Topic &topic)

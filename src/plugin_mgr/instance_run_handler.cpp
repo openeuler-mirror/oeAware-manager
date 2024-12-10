@@ -22,7 +22,7 @@ Result InstanceRunHandler::EnableInstance(const std::string &name)
     auto instance = memoryStore->GetInstance(name);
     auto result = instance->interface->Enable();
     if (result.code < 0) {
-        WARN(logger, name << " instance enabled failed!");
+        WARN(logger, name << " instance enabled failed, " << result.payload);
         return result;
     }
     instance->enabled = true;

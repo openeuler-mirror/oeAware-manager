@@ -13,6 +13,7 @@
 #define XCALL_TUNE_H
 #include <unordered_map>
 #include <vector>
+#include <unordered_set>
 #include "oeaware/interface.h"
 
 class XcallTune : public oeaware::Interface {
@@ -27,10 +28,12 @@ public:
     void Run() override;
 private:
     int ReadConfig(const std::string &path);
+    int WriteSysParam(const std::string &path, const std::string &value);
     const int defaultPeriod = 1000;
     const int defaultPriority = 2;
     std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> xcallTune;
-    std::unordered_map<std::string, int> threadId;
+    std::unordered_map<std::string, std::unordered_set<int>> threadId;
+    std::unordered_map<std::string, std::vector<std::string>> openedXcall;
 };
 
 #endif

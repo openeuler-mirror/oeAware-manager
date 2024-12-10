@@ -29,7 +29,7 @@ UnixBenchTune::UnixBenchTune() {
     period = 500;
     priority = 2;
     depTopic.instanceName = "thread_collector";
-    depTopic.topicName = "thread_info";
+    depTopic.topicName = "thread_collector";
 }
 
 oeaware::Result UnixBenchTune::OpenTopic(const oeaware::Topic &topic)
@@ -62,7 +62,7 @@ void UnixBenchTune::UpdateData(const DataList &dataList)
         if (CPU_EQUAL(newMask, &currentMask)) {
             continue;
         }
-
+        
         if (sched_setaffinity(tid, sizeof(*newMask), newMask) == 0) {
             bindTid.insert(tid);
         }
@@ -80,11 +80,9 @@ oeaware::Result UnixBenchTune::Enable(const std::string &param)
         initCpuMap();
         initNodeCpuMask();
         initAllCpumask();
-
-        Subscribe(depTopic);
         isInit = true;
     }
-
+    Subscribe(depTopic);
     ReadKeyThreads(CONFIG_PATH);
     return oeaware::Result(OK);
 }

@@ -22,6 +22,8 @@
 #include "oeaware/data/kernel_data.h"
 #include "data_register.h"
 
+std::vector<std::string> KernelConfig::getCmdGroup{"cat", "grep", "awk", "pgrep", "ls", "ethtool", "lscpu", "ifconfig"};
+
 KernelConfig::KernelConfig(): oeaware::Interface()
 {
     this->name = OE_KERNEL_CONFIG_COLLECTOR;
@@ -53,7 +55,9 @@ bool KernelConfig::InitCmd(std::stringstream &ss, const std::string &topicType)
         }
         if (!cmd.empty()) {
             cmd += " ";
-        }
+        } else if (std::find(getCmdGroup.begin(), getCmdGroup.end(), word) == getCmdGroup.end()) {
+        	return false;
+		}
         cmd += word;
     }
     if (!CommandBase::ValidateCmd(cmd)) {
@@ -141,8 +145,6 @@ void KernelConfig::UpdateData(const DataList &dataList)
     }
     return;
 }
-
-std::vector<std::string> KernelConfig::getCmdGroup{"cat", "grep", "awk", "pgrep", "ls", "ethtool"};
 
 static void SetKernelData(KernelData *data, const std::string &ret)
 {

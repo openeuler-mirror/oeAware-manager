@@ -124,6 +124,7 @@ void CpuBurst::Tune(int periodMs)
 {
     if (curSysCycles > maxSysCycles * periodMs / MILLISECONDS_IN_SECOND * NINETY_PERCENT) {
         Exit();
+        return;
     }
     for (auto &container : containers) {
         if (container.second.cfs_burst_us < container.second.cfs_quota_us) {

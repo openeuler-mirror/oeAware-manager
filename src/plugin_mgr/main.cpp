@@ -16,6 +16,7 @@
 
 int main(int argc, char **argv)
 {
+    oeaware::CreateDir(oeaware::DEFAULT_LOG_PATH);
     oeaware::Logger::GetInstance().Register("Main");
     auto logger = oeaware::Logger::GetInstance().Get("Main");
     if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR) {

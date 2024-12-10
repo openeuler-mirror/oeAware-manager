@@ -41,7 +41,7 @@ void CommandCollector::CollectThread(const oeaware::Topic &topic, CommandBase* c
     while (collector->isRunning && fgets(buffer, sizeof(buffer), p.stream) != nullptr) {
         collector->ParseLine(std::string(buffer));
     }
-    int waitTime = 10 * 1000;
+    int waitTime = 100 * 1000;
     usleep(waitTime);
     p.Pclose();
     collector->Close();

@@ -60,6 +60,7 @@ install -D -m 0640 ./build/output/plugin/lib/xcall.yaml           %{buildroot}%{
 %post
 if ! grep -q "oeaware:" /etc/group; then
         groupadd oeaware
+        setfacl -m g:oeaware:r /usr/lib64/liboeaware-sdk.so
 fi
 systemctl start oeaware.service
 chcon -t modules_object_t %{_prefix}/lib/smc/smc_acc.ko >/dev/null 2>&1

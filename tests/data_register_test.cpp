@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "data_register.h"
-#include "utils.h"
+#include "oeaware/utils.h"
 #include "securec.h"
 
 struct TestData {

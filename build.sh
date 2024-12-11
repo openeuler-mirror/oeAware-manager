@@ -6,6 +6,7 @@ cd $script_dir/
 os_arch=$(uname -m)
 libkperf_version="v1.2.1" # only for build_kperf_by_src=ON
 build_kperf_by_src="ON"
+build_test="OFF"
 
 function usage() {
     echo ""
@@ -13,15 +14,20 @@ function usage() {
     echo ""
     echo "The most commonly used build.sh options are:"
     echo "  -k |--kperfrpm     not build with libkperf by source code"
+    echo "  -t |--test         build tests case"
     echo "  -h |--help         show usage"
 }
 
-options=$(getopt -o kh --long kperfrpm,help -- "$@")
+options=$(getopt -o kht --long kperfrpm,help,test -- "$@")
 eval set -- "$options"
 while true; do
     case "$1" in
         -k|--kperfrpm)
             build_kperf_by_src="OFF"
+            shift
+            ;;
+        -t|--test)
+            build_test="ON"
             shift
             ;;
         -h|--help)
@@ -62,5 +68,6 @@ elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "OFF" ]]; then
 fi
 
 
-cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data
+cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
+         -DBUILD_TEST=${build_test}
 make -j$(nproc)

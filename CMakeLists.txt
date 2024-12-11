@@ -10,7 +10,9 @@ add_subdirectory(src/plugin)
 add_subdirectory(src/plugin_mgr)
 add_subdirectory(src/client)
 add_subdirectory(src/sdk)
-add_subdirectory(tests)
+if (BUILD_TEST)
+    add_subdirectory(tests)
+endif()
 
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_counting_data.h"

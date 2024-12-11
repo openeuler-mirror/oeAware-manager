@@ -77,7 +77,12 @@ void ThreadCollector::Run()
     dataList.data = new void* [threads.size()];
     uint64_t i = 0;
     for (auto &it : threads) {
-        dataList.data[i++] = it.second;
+        auto info = new ThreadInfo();
+        info->pid = it.second->pid;
+        info->tid = it.second->tid;
+        info->name = new char[strlen(it.second->name) + 1];
+        strcpy_s(info->name, strlen(it.second->name) + 1, it.second->name);
+        dataList.data[i++] = info;
     }
     dataList.len = i;
     Publish(dataList);
@@ -131,7 +136,11 @@ void ThreadCollector::CollectThreads(int pid, DIR *taskDir)
         }
         int tid = atoi(taskEntry->d_name);
         /* Update if the thread exists. */
-        threads[tid] = GetThreadInfo(pid, tid);
+        auto info = GetThreadInfo(pid, tid);
+        if (info == nullptr) {
+            continue;
+        }
+        threads[tid] = info;
     }
 }
 
@@ -161,6 +170,8 @@ void ThreadCollector::ClearInvalidThread()
             if (taskTime.count(tid)) {
                 taskTime.erase(tid);
             }
+            delete[] it->second->name;
+            delete it->second;
             it = threads.erase(it);
         }else {
             ++it;

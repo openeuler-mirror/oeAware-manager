@@ -52,6 +52,9 @@ void UnixBenchTune::UpdateData(const DataList &dataList)
 
     for (uint64_t i = 0; i < dataList.len; ++i) {
         auto *tmp = (ThreadInfo*)dataList.data[i];
+        if (tmp == nullptr || tmp->name == nullptr) {
+            continue;
+        }
         if (std::find(keyThreadNames.begin(), keyThreadNames.end(), tmp->name) == keyThreadNames.end()) {
             continue;
         }

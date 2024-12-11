@@ -62,7 +62,7 @@ CommandBase::CommandBase()
 }
 
 std::vector<std::string> CommandBase::command{"mpstat", "iostat", "vmstat", "sar", "pidstat"};
-std::vector<std::string> CommandBase::illegal{"|", ";", "&", "$", ">", "<", "`", "\n"};
+std::vector<std::string> CommandBase::illegal{"|", ";", "&", ">", "<", "`", "\n"};
 
 bool CommandBase::ValidateCmd(const std::string &cmd)
 {

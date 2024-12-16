@@ -32,6 +32,8 @@ CpuBurstAdapt::CpuBurstAdapt()
     topic.instanceName = this->name;
     topic.topicName = this->name;
     supportTopics.push_back(topic);
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "cycles", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_DOCKER_COLLECTOR, OE_DOCKER_COLLECTOR, ""});
 }
 
 oeaware::Result CpuBurstAdapt::OpenTopic(const oeaware::Topic &topic)
@@ -55,20 +57,17 @@ oeaware::Result CpuBurstAdapt::Enable(const std::string &param)
     (void)param;
     if (!CpuBurst::GetInstance().Init())
         return oeaware::Result(FAILED, "CpuBurst init failed!");
-    oeaware::Topic topic;
-    topic.instanceName = "pmu_counting_collector";
-    topic.topicName = "cycles";
-    oeaware::Result ret_pmu = Subscribe(topic);
-    topic.instanceName = OE_DOCKER_COLLECTOR;
-    topic.topicName = OE_DOCKER_COLLECTOR;
-    oeaware::Result ret_docker = Subscribe(topic);
-    if (ret_pmu.code != OK || ret_docker.code != OK)
-        return oeaware::Result(FAILED, "Subscribe failed!");
+    for (auto &topic : subscribeTopics) {
+        Subscribe(topic);
+    }
     return oeaware::Result(OK);
 }
 
 void CpuBurstAdapt::Disable()
 {
+    for (auto &topic : subscribeTopics) {
+        Unsubscribe(topic);
+    }
     CpuBurst::GetInstance().Exit();
 }
 

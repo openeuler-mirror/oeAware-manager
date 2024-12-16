@@ -24,5 +24,7 @@ public:
     oeaware::Result Enable(const std::string &param) override;
     void Disable() override;
     void Run() override;
+private:
+    std::vector<oeaware::Topic> subscribeTopics;
 };
 #endif // CPU_BURST_ADAPT_H

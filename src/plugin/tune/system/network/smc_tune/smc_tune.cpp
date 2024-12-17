@@ -19,11 +19,12 @@ int log_level = 0;
 SmcTune::SmcTune()
 {
     name = OE_SMC_TUNE;
-    description = "collect information of key thread";
+    description = "This solution uses Shared Memory Communications - Direct Memory Access(SMC-D) for TCP"
+        " connections to local peers which also support this function.";
     version = "1.0.0";
-    period = -1;
+    period = 1000;
     priority = 2;
-    type = 2;
+    type = TUNE;
 }
 
 oeaware::Result SmcTune::OpenTopic(const oeaware::Topic &topic)

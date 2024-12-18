@@ -14,6 +14,7 @@
 #include <iostream>
 #include <securec.h>
 #include "oeaware/data/pmu_counting_data.h"
+#include "pmu_common.h"
 
 PmuCountingCollector::PmuCountingCollector(): oeaware::Interface()
 {
@@ -119,6 +120,9 @@ void PmuCountingCollector::CloseTopic(const oeaware::Topic &topic)
 oeaware::Result PmuCountingCollector::Enable(const std::string &param)
 {
     (void)param;
+    if (!IsSupportPmu()) {
+        return oeaware::Result(FAILED, "the system does not support PMU.");
+    }
     return oeaware::Result(OK);
 }
 

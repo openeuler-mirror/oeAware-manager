@@ -35,6 +35,7 @@ private:
     int attrPeriod = 2048;
     std::string topicStr = "spe";
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
+    const std::string spePath = "/sys/bus/event_source/devices/arm_spe_0";
     const int timeoutMs = 50;
     const int notTimeoutMs = 10;
     const int periodThreshold = 2;

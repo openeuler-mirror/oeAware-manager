@@ -22,6 +22,7 @@ set(pmu_src
     pmu_uncore_collector.cpp
     pmu_uncore.cpp
     pmu_collector.cpp
+    pmu_common.cpp
 )
 
 add_library(pmu SHARED ${pmu_src})

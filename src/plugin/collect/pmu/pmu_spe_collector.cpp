@@ -133,6 +133,9 @@ void PmuSpeCollector::CloseTopic(const oeaware::Topic &topic)
 oeaware::Result PmuSpeCollector::Enable(const std::string &param)
 {
     (void)param;
+    if (!oeaware::FileExist(spePath)) {
+        return oeaware::Result(FAILED, "the system does not support SPE.");
+    }
     return oeaware::Result(OK);
 }
 

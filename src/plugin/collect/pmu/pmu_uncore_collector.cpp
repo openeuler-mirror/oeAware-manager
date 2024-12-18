@@ -151,6 +151,9 @@ void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
 oeaware::Result PmuUncoreCollector::Enable(const std::string &param)
 {
     (void)param;
+    if (!oeaware::FileExist(uncorePath)) {
+        return oeaware::Result(FAILED, "the system does not support uncore events.");
+    }
     return oeaware::Result(OK);
 }
 

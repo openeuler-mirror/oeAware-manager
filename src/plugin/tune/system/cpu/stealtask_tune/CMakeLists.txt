@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.11)
 project(stealtask_tune)
 
 add_library(stealtask_tune STATIC

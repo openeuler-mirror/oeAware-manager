@@ -7,18 +7,25 @@ os_arch=$(uname -m)
 libkperf_version="v1.2.1" # only for build_kperf_by_src=ON
 build_kperf_by_src="ON"
 build_test="OFF"
-
+with_debug="OFF"
+with_asan="OFF"
+with_optimization="OFF"
+params="kperfrpm,help,test,with_asan,with_optimization,debug,release"
 function usage() {
     echo ""
     echo "usage: build.sh [OPTIONS] [ARGS]"
     echo ""
     echo "The most commonly used build.sh options are:"
-    echo "  -k |--kperfrpm     not build with libkperf by source code"
-    echo "  -t |--test         build tests case"
-    echo "  -h |--help         show usage"
+    echo "  -k |--kperfrpm               not build with libkperf by source code"
+    echo "  -t |--test                   build tests case"
+    echo "  --with_asan                  open AddressSanitizer compilation option"
+    echo "  --with_optimization          open optimization compilation option"
+    echo "  --debug                      compile the debug version"
+    echo "  --release                    compile the release version"
+    echo "  -h |--help                   show usage"
 }
 
-options=$(getopt -o kht --long kperfrpm,help,test -- "$@")
+options=$(getopt -o kht --long ${params} -- "$@")
 eval set -- "$options"
 while true; do
     case "$1" in
@@ -27,7 +34,25 @@ while true; do
             shift
             ;;
         -t|--test)
-            build_test="ON"
+            with_test="ON"
+            shift
+            ;;
+        --debug)
+            with_test="ON"
+            with_debug="ON"
+            with_optimization="OFF"
+            shift
+            ;;
+        --release)
+            with_optimization="ON"
+            shift
+            ;;
+        --with_asan)
+            with_asan="ON"
+            shift
+            ;;
+        --with_optimization)
+            with_optimization="ON"
             shift
             ;;
         -h|--help)
@@ -69,5 +94,6 @@ fi
 
 
 cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
-         -DBUILD_TEST=${build_test}
+         -DWITH_TEST=${build_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
+         -DWITH_OPTIMIZATION=${with_optimization}
 make -j$(nproc)

@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.16)
 project(test)
 set(SRC_DIR ../src)
-SET(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now")
 
 find_package(GTest CONFIG REQUIRED)
 
@@ -30,7 +28,7 @@ add_executable(utils_test
 )
 
 add_executable(data_register_test
-    data_register_test
+    data_register_test.cpp
 )
 
 target_link_libraries(serialize_test PRIVATE common GTest::gtest_main)

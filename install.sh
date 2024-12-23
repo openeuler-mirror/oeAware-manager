@@ -1,8 +1,8 @@
 mkdir -p /usr/include/oeaware
 cp -r build/output/include/* /usr/include/
 cp -r build/output/bin/* /bin/
-mkdir -p /etc/oeaware
-cp config.yaml /etc/oeaware
+mkdir -p /etc/oeAware
+cp config.yaml /etc/oeAware
 cp build/output/sdk/liboeaware-sdk.so /lib64
 
 mkdir -p /lib64/oeAware-plugin

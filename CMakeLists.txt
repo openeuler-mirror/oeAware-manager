@@ -2,15 +2,33 @@ cmake_minimum_required(VERSION 3.16)
 
 project(oeAware-manager)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -fPIC")
 set(SDK_OUTPUT_LIBRARY_DIRECTORY ${CMAKE_BINARY_DIR}/output/sdk)
 set(SDK_INC_PATH ${CMAKE_CURRENT_LIST_DIR}/src/sdk)
+
+if (WITH_ASAN)
+    message(STATUS "enable asan")
+    function(enable_asan target)
+        add_compile_options(-fsanitize=address)
+        target_link_libraries(${target} asan)
+    endfunction()
+endif()
+
+if (WITH_OPTIMIZATION)
+    message(STATUS "add_compile_options(-O2)")
+    add_compile_options(-O2)
+endif()
+
+message(STATUS "C Flags: ${CMAKE_C_FLAGS}")
+message(STATUS "CXX Flags: ${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(src/common)
 add_subdirectory(src/plugin)
 add_subdirectory(src/plugin_mgr)
 add_subdirectory(src/client)
 add_subdirectory(src/sdk)
-if (BUILD_TEST)
+if (WITH_TEST)
     add_subdirectory(tests)
 endif()
 

@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.11)
 project(system_collector)
 include_directories(command)
-add_compile_options(-O2 -fPIC -Wall -Wextra)
 add_library(system_collector SHARED
             thread_collector.cpp
             system_collector.cpp
@@ -12,6 +10,11 @@ add_library(system_collector SHARED
             )
 target_include_directories(system_collector PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(system_collector PRIVATE ${CMAKE_SOURCE_DIR}/src/common)
+
+if (WITH_ASAN)
+    enable_asan(system_collector)
+endif()
+
 target_link_libraries(system_collector common)
 set_target_properties(system_collector PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

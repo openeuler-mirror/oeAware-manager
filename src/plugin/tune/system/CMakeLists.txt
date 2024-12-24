@@ -1,12 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
 project(system_tune)
-
-if (WITH_DEBUG)
-    add_compile_options(-g)
-else()
-    add_compile_options(-O2)
-endif()
-add_compile_options(-fPIC -Wall -Wextra)
 
 add_subdirectory(cpu/stealtask_tune)
 add_subdirectory(network/smc_tune)
@@ -16,6 +8,9 @@ add_subdirectory(power/seep_tune)
 add_library(system_tune SHARED
         system_tune.cpp)
 
+if (WITH_ASAN)
+    enable_asan(system_tune)
+endif()
 target_link_libraries(system_tune stealtask_tune smc_tune xcall_tune seep_tune)
 
 set_target_properties(system_tune PROPERTIES

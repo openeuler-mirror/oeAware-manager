@@ -1,12 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
 project(smc_tune)
-
-if (WITH_DEBUG)
-    add_compile_options(-g)
-else()
-    add_compile_options(-O2)
-endif()
-add_compile_options(-fPIC -Wall -Wextra -Wno-unused-value -Wno-missing-field-initializers)
 
 include_directories(/usr/include/libnl3)
 

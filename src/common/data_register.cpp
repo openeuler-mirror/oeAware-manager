@@ -152,6 +152,7 @@ void PmuBaseDataFree(void *data)
     PmuDataFree(tmpData->pmuData);
     tmpData->pmuData = nullptr;
     tmpData->len = 0;
+    delete tmpData;
 }
 
 int PmuCountingDataSerialize(const void *data, OutStream &out)

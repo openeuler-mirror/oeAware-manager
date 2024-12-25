@@ -21,7 +21,7 @@ using SerializeFunc = int(*)(const void*, OutStream &out);
 using DataFreeFunc = void(*)(void *);
 
 struct RegisterEntry {
-    RegisterEntry() { }
+    RegisterEntry() : se(nullptr), de(nullptr), free(nullptr) { }
     RegisterEntry(const SerializeFunc &se, const DeserializeFunc &de) : se(se), de(de), free(nullptr) { }
     RegisterEntry(const SerializeFunc &se, const DeserializeFunc &de, const DataFreeFunc &free) : se(se),
         de(de), free(free) { }

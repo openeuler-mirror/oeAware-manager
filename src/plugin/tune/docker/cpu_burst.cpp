@@ -91,10 +91,10 @@ void CpuBurst::UpdatePmu(const DataList &dataList)
 
 void CpuBurst::UpdateDocker(const DataList &dataList)
 {
-    std::unordered_map<std::string, Container*> collector;
+    std::unordered_map<std::string, Container> collector;
     for (uint64_t i = 0; i < dataList.len; i++) {
         auto *tmp = (Container*)dataList.data[i];
-        collector[tmp->id] = tmp;
+        collector[tmp->id] = *tmp;
     }
 
     for (const auto &container : collector) {
@@ -102,11 +102,11 @@ void CpuBurst::UpdateDocker(const DataList &dataList)
         const auto &container_info = container.second;
         if (containers.find(id) == containers.end()) {
             containers[id].id = id;
-            containers[id].cfs_burst_us_ori = container_info->cfs_burst_us;
+            containers[id].cfs_burst_us_ori = container_info.cfs_burst_us;
         }
-        containers[id].cfs_period_us = container_info->cfs_period_us;
-        containers[id].cfs_quota_us = container_info->cfs_quota_us;
-        containers[id].cfs_burst_us = container_info->cfs_burst_us;
+        containers[id].cfs_period_us = container_info.cfs_period_us;
+        containers[id].cfs_quota_us = container_info.cfs_quota_us;
+        containers[id].cfs_burst_us = container_info.cfs_burst_us;
     }
 
     // remove containers

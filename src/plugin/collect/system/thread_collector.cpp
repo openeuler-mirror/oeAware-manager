@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <securec.h>
+#include "data_register.h"
 
 ThreadCollector::ThreadCollector()
 {
@@ -28,6 +29,7 @@ ThreadCollector::ThreadCollector()
     version = "1.0.0";
     period = 500;
     priority = 0;
+    type = 0;
     oeaware::Topic topic;
     topic.instanceName = this->name;
     topic.topicName = this->name;
@@ -61,6 +63,9 @@ oeaware::Result ThreadCollector::Enable(const std::string &param)
 void ThreadCollector::Disable()
 {
     openStatus = false;
+    for (auto &item : threads) {
+        oeaware::Register::GetInstance().GetDataFreeFunc(OE_THREAD_COLLECTOR)(item.second);
+    }
 }
 
 void ThreadCollector::Run()

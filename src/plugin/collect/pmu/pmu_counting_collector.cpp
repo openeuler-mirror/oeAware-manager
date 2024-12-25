@@ -62,6 +62,7 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     errno_t ret = strcpy_s(evtList[0], topic.topicName.length() + 1, topic.topicName.c_str());
     if (ret != EOK) {
         std::cout << topic.topicName << " open failed, reason: strcpy_s failed" << std::endl;
+        delete[] evtList[0];
         return -1;
     }
     attr.evtList = evtList;
@@ -71,7 +72,7 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     if (pd == -1) {
         std::cout << topic.topicName << " open failed" << std::endl;
     }
-
+    delete[] evtList[0];
     return pd;
 }
 

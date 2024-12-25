@@ -145,6 +145,7 @@ void PmuUncoreCollector::CloseTopic(const oeaware::Topic &topic)
     }
     PmuDisable(pmuId);
     PmuClose(pmuId);
+    UncoreConfigFini();
     pmuId = -1;
 }
 

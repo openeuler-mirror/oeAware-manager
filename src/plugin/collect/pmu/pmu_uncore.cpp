@@ -128,7 +128,7 @@ int HhaUncoreConfigInit(void)
 static void UncoreConfigFree(UncoreConfig *config)
 {
     if (config != nullptr) {
-        delete config;
+        delete[] config;
         config = nullptr;
     }
 }

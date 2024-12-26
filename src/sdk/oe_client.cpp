@@ -88,6 +88,7 @@ void Impl::HandleRecv()
 }
 int Impl::Init()
 {
+    pid_t pid = getpid();
     auto home = getenv("HOME");
     std::string homeDir;
     if (home == nullptr) {
@@ -100,7 +101,7 @@ int Impl::Init()
     CreateDir(homeDir);
     isQuit = false;
     finished = false;
-    domainSocket = std::make_shared<DomainSocket>(homeDir + "/oeaware-sdk.sock");
+    domainSocket = std::make_shared<DomainSocket>(homeDir + "/oeaware-sdk-" + std::to_string(pid) + ".sock");
     domainSocket->SetRemotePath(DEFAULT_SERVER_LISTEN_PATH);
     resultQueue = std::make_shared<SafeQueue<Result>>();
     int sock = domainSocket->Socket();

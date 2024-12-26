@@ -78,5 +78,6 @@ void DomainSocket::Close()
 {
     close(sock);
     sock = 0;
+    unlink(localPath.c_str());
 }
 }

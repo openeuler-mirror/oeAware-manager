@@ -19,6 +19,10 @@ constexpr int INSTANCE_RUN_ALWAYS = 1;
 
 Result InstanceRunHandler::EnableInstance(const std::string &name)
 {
+    if (!memoryStore->IsInstanceExist(name)) {
+        WARN(logger, "instance {" << name << "} does not exist.");
+        return Result(FAILED, "instance {" + name + "} does not exist.");
+    }
     auto instance = memoryStore->GetInstance(name);
     auto result = instance->interface->Enable();
     if (result.code < 0) {
@@ -40,6 +44,10 @@ Result InstanceRunHandler::EnableInstance(const std::string &name)
 
 void InstanceRunHandler::DisableInstance(const std::string &name)
 {
+    if (!memoryStore->IsInstanceExist(name)) {
+        WARN(logger, "instance {" << name << "} does not exist.");
+        return;
+    }
     auto instance = memoryStore->GetInstance(name);
     instance->enabled = false;
     instance->interface->Disable();
@@ -49,6 +57,10 @@ void InstanceRunHandler::DisableInstance(const std::string &name)
 Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
 {
     Topic topic = Topic::GetTopicFromType(payload[0]);
+    if (!memoryStore->IsInstanceExist(topic.instanceName)) {
+        WARN(logger, "instance {" << topic.instanceName << "} does not exist.");
+        return Result(FAILED, "instance {" + topic.instanceName + "} does not exist.");
+    }
     Result result;
     constexpr int subscriberIndex = 1;
     auto instance = memoryStore->GetInstance(topic.instanceName);

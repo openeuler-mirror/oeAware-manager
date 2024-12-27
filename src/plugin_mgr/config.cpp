@@ -61,13 +61,13 @@ void Config::SetEnableList(const YAML::Node &node)
         std::string pluginName = enableList[i]["name"].as<std::string>();
         YAML::Node instances = enableList[i]["instances"];
         EnableItem enableItem(pluginName);
-        if (!instances.IsSequence()) {
-            WARN(logger, "the format of the enable list is incorrect.");
-            continue;
-        }
         if (!instances.IsDefined() || instances.IsNull()) {
             enableItem.SetEnabled(true);
         } else {
+            if (!instances.IsSequence()) {
+                WARN(logger, "the format of the enable list{" << pluginName << "} is incorrect.");
+                continue;
+            }
             for (size_t j = 0; j < instances.size(); ++j) {
                 std::string instanceName = instances[j].as<std::string>();
                 enableItem.AddInstance(instanceName);

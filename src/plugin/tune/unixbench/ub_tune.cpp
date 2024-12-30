@@ -28,6 +28,7 @@ UnixBenchTune::UnixBenchTune() {
     version = "1.0.0";
     period = 500;
     priority = 2;
+    type = TUNE;
     depTopic.instanceName = "thread_collector";
     depTopic.topicName = "thread_collector";
 }

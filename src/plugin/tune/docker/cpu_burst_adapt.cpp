@@ -27,7 +27,7 @@ CpuBurstAdapt::CpuBurstAdapt()
     version = "1.0.0";
     period = PERIOD;
     priority = PRIORITY;
-    
+    type = oeaware::TUNE;
     oeaware::Topic topic;
     topic.instanceName = this->name;
     topic.topicName = this->name;

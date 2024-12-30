@@ -45,6 +45,7 @@ DockerAdapt::DockerAdapt()
     version = "1.0.0";
     period = PERIOD;
     priority = PRIORITY;
+    type = 0;
 
     oeaware::Topic topic;
     topic.instanceName = this->name;
@@ -97,7 +98,7 @@ void DockerAdapt::Run()
     dataList.data = new void* [containers.size()];
     uint64_t i = 0;
     for (auto &it : containers) {
-        dataList.data[i++] = it.second;
+        dataList.data[i++] = &it.second;
     }
     dataList.len = i;
     Publish(dataList);
@@ -108,8 +109,6 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
     // delete non-existent container
     for (auto it = containers.begin(); it != containers.end();) {
         if (directories.find(it->first) == directories.end()) {
-            delete it->second;
-            it->second = nullptr;
             it = containers.erase(it);
         } else {
             ++it;
@@ -123,11 +122,11 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
         read_success &= GetContainersInfo(tmp.cfs_quota_us, dir, "cpu.cfs_quota_us");
         read_success &= GetContainersInfo(tmp.cfs_burst_us, dir, "cpu.cfs_burst_us");
         if (read_success) {
-            Container* container = new Container();
-            container->cfs_period_us = tmp.cfs_period_us;
-            container->cfs_quota_us = tmp.cfs_quota_us;
-            container->cfs_burst_us = tmp.cfs_burst_us;
-            container->id = dir;
+            Container container;
+            container.cfs_period_us = tmp.cfs_period_us;
+            container.cfs_quota_us = tmp.cfs_quota_us;
+            container.cfs_burst_us = tmp.cfs_burst_us;
+            container.id = dir;
             containers[dir] = container;
         }
     }

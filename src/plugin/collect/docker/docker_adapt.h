@@ -33,6 +33,6 @@ private:
     void DockerUpdate(const std::unordered_set<std::string> &sub_dir);
     void DockerCollect();
     bool openStatus = false;
-    std::unordered_map<std::string, Container*> containers;
+    std::unordered_map<std::string, Container> containers;
 };
 #endif // OEAWARE_MANAGER_DOCKER_ADAPT_H

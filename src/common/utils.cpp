@@ -17,6 +17,8 @@
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include <grp.h>
+#include <iostream>
+#include <cctype>
 
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;
@@ -199,6 +201,55 @@ bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const
     }
     strcpy_s(dataList->topic.params, params.size() + 1, params.data());
     return true;
+}
+
+uint64_t GetCpuCycles(int cpu)
+{
+    std::string freqPath = "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/cpufreq/scaling_cur_freq";
+    std::ifstream freqFile(freqPath);
+
+    if (!freqFile.is_open()) {
+        return 0;
+    }
+
+    uint64_t freq;
+    freqFile >> freq;
+    freqFile.close();
+
+    if (freqFile.fail()) {
+        return 0;
+    }
+
+    return freq * 1000; // 1000: kHz to Hz
+}
+
+uint64_t GetCpuFreqByDmi()
+{
+    FILE *pipe = popen("dmidecode -t processor | grep 'Max Speed' | head -n 1 | awk '{print $3}'", "r");
+    if (!pipe) {
+        std::cout << "failed to run dmidecode" << std::endl;
+        return 0;
+    }
+
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) == nullptr) {
+        std::cout << "failed to get cpufreq by dmidecode" << std::endl;
+        pclose(pipe);
+        return 0;
+    }
+    pclose(pipe);
+
+    std::string str(buffer);
+    str.erase(str.find_last_not_of(" \t\n\r") + 1);
+
+    for (char c : str) {
+        if (!std::isdigit(c)) {
+            std::cerr << "invalid CPU frequency format: " << str << std::endl;
+            return 0;
+        }
+    }
+
+    return std::stoull(buffer) * 1000000; // 1000000: MHz to Hz
 }
 
 }

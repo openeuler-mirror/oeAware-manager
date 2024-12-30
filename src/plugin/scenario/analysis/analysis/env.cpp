@@ -13,7 +13,10 @@
 #include <string>
 #include <fstream>
 #include <unistd.h>
+#include <iostream>
+#include "oeaware/utils.h"
 #include "env.h"
+
 unsigned long GetPageMask()
 {
     static unsigned long pageMask = 0;
@@ -29,31 +32,16 @@ unsigned long GetPageMask()
     return pageMask;
 }
 
-static uint64_t GetCpuCycles(int cpu)
-{
-    std::string freqPath = "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/cpufreq/scaling_cur_freq";
-    std::ifstream freqFile(freqPath);
-
-    if (!freqFile.is_open()) {
-        return 0;
-    }
-
-    uint64_t freq;
-    freqFile >> freq;
-    freqFile.close();
-
-    if (freqFile.fail()) {
-        return 0;
-    }
-
-    return freq * 1000; // 1000: kHz to Hz
-}
-
-static void InitCpuCycles(std::vector<uint64_t> &maxCycles, uint64_t &sysMaxCycles)
+static void InitCpuCycles(std::vector<uint64_t> &maxCycles, uint64_t &sysMaxCycles, uint64_t &maxCpuFreqByDmi)
 {
     for (int cpu = 0; cpu < maxCycles.size(); cpu++) {
-        maxCycles[cpu] = GetCpuCycles(cpu);
+        maxCycles[cpu] = oeaware::GetCpuCycles(cpu);
         sysMaxCycles += maxCycles[cpu];
+    }
+
+    if (sysMaxCycles <= 0) {
+        std::cout << "use dmidecode to obtain cpu frequency" << std::endl;
+        sysMaxCycles = maxCpuFreqByDmi * maxCycles.size();
     }
 }
 
@@ -64,6 +52,7 @@ bool Env::Init()
     }
     numaNum = numa_num_configured_nodes();
     cpuNum = sysconf(_SC_NPROCESSORS_CONF);
+    maxCpuFreqByDmi = oeaware::GetCpuFreqByDmi();
     cpu2Node.resize(cpuNum, -1);
     struct bitmask *cpumask = numa_allocate_cpumask();
     for (int nid = 0; nid < numaNum; ++nid) {
@@ -80,7 +69,11 @@ bool Env::Init()
     pageMask = GetPageMask();
     InitDistance();
     cpuMaxCycles.resize(cpuNum, 0);
-    InitCpuCycles(cpuMaxCycles, sysMaxCycles);
+    InitCpuCycles(cpuMaxCycles, sysMaxCycles, maxCpuFreqByDmi);
+    if (sysMaxCycles <= 0) {
+        std::cout << "failed to get sysMaxCycles" << std::endl;
+        return false;
+    }
     initialized = true;
     return true;
 }

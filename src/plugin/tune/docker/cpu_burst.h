@@ -49,6 +49,7 @@ private:
     unsigned int cpuNum = 0;
     uint64_t maxSysCycles = 0;  // per second
     uint64_t curSysCycles = 0;
+    uint64_t maxCpuFreqByDmi;
     std::unordered_map<std::string, ContainerTune> containers;
     void UpdatePmu(const DataList &dataList);
     void UpdateDocker(const DataList &dataList);

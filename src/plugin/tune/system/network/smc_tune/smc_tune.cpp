@@ -11,6 +11,8 @@
  ******************************************************************************/
 #include "smc_tune.h"
 #include <stdlib.h>
+#include <iostream>
+#include <yaml-cpp/yaml.h>
 #include "smc_ueid.h"
 
 #define SMC_OP SmcOperator::getInstance()
@@ -18,13 +20,13 @@ using namespace oeaware;
 int log_level = 0;
 SmcTune::SmcTune()
 {
-    name = OE_SMC_TUNE;
+    name        = OE_SMC_TUNE;
     description = "This solution uses Shared Memory Communications - Direct Memory Access(SMC-D) for TCP"
-        " connections to local peers which also support this function.";
-    version = "1.0.0";
-    period = 1000;
-    priority = 2;
-    type = TUNE;
+                  " connections to local peers which also support this function.";
+    version     = "1.0.0";
+    period      = 1000; // Period in milliseconds
+    priority    = 2; // set priority
+    type        = TUNE;
 }
 
 oeaware::Result SmcTune::OpenTopic(const oeaware::Topic &topic)
@@ -46,18 +48,45 @@ void SmcTune::UpdateData(const DataList &dataList)
 oeaware::Result SmcTune::Enable(const std::string &param)
 {
     (void)param;
-    int ret = (SMC_OP->enable_smc_acc() == EXIT_SUCCESS ? OK: FAILED);
+    auto listpair = ReadConfig(SMC_ACC_YAML_PATH);
+    SMC_OP->InputPortList(listpair.first, listpair.second);
+    int ret = (SMC_OP->EnableSmcAcc() == EXIT_SUCCESS ? OK : FAILED);
     return oeaware::Result(ret);
 }
 
 void SmcTune::Disable()
 {
-    if (SMC_OP->disable_smc_acc() == EXIT_FAILURE) {
+    if (SMC_OP->DisableSmcAcc() == EXIT_FAILURE) {
         WARN(logger, "failed to disable smc acc");
     }
 }
 
 void SmcTune::Run()
 {
+    auto listpair = ReadConfig(SMC_ACC_YAML_PATH);
+    if (SMC_OP->IsSamePortList(listpair.first, listpair.second)) {
+        return;
+    }
+    SMC_OP->InputPortList(listpair.first, listpair.second);
+    if (SMC_OP->ReRunSmcAcc() != EXIT_SUCCESS)
+        WARN(logger, "failed to ReRunSmcAcc");
+}
 
+std::pair<std::string, std::string> oeaware::SmcTune::ReadConfig(const std::string &path)
+{
+    std::ifstream sysFile(path);
+    std::string blackPortList, whitePortList;
+
+    if (!sysFile.is_open()) {
+        WARN(logger, "smc_acc.yaml config open failed.");
+        return std::make_pair("", "");
+    }
+    YAML::Node node = YAML::LoadFile(path);
+
+    blackPortList = node["black_port_list_param"] ? node["black_port_list_param"].as<std::string>() : "";
+
+    whitePortList = node["white_port_list_param"] ? node["white_port_list_param"].as<std::string>() : "";
+
+    sysFile.close();
+    return std::make_pair(blackPortList, whitePortList);
 }

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <iostream>
 #include "smc_common.h"
 #include "smc_netlink.h"
 
@@ -28,20 +29,23 @@ public:
         static SmcOperator instance;
         return &instance;
     }
-    int invoke_ueid(int act);
-    void set_enable(int is_enable);
-    int run_smc_acc(char *ko_path = NULL);
-    int check_smc_ko();
-    int smc_init();
-    int smc_exit();
-    int enable_smc_acc();
-    int disable_smc_acc();
-    int check_smc_acc_run();
-    int able_smc_acc(int is_enable);
+    int InvokeUeid(int act);
+    void SetEnable(int isEnable);
+    int RunSmcAcc();
+    int CheckSmcKo();
+    int SmcInit();
+    int SmcExit();
+    int EnableSmcAcc();
+    int DisableSmcAcc();
+    int AbleSmcAcc(int isEnable);
+    int InputPortList(const std::string &blackPortStr, const std::string &whitePortStr);
+    bool IsSamePortList(const std::string &blackPortStr, const std::string &whitePortStr);
+    int ReRunSmcAcc();
+
 private:
     SmcOperator()
     {
-        sprintf(target_eid, "%-32s", SMC_UEID_NAME);
+        sprintf(targetEid, "%-32s", SMC_UEID_NAME);
     }
     ~SmcOperator()
     {
@@ -49,8 +53,10 @@ private:
     int act;
     int enable;
     struct nl_sock *sk;
-    bool is_init;
-    char target_eid[SMC_MAX_EID_LEN + 1];
+    bool isInit;
+    char targetEid[SMC_MAX_EID_LEN + 1];
+    std::string blackPortList;
+    std::string whitePortList;
 };
 
 #endif /* UEID_H_ */

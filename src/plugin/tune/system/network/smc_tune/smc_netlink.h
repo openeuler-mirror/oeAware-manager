@@ -34,10 +34,10 @@ public:
         static SmcNetlink instance;
         return &instance;
     }
-    int gen_nl_open();
-    void gen_nl_close();
-    int gen_nl_euid_handle(int cmd, char *ueid, int (*cb_handler)(struct nl_msg *msg, void *arg));
-    bool check_sk_invaild()
+    int GenNlOpen();
+    void GenNlClose();
+    int GenNlEuidHandle(int cmd, char *ueid, int (*cb_handler)(struct nl_msg *msg, void *arg));
+    bool CheckSkInvaild()
     {
         return sk != nullptr;
     }

@@ -17,14 +17,20 @@ const struct nla_policy smc_gen_ueid_policy[SMC_ACC_NLA_EID_TABLE_MAX + 1] = {
     [SMC_ACC_NLA_EID_TABLE_ENTRY]  = {.type = NLA_NUL_STRING},
 };
 
-static int handle_gen_ueid_reply(struct nl_msg *msg, void *arg)
+const std::vector<std::string> whiteList ={
+    "lsmod",
+    "grep",
+    "rmmod"
+};
+
+static int HandleGenUeidReply(struct nl_msg *msg, void *arg)
 {
     struct nlattr *attrs[SMC_ACC_NLA_EID_TABLE_ENTRY + 1];
     struct nlmsghdr *hdr = nlmsg_hdr(msg);
     int rc               = NL_OK;
     (void *)arg;
     if (genlmsg_parse(hdr, 0, attrs, SMC_ACC_NLA_EID_TABLE_ENTRY, (struct nla_policy *)smc_gen_ueid_policy) < 0) {
-        log_err(" invalid data returned: smc_gen_ueid_policy\n");
+        SMCLOG_ERROR(" invalid data returned: smc_gen_ueid_policy");
         nl_msg_dump(msg, stderr);
         return NL_STOP;
     }
@@ -32,25 +38,38 @@ static int handle_gen_ueid_reply(struct nl_msg *msg, void *arg)
     if (!attrs[SMC_ACC_NLA_EID_TABLE_ENTRY])
         return NL_STOP;
 
-    printf("%s\n", nla_get_string(attrs[SMC_ACC_NLA_EID_TABLE_ENTRY]));
+    SMCLOG_INFO("ueid : " << nla_get_string(attrs[SMC_ACC_NLA_EID_TABLE_ENTRY]));
     return rc;
 }
 
-
-static inline int file_exist(const char *path)
+static inline int FileExist(const char *path)
 {
     return access(path, F_OK) == 0;
 }
 
-static int exec(const char *cmd, size_t len)
+static inline bool IsValidCmd(const std::string& cmd)
+{
+    for (const auto& allowed_cmd : whiteList) {
+        if(cmd.find(allowed_cmd) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static int Exec(const char *cmd, size_t len)
 {
     FILE *output;
     char buffer[128];
     if (len > sizeof(buffer)) {
-        log_err("Too many words\n");
+        SMCLOG_ERROR("Too many words");
     }
     int status;
 
+    if (!IsValidCmd(cmd)) {
+        SMCLOG_ERROR("Invalid command: " << cmd);
+        return -1;
+    }
     output = popen(cmd, "r");
     if (output == NULL) {
         return -1;
@@ -59,53 +78,53 @@ static int exec(const char *cmd, size_t len)
     }
 
     status = pclose(output);
-    log_info(" command: %s, status:%d\n", cmd, WEXITSTATUS(status));
+    SMCLOG_INFO(" command: " << cmd << ", status:" << WEXITSTATUS(status));
     return WEXITSTATUS(status);
 }
 
-static inline int simple_exec(char *cmd, ...)
+static inline int SimpleExec(char *cmd, ...)
 {
     char cmd_format[512];
     va_list valist;
 
     va_start(valist, cmd);
     if (!vsprintf(cmd_format, cmd, valist)) {
-        log_err("get cmd format error.\n");
+        SMCLOG_ERROR("get cmd format error.");
         return -1;
     }
     va_end(valist);
-    return exec(cmd_format, strlen(cmd_format));
+    return Exec(cmd_format, strlen(cmd_format));
 }
 
-int SmcOperator::invoke_ueid(int act)
+int SmcOperator::InvokeUeid(int act)
 {
     int rc = EXIT_SUCCESS;
-    if (strlen(target_eid) == 0) {
-        log_err("target_eid is not set yet\n");
+    if (strlen(targetEid) == 0) {
+        SMCLOG_ERROR("targetEid is not set yet");
         rc = EXIT_FAILURE;
         return rc;
     }
 
     switch (act) {
         case UEID_ADD: {
-            rc = SmcNetlink::getInstance()->gen_nl_euid_handle(SMC_ACC_NL_ADD_UEID, target_eid, handle_gen_ueid_reply);
+            rc = SmcNetlink::getInstance()->GenNlEuidHandle(SMC_ACC_NL_ADD_UEID, targetEid, HandleGenUeidReply);
             break;
         }
         case UEID_DEL: {
-            rc = SmcNetlink::getInstance()->gen_nl_euid_handle(SMC_ACC_NL_REMOVE_UEID, target_eid,
-                                                               handle_gen_ueid_reply);
+            rc = SmcNetlink::getInstance()->GenNlEuidHandle(SMC_ACC_NL_REMOVE_UEID, targetEid,
+                                                               HandleGenUeidReply);
             break;
         }
         case UEID_FLUSH: {
-            rc = SmcNetlink::getInstance()->gen_nl_euid_handle(SMC_ACC_NL_FLUSH_UEID, NULL, handle_gen_ueid_reply);
+            rc = SmcNetlink::getInstance()->GenNlEuidHandle(SMC_ACC_NL_FLUSH_UEID, NULL, HandleGenUeidReply);
             break;
         }
         case UEID_SHOW: {
-            rc = SmcNetlink::getInstance()->gen_nl_euid_handle(SMC_ACC_NL_DUMP_UEID, NULL, handle_gen_ueid_reply);
+            rc = SmcNetlink::getInstance()->GenNlEuidHandle(SMC_ACC_NL_DUMP_UEID, NULL, HandleGenUeidReply);
             break;
         }
         default: {
-            log_err(" Unknown command\n");
+            SMCLOG_ERROR(" Unknown command");
             break;
         }
     }
@@ -113,70 +132,65 @@ int SmcOperator::invoke_ueid(int act)
     return rc;
 }
 
-void SmcOperator::set_enable(int is_enable)
+void SmcOperator::SetEnable(int isEnable)
 {
-    enable = is_enable;
+    enable = isEnable;
 }
 
-int SmcOperator::run_smc_acc(char *ko_path)
+int SmcOperator::RunSmcAcc()
 {
     int rc = EXIT_SUCCESS;
+    std::stringstream args;
 
     if (enable == SMC_DISABLE) {
-        if (!simple_exec((char *)"lsmod | grep -w smc_acc")) {
-            rc = simple_exec((char *)"rmmod smc_acc");
+        if (!SimpleExec((char *)"lsmod | grep -w smc_acc")) {
+            rc = SimpleExec((char *)"rmmod smc_acc");
             goto out;
         }
         goto out;
     }
-    if (ko_path) {
-        if (!file_exist(ko_path)) {
-            log_err(" %s is not exist.\n", ko_path);
-            rc = EXIT_FAILURE;
-            goto out;
-        }
-        if (simple_exec((char *)"lsmod | grep -w smc_acc")) {
-            rc = simple_exec((char *)"insmod %s", ko_path);
-            goto out;
-        }
 
-    } else {
-        if (!file_exist(SMC_ACC_KO_PATH)) {
-            log_err(" %s is not exist.\n", SMC_ACC_KO_PATH);
-            rc = EXIT_FAILURE;
-            goto out;
-        }
-        if (simple_exec((char *)"lsmod | grep -w smc_acc")) {
-            rc = simple_exec((char *)"insmod  %s", SMC_ACC_KO_PATH);
-        }
+    if (!blackPortList.empty()) {
+        args << "black_port_list_param=\"" << blackPortList << "\" ";
+    }
+    if (!whitePortList.empty()) {
+        args << "white_port_list_param=\"" << whitePortList << "\" ";
+    }
+    if (!FileExist(SMC_ACC_KO_PATH)) {
+        SMCLOG_ERROR(SMC_ACC_KO_PATH << "  is not exist.");
+        rc = EXIT_FAILURE;
+        goto out;
+    }
+    if (SimpleExec((char *)"lsmod | grep -w smc_acc")) {
+        rc = SimpleExec((char *)"insmod  %s %s", SMC_ACC_KO_PATH, args.str().c_str());
     }
 
 out:
     return rc;
 }
 
-int SmcOperator::check_smc_ko()
+int SmcOperator::CheckSmcKo()
 {
     int rc = EXIT_SUCCESS;
-    if (simple_exec((char *)"lsmod | grep -w smc") == EXIT_FAILURE) {
+    if (SimpleExec((char *)"lsmod | grep -w smc") == EXIT_FAILURE) {
         rc = EXIT_FAILURE;
-        log_err("smc ko is not running\n");
+        SMCLOG_ERROR("smc ko is not running");
     }
-    if (simple_exec((char *)"lsmod | grep -w smc_acc") == EXIT_FAILURE) {
+    if (SimpleExec((char *)"lsmod | grep -w smc_acc") == EXIT_FAILURE) {
         rc = EXIT_FAILURE;
-        log_err("smc_acc ko is not running\n");
+        SMCLOG_ERROR("smc_acc ko is not running");
     }
 
     return rc;
 }
 
-int SmcOperator::smc_init()
+int SmcOperator::SmcInit()
 {
     int rc = EXIT_SUCCESS;
-    if (is_init)
+    if (isInit)
         goto out;
-    if (SmcNetlink::getInstance()->gen_nl_open() == EXIT_SUCCESS) {
-        is_init = true;
+    if (SmcNetlink::getInstance()->GenNlOpen() == EXIT_SUCCESS) {
+        isInit = true;
     } else {
         rc = EXIT_FAILURE;
     }
@@ -184,52 +198,92 @@ out:
     return rc;
 }
 
-
-int SmcOperator::smc_exit()
+int SmcOperator::SmcExit()
 {
-    SmcNetlink::getInstance()->gen_nl_close();
-    is_init = false;
+    SmcNetlink::getInstance()->GenNlClose();
+    isInit = false;
     return 0;
 }
 
-int SmcOperator::able_smc_acc(int is_enable) 
+int SmcOperator::AbleSmcAcc(int isEnable)
 {
     int rc = EXIT_FAILURE;
-    if (smc_init() == EXIT_FAILURE) {
-        log_err("failed to exec init\n");
+    if (SmcInit() == EXIT_FAILURE) {
+        SMCLOG_ERROR("failed to Exec init");
         return rc;
     }
 
-    set_enable(is_enable);
-    if (invoke_ueid(UEID_DEL) == EXIT_SUCCESS) {
-        log_info(" success to del smc ueid %s\n", SMC_UEID_NAME);
+    SetEnable(isEnable);
+    if (InvokeUeid(UEID_DEL) == EXIT_SUCCESS) {
+        SMCLOG_INFO(" success to del smc ueid " << SMC_UEID_NAME);
     }
 
     if (enable == SMC_ENABLE) {
-        if (invoke_ueid(UEID_ADD) == EXIT_SUCCESS) {
-            log_info("INFO: success to add smc ueid %s\n", SMC_UEID_NAME);
+        if (InvokeUeid(UEID_ADD) == EXIT_SUCCESS) {
+            SMCLOG_INFO("success to add smc ueid " << SMC_UEID_NAME);
         } else {
-            log_err(" failed to add smc\n");
+            SMCLOG_ERROR(" failed to add smc");
             goto out;
         }
     }
 
-    if (run_smc_acc() == EXIT_FAILURE) {
-        log_err("failed to run smc acc\n");
+    if (RunSmcAcc() == EXIT_FAILURE) {
+        SMCLOG_ERROR("failed to run smc acc");
         goto out;
     }
     rc = EXIT_SUCCESS;
 out:
-    smc_exit();
+    SmcExit();
     return rc;
 }
 
-int SmcOperator::enable_smc_acc()
+int SmcOperator::EnableSmcAcc()
 {
-    return able_smc_acc(SMC_ENABLE);
+    return AbleSmcAcc(SMC_ENABLE);
 }
 
-int SmcOperator::disable_smc_acc()
+int SmcOperator::DisableSmcAcc()
 {
-    return able_smc_acc(SMC_DISABLE);
+    return AbleSmcAcc(SMC_DISABLE);
+}
+
+int SmcOperator::InputPortList(const std::string &blackPortStr, const std::string &whitePortStr)
+{
+    blackPortList = blackPortStr;
+    whitePortList = whitePortStr;
+    return 0;
+}
+
+bool SmcOperator::IsSamePortList(const std::string &blackPortStr, const std::string &whitePortStr)
+{
+    return (blackPortList == blackPortStr) && (whitePortList == whitePortStr);
+}
+
+int SmcOperator::ReRunSmcAcc()
+{
+    int rc = EXIT_SUCCESS;
+    std::stringstream args;
+
+    if (!SimpleExec((char *)"lsmod | grep -w smc_acc")) {
+        rc = SimpleExec((char *)"rmmod smc_acc");
+    }
+
+    if (!blackPortList.empty()) {
+        args << "black_port_list_param=\"" << blackPortList << "\" ";
+    }
+    if (!whitePortList.empty()) {
+        args << "white_port_list_param=\"" << whitePortList << "\" ";
+    }
+    SMCLOG_INFO("ReRunSmcAcc args:" << args.str());
+    if (!FileExist(SMC_ACC_KO_PATH)) {
+        SMCLOG_ERROR(SMC_ACC_KO_PATH << " is not exist.");
+        rc = EXIT_FAILURE;
+        goto out;
+    }
+    if (SimpleExec((char *)"lsmod | grep -w smc_acc")) {
+        rc = SimpleExec((char *)"insmod  %s %s", SMC_ACC_KO_PATH, args.str().c_str());
+    }
+
+out:
+    return rc;
 }

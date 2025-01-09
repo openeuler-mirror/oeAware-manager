@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -25,6 +25,11 @@ public:
     Result Enable(const std::string &param) override;
     void Disable() override;
     void Run() override;
+
+private:
+    std::pair<std::string, std::string> ReadConfig(const std::string &path);
+    std::string blackPortList;
+    std::string whitePortList;
 };
-}
-#endif //OEAWARE_MANAGER_SMC_TUNE_H
+} // namespace oeaware
+#endif // OEAWARE_MANAGER_SMC_TUNE_H

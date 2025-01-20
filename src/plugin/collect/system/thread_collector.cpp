@@ -66,6 +66,8 @@ void ThreadCollector::Disable()
     for (auto &item : threads) {
         oeaware::Register::GetInstance().GetDataFreeFunc(OE_THREAD_COLLECTOR)(item.second);
     }
+    threads.clear();
+    taskTime.clear();
 }
 
 void ThreadCollector::Run()

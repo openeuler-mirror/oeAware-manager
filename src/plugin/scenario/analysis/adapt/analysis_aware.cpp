@@ -69,6 +69,7 @@ Result AnalysisAware::Enable(const std::string &param)
 	for (const auto &topic : subscribeTopics) {
 		Subscribe(topic);
 	}
+	hugeDetect.Init(subscribeTopics);
 	analysis.Init();
 	return Result(OK);
 }
@@ -128,6 +129,8 @@ void AnalysisAware::UpdateData(const DataList &dataList)
 	} else if (topicName == "net:napi_gro_receive_entry") {
 		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
 		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
+	} else {
+		hugeDetect.UpdateData(topicName, static_cast<PmuCountingData *>(dataList.data[0]));
 	}
 }
 
@@ -171,6 +174,7 @@ void AnalysisAware::Run()
 		}
 	}
 	analysis.Analyze(isSummary);
+	hugeDetect.Cal();
 	PublishData();
 	pmuData.clear();
 }

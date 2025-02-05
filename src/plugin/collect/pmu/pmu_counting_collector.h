@@ -35,7 +35,8 @@ private:
     std::vector<std::string> topicStr = {"cycles", "net:netif_rx", "L1-dcache-load-misses", "L1-dcache-loads",
         "L1-icache-load-misses", "L1-icache-loads", "branch-load-misses", "branch-loads", "dTLB-load-misses",
         "dTLB-loads", "iTLB-load-misses", "iTLB-loads", "cache-references", "cache-misses", "l2d_tlb_refill",
-        "l2d_cache_refill", "l1d_tlb_refill", "l1d_cache_refill", "inst_retired", "instructions"};
+        "l2d_cache_refill", "l1d_tlb_refill", "l1d_cache_refill", "l1d_tlb", "l1i_tlb", "l1i_tlb_refill", "l2d_tlb",
+        "l2i_tlb", "l2i_tlb_refill", "inst_retired", "instructions"};
     std::unordered_map<std::string, TopicParam> topicParams;
     void InitCountingAttr(struct PmuAttr &attr);
     int OpenCounting(const oeaware::Topic &topic);

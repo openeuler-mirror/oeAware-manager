@@ -5,6 +5,7 @@ set(analysis_src
     analysis/analysis.cpp
     analysis/common.cpp
     analysis/env.cpp
+    analysis/huge_detect.cpp
 )
 
 set(oeaware_src adapt/analysis_aware.cpp)

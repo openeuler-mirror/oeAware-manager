@@ -10,18 +10,19 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "huge_detect.h"
-#include "data_list.h"
+#include <oeaware/data_list.h>
+#include <securec.h>
 
-void HugeDetect::Init(std::vector<oeaware::Topic> topics)
+void HugeDetect::Init(std::vector<oeaware::Topic> &topics)
 {
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb_refill", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb_refill", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb_refill", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb", ""});
-    topic.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb_refill", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb_refill", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb_refill", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb_refill", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb", ""});
+    topics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb_refill", ""});
 }
 
 void HugeDetect::UpdateData(const std::string &topicName, PmuCountingData *data)
@@ -54,6 +55,9 @@ void HugeDetect::Cal()
     tlbMiss.l1iTlbMiss = 1.0 * tlbInfo.l1iTlbRefill / tlbInfo.l1iTlb;
     tlbMiss.l2dTlbMiss = 1.0 * tlbInfo.l2dTlbRefill / tlbInfo.l2dTlb;
     tlbMiss.l2iTlbMiss = 1.0 * tlbInfo.l2iTlbRefill / tlbInfo.l2iTlb;
+}
 
-    printf("%.2lf %.2lf %.2lf %.2lf\n", tlbMiss.l1dTlbMiss,tlbMiss.l1iTlbMiss, tlbMiss.l2dTlbMiss, tlbMiss.l2iTlbMiss);
+void HugeDetect::Reset()
+{
+    memset_s(&tlbInfo, sizeof(tlbInfo), 0, sizeof(tlbInfo));
 }

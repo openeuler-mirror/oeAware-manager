@@ -66,10 +66,10 @@ Result AnalysisAware::Enable(const std::string &param)
 	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "cycles", "" });
 	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "skb:skb_copy_datagram_iovec", "" });
 	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "net:napi_gro_receive_entry", "" });
+	hugeDetect.Init(subscribeTopics);
 	for (const auto &topic : subscribeTopics) {
 		Subscribe(topic);
 	}
-	hugeDetect.Init(subscribeTopics);
 	analysis.Init();
 	return Result(OK);
 }
@@ -177,6 +177,7 @@ void AnalysisAware::Run()
 	hugeDetect.Cal();
 	PublishData();
 	pmuData.clear();
+	hugeDetect.Reset();
 }
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)

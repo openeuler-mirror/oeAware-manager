@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "topic.h"
+#include <oeaware/topic.h>
 #include "pmu_counting_data.h"
 
 struct TlbInfo {
@@ -38,9 +38,10 @@ struct TlbMiss {
 
 class HugeDetect {
 public:
-    void Init(std::vector<Topic> &topics);
+    void Init(std::vector<oeaware::Topic> &topics);
     void UpdateData(const std::string &topicName, PmuCountingData *data);
     void Cal();
+    void Reset();
 private:
     TlbInfo tlbInfo;
     TlbMiss tlbMiss;

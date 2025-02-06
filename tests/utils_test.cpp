@@ -16,7 +16,6 @@ TEST(SplitString, SplitString)
 {
     std::string s = "a   b";
     auto values = oeaware::SplitString(s, " ");
-    printf("%d\n", values.size());
     EXPECT_EQ(values[0], "a");
     EXPECT_EQ(values[1], "");
     EXPECT_EQ(values[2], "");
@@ -62,4 +61,29 @@ TEST(SetDataListTopic, SetDataListTopic)
     EXPECT_EQ(0, strcmp(dataList.topic.instanceName, "hello"));
     EXPECT_EQ(0, strcmp(dataList.topic.topicName, "new"));
     EXPECT_EQ(0, strcmp(dataList.topic.params, "world"));
+}
+
+TEST(UtilsTest, ExecCommand)
+{
+    std::string output;
+    bool ret = oeaware::ExecCommand("cat /proc/cpuinfo | grep processor | wc -l", output);
+    output.erase(std::remove(output.begin(), output.end(), '\n'), output.end());
+    int validCpuNum = sysconf(_SC_NPROCESSORS_ONLN);
+    EXPECT_EQ(true, ret);
+    EXPECT_EQ(std::to_string(validCpuNum), output);
+}
+
+TEST(UtilsTest, ServiceControlTest)
+{
+    bool isActive = true;
+    bool ret = oeaware::ServiceControl("irqbalance", "stop");
+    EXPECT_EQ(true, ret);
+    ret = oeaware::ServiceIsActive("irqbalance", isActive);
+    EXPECT_EQ(true, ret);
+    EXPECT_EQ(false, isActive);
+    ret = oeaware::ServiceControl("irqbalance", "start");
+    EXPECT_EQ(true, ret);
+    ret = oeaware::ServiceIsActive("irqbalance", isActive);
+    EXPECT_EQ(true, ret);
+    EXPECT_EQ(true, isActive);
 }

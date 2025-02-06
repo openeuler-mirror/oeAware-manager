@@ -34,6 +34,8 @@ bool SetDataListTopic(DataList *dataList, const std::string &instanceName, const
     const std::string &params);
 uint64_t GetCpuCycles(int cpu);
 uint64_t GetCpuFreqByDmi();
+bool ServiceIsActive(const std::string &serviceName, bool &isActive);
+bool ServiceControl(const std::string &serviceName, const std::string &action);
 }
 
 #endif

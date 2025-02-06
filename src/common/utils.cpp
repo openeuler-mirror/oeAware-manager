@@ -23,6 +23,7 @@
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;
 const static int HTTP_OK = 200;
+const static int SYSTEMCTL_BUFLEN = 128;
 
 static size_t WriteData(char *ptr, size_t size, size_t nmemb, FILE *file)
 {
@@ -250,6 +251,40 @@ uint64_t GetCpuFreqByDmi()
     }
 
     return std::stoull(buffer) * 1000000; // 1000000: MHz to Hz
+}
+
+bool ServiceIsActive(const std::string &serviceName, bool &isActive)
+{
+    std::string command = "systemctl is-active " + serviceName;
+    FILE *pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        return false;
+    }
+    isActive = false;
+    char buffer[SYSTEMCTL_BUFLEN];
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        if (strstr(buffer, "active")) {
+            isActive = true;
+            break;
+        }
+    }
+    pclose(pipe);
+    return true;
+}
+
+bool ServiceControl(const std::string &serviceName, const std::string &action)
+{
+    // support cmd
+    std::vector<std::string> actions = { "start", "stop", "restart" };
+    if (std::find(actions.begin(), actions.end(), action) == actions.end()) {
+        return false;
+    }
+    std::string cmd = "systemctl " + action + " " + serviceName;
+    if (std::system(cmd.c_str()) != 0) {
+        perror("system");
+        return false;
+    }
+    return true;
 }
 
 }

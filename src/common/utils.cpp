@@ -23,7 +23,7 @@
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;
 const static int HTTP_OK = 200;
-const static int SYSTEMCTL_BUFLEN = 128;
+const static int EXEC_COMMAND_BUFLEN = 512;
 
 static size_t WriteData(char *ptr, size_t size, size_t nmemb, FILE *file)
 {
@@ -253,22 +253,32 @@ uint64_t GetCpuFreqByDmi()
     return std::stoull(buffer) * 1000000; // 1000000: MHz to Hz
 }
 
-bool ServiceIsActive(const std::string &serviceName, bool &isActive)
+// exec command and get output, not use blocking cmd(eg top)
+bool ExecCommand(const std::string &command, std::string &result)
 {
-    std::string command = "systemctl is-active " + serviceName;
-    FILE *pipe = popen(command.c_str(), "r");
+    result = "";
+    std::array<char, EXEC_COMMAND_BUFLEN> buffer;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
     if (!pipe) {
         return false;
     }
-    isActive = false;
-    char buffer[SYSTEMCTL_BUFLEN];
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        if (strstr(buffer, "active")) {
-            isActive = true;
-            break;
-        }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
     }
-    pclose(pipe);
+
+    return true;
+}
+
+bool ServiceIsActive(const std::string &serviceName, bool &isActive)
+{
+    std::string command = "systemctl is-active " + serviceName;
+    std::string ret;
+    isActive = false;
+    if (!ExecCommand(command, ret)) {
+        return false;
+    }
+    ret.erase(std::remove(ret.begin(), ret.end(), '\n'), ret.end());
+    isActive = ret == "active";
     return true;
 }
 

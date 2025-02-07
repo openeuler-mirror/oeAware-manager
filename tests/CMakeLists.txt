@@ -31,15 +31,32 @@ add_executable(data_register_test
     data_register_test.cpp
 )
 
+add_executable(table_test
+    table_test.cpp
+)
+
+add_executable(analysis_report_test
+    analysis_report_test.cpp
+    ${SRC_DIR}/client/analysis/analysis_report.cpp
+)
+
+target_include_directories( analysis_report_test PUBLIC
+    ${SRC_DIR}/client/analysis
+)
+
 target_link_libraries(serialize_test PRIVATE common GTest::gtest_main)
 target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus)
 target_link_libraries(safe_queue_test PRIVATE GTest::gtest_main)
 target_link_libraries(pmu_count_test PRIVATE GTest::gtest_main)
 target_link_libraries(utils_test PRIVATE common GTest::gtest_main)
 target_link_libraries(data_register_test PRIVATE common GTest::gtest_main)
+target_link_libraries(table_test PRIVATE common GTest::gtest_main)
+target_link_libraries(analysis_report_test PRIVATE common GTest::gtest_main)
 
 set_target_properties(serialize_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(logger_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(safe_queue_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(utils_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(data_register_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
+set_target_properties(table_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
+set_target_properties(analysis_report_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")

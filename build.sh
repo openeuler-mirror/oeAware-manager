@@ -94,6 +94,6 @@ fi
 
 
 cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
-         -DWITH_TEST=${build_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
+         -DWITH_TEST=${with_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
          -DWITH_OPTIMIZATION=${with_optimization}
 make -j$(nproc)

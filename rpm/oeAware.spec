@@ -11,7 +11,7 @@ BuildRequires: cmake make gcc-c++
 BuildRequires: curl-devel yaml-cpp-devel log4cplus-devel gtest-devel gmock-devel
 BuildRequires: libboundscheck numactl-devel git
 
-Requires: yaml-cpp curl log4cplus systemd libboundscheck acl
+Requires: yaml-cpp curl log4cplus systemd libboundscheck acl patchelf
 Obsoletes:  oeAware-collector < v2.0.0
 Obsoletes:  oeAware-scenario < v2.0.0
 Obsoletes:  oeAware-tune < v2.0.0
@@ -37,6 +37,7 @@ bash build.sh
 install -D -m 0750 build/output/bin/oeaware    %{buildroot}%{_bindir}/oeaware
 install -D -m 0750 build/output/bin/oeawarectl %{buildroot}%{_bindir}/oeawarectl
 install -D -m 0640 config.yaml                 %{buildroot}%{_sysconfdir}/oeAware/config.yaml
+install -D -m 0640 preload.yaml                %{buildroot}%{_sysconfdir}/oeAware/preload.yaml
 install -D -p -m 0644 oeaware.service          %{buildroot}%{_unitdir}/oeaware.service
 
 #install plugin
@@ -76,6 +77,7 @@ fi
 %attr(0750, root, root) %{_bindir}/oeaware
 %attr(0750, root, root) %{_bindir}/oeawarectl
 %attr(0640, root, root) %{_sysconfdir}/oeAware/config.yaml
+%attr(0640, root, root) %{_sysconfdir}/oeAware/preload.yaml
 %attr(0644, root, root) %{_unitdir}/oeaware.service
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/ub_tune.conf
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/thread_scenario.conf

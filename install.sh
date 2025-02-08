@@ -2,7 +2,10 @@ mkdir -p /usr/include/oeaware
 cp -r build/output/include/* /usr/include/
 cp -r build/output/bin/* /bin/
 mkdir -p /etc/oeAware
+chmod 640 ./config.yaml
 cp config.yaml /etc/oeAware
+chmod 640 ./preload.yaml
+cp preload.yaml /etc/oeAware
 cp build/output/sdk/liboeaware-sdk.so /lib64
 
 mkdir -p /lib64/oeAware-plugin
@@ -16,4 +19,3 @@ chmod 400 build/output/plugin/ko/*.ko
 mkdir -p /usr/lib/smc/
 cp build/output/plugin/ko/smc_acc.ko /usr/lib/smc/
 insmod /usr/lib/smc/smc_acc.ko
-chmod 640 ./config.yaml

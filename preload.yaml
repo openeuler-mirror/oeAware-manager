@@ -1,0 +1,9 @@
+# Please use absolute paths for executable apps and shared objects.
+#
+# - apppath: "/path/to/app1"
+#   sopath:
+#     - "/path/to/lib1.so"
+#     - "/path/to/lib2.so"
+# - apppath: "/path/to/app2"
+#   sopath:
+#     - "/path/to/lib.so"

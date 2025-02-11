@@ -19,6 +19,7 @@
 #include <grp.h>
 #include <iostream>
 #include <cctype>
+#include <array>
 
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;

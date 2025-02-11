@@ -12,10 +12,12 @@
 #include "thread_collector.h"
 #include "kernel_config.h"
 #include "command/command_collector.h"
+#include "env_info.h"
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<ThreadCollector>());
     interface.emplace_back(std::make_shared<KernelConfig>());
     interface.emplace_back(std::make_shared<CommandCollector>());
+    interface.emplace_back(std::make_shared<EnvInfo>());
 }

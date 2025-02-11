@@ -5,6 +5,7 @@ add_library(system_collector SHARED
             system_collector.cpp
             kernel_config.cpp
             kernel_data.cpp
+            env_info.cpp
             ./command/command_collector.cpp
             ./command/command_base.cpp
             )
@@ -16,5 +17,6 @@ if (WITH_ASAN)
 endif()
 
 target_link_libraries(system_collector common)
+target_link_libraries(system_collector numa)
 set_target_properties(system_collector PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})

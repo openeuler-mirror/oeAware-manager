@@ -12,6 +12,7 @@
 #include "oeaware/data/kernel_data.h"
 #include "oeaware/data/command_data.h"
 #include "oeaware/data/analysis_data.h"
+#include "oeaware/data/env_data.h"
 
 namespace oeaware {
 void TopicFree(CTopic *topic)
@@ -732,6 +733,63 @@ int AnalysisDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
+
+int EnvStaticDataSerialize(const void *data, OutStream &out)
+{
+    auto envData = static_cast<const EnvStaticInfo *>(data);
+    out << envData->numaNum;
+    out << envData->cpuNumConfig;
+    out << envData->pageMask;
+    for (int i = 0; i < envData->cpuNumConfig; ++i) {
+        out << envData->cpu2Node[i];
+    }
+    for (int i = 0; i < envData->numaNum; ++i) {
+        for (int j = 0; j < envData->numaNum; ++j) {
+            out << envData->numaDistance[i][j];
+        }
+    }
+    return 0;
+}
+
+int EnvStaticDataDeserialize(void **data, InStream &in)
+{
+    *data = new EnvStaticInfo();
+    auto envData = static_cast<EnvStaticInfo *>(*data);
+    in >> envData->numaNum;
+    in >> envData->cpuNumConfig;
+    in >> envData->pageMask;
+
+    envData->cpu2Node = new int[envData->cpuNumConfig];
+    for (int i = 0; i < envData->cpuNumConfig; ++i) {
+        in >> envData->cpu2Node[i];
+    }
+
+    envData->numaDistance = new int *[envData->numaNum];
+    for (int i = 0; i < envData->numaNum; ++i) {
+        envData->numaDistance[i] = new int[envData->numaNum];
+        for (int j = 0; j < envData->numaNum; ++j) {
+            in >> envData->numaDistance[i][j];
+        }
+    }
+    return 0;
+}
+
+int EnvRealTimeDataSerialize(const void *data, OutStream &out)
+{
+    auto envData = static_cast<const EnvRealTimeInfo *>(data);
+    out << envData->dataReady;
+    out << envData->cpuNumOnline;
+    return 0;
+}
+
+int EnvRealTimeDataDeserialize(void **data, InStream &in)
+{
+    *data = new EnvRealTimeInfo();
+    auto envData = static_cast<EnvRealTimeInfo *>(*data);
+    in >> envData->dataReady;
+    in >> envData->cpuNumOnline;
+    return 0;
+}
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
     registerEntry[name] = entry;
@@ -755,7 +813,9 @@ void Register::InitRegisterData()
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
     RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
-	RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize, AnalysisDataFree));
+    RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize, AnalysisDataFree));
+    RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize));
+    RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

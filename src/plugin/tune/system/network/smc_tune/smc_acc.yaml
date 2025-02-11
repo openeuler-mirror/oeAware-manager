@@ -1,0 +1,11 @@
+# Blacklist port parameter for filtering ports not to switch TCP to SMC
+# By default, accelerate all ports except those on the blacklist.
+# Separated by ',' between ports. String length: 512
+# e.g. black_port_list_param: "80,8448"
+black_port_list_param: ""
+
+# Whitelist port parameter for filtering ports to switch TCP to SMC
+# By default, accelerate all ports except those on the blacklist.
+# Separated by ',' between ports. String length: 512
+# e.g. white_port_list_param: "80,8448"
+white_port_list_param: ""

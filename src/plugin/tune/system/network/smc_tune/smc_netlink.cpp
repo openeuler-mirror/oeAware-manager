@@ -15,7 +15,7 @@
 
 /* Operations on generic netlink sockets */
 
-int SmcNetlink::gen_nl_open()
+int SmcNetlink::GenNlOpen()
 {
     int rc = EXIT_FAILURE;
 
@@ -26,7 +26,7 @@ int SmcNetlink::gen_nl_open()
         return rc;
     }
     rc = genl_connect(sk);
-    log_debug("genl_connect rc value:%d \n", rc);
+    SMCLOG_DEBUG("genl_connect rc value: " << rc);
     if (rc) {
         nl_perror(rc, "Error");
         rc = EXIT_FAILURE;
@@ -34,11 +34,11 @@ int SmcNetlink::gen_nl_open()
     }
 
     smc_id = genl_ctrl_resolve(sk, SMC_GENL_FAMILY_NAME);
-    log_debug("get smc module smc_id value: %d \n", smc_id);
+    SMCLOG_DEBUG("get smc module smc_id value:  " << smc_id);
     if (smc_id < 0) {
         rc = EXIT_FAILURE;
         if (smc_id == -NLE_OBJ_NOTFOUND)
-            log_err(" SMC module not loaded\n");
+            SMCLOG_ERROR(" SMC module not loaded");
         else
             nl_perror(smc_id, "Error");
         goto err2;
@@ -52,7 +52,7 @@ err1:
     return rc;
 }
 
-void SmcNetlink::gen_nl_close()
+void SmcNetlink::GenNlClose()
 {
     if (sk) {
         nl_close(sk);
@@ -61,41 +61,41 @@ void SmcNetlink::gen_nl_close()
     }
 }
 
-
-static void handle_euid_err(int rc, int cmd) {
+static void HandleEuidErr(int rc, int cmd)
+{
     if (rc == -NLE_OPNOTSUPP) {
-        log_err(" operation not supported by kernel\n");
+        SMCLOG_ERROR(" operation not supported by kernel");
     } else if (cmd == SMC_ACC_NL_REMOVE_UEID) {
-        switch(rc){
+        switch (rc) {
             case -NLE_OBJ_NOTFOUND: {
-                log_warn("Warn: specified User EID is not defined\n");
+                SMCLOG_WARN("Warn: specified User EID is not defined");
                 break;
             }
             case -NLE_AGAIN: {
-                log_err(" the System EID was activated because the last User EID was removed\n");
+                SMCLOG_ERROR(" the System EID was activated because the last User EID was removed");
                 break;
             }
             default: {
-                log_warn("Warn: specified User EID is not defined\n");
+                SMCLOG_WARN("Warn: specified User EID is not defined");
                 break;
             }
         }
     } else if (cmd == SMC_ACC_NL_ADD_UEID) {
-        switch(rc){
+        switch (rc) {
             case -NLE_INVAL: {
-                log_err(" specified User EID was rejected by the kernel\n");
+                SMCLOG_ERROR(" specified User EID was rejected by the kernel");
                 break;
             }
             case -NLE_NOMEM: {
-                log_err(" specified User EID was rejected by the kernel\n");
+                SMCLOG_ERROR(" specified User EID was rejected by the kernel");
                 break;
             }
             case -NLE_RANGE: {
-                log_err(" specified User EID was rejected because the maximum number of User EIDs is reached\n");
+                SMCLOG_ERROR(" specified User EID was rejected because the maximum number of User EIDs is reached");
                 break;
             }
             case -NLE_EXIST: {
-                log_warn(" specified User EID is already defined\n");
+                SMCLOG_WARN(" specified User EID is already defined");
                 break;
             }
             default: {
@@ -108,15 +108,14 @@ static void handle_euid_err(int rc, int cmd) {
     }
 }
 
-
-int SmcNetlink::gen_nl_euid_handle(int cmd, char *ueid, int (*cb_handler)(nl_msg *msg, void *arg))
+int SmcNetlink::GenNlEuidHandle(int cmd, char *ueid, int (*cb_handler)(nl_msg *msg, void *arg))
 {
     int rc = EXIT_FAILURE, nlmsg_flags = 0;
     struct nl_msg *msg;
 
-    if (!check_sk_invaild()) {
+    if (!CheckSkInvaild()) {
         rc = EXIT_FAILURE;
-        log_err("The SmcNetlink sk is not init yet\n");
+        SMCLOG_ERROR("The SmcNetlink sk is not init yet");
         return rc;
     }
 
@@ -140,7 +139,7 @@ int SmcNetlink::gen_nl_euid_handle(int cmd, char *ueid, int (*cb_handler)(nl_msg
 
     if (ueid && ueid[0]) {
         rc = nla_put_string(msg, SMC_ACC_NLA_EID_TABLE_ENTRY, ueid);
-        log_debug("nla put string rc value: %d \n", rc);
+        SMCLOG_DEBUG("nla put string rc value:  " << rc);
         if (rc < 0) {
             nl_perror(rc, "Error");
             rc = EXIT_FAILURE;
@@ -148,7 +147,6 @@ int SmcNetlink::gen_nl_euid_handle(int cmd, char *ueid, int (*cb_handler)(nl_msg
         }
     }
 
-    log_debug("send message\n");
     rc = nl_send_auto(sk, msg);
     if (rc < 0) {
         nl_perror(rc, "Error");
@@ -157,9 +155,9 @@ int SmcNetlink::gen_nl_euid_handle(int cmd, char *ueid, int (*cb_handler)(nl_msg
     }
 
     rc = nl_recvmsgs_default(sk);
-    log_debug("receive reply message, get rc value : %d\n", rc);
+    SMCLOG_DEBUG("receive reply message, get rc value : " << rc);
     if (rc < 0) {
-        handle_euid_err(rc, cmd);
+        HandleEuidErr(rc, cmd);
         rc = EXIT_FAILURE;
         goto err;
     }

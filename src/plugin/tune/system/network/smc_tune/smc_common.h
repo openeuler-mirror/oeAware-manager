@@ -15,8 +15,10 @@
 #define PF_SMC 43
 
 #include <net/if.h>
+#include "oeaware/logger.h"
 
-#define SMC_MAX_EID_LEN 32      /* Max length of eid */
+
+constexpr int SMC_MAX_EID_LEN = 32; /* Max length of eid */
 
 #define UEID_ADD 1 << 1
 #define UEID_DEL 1 << 2
@@ -60,19 +62,18 @@ enum {
 
 extern int log_level;
 
-#define pr_level(level, target, fmt, args...) \
-    do {                                      \
-        if (level <= log_level)               \
-            fprintf(target, fmt, ##args);     \
-    } while (0)
+extern log4cplus::Logger g_smcLogger;
 
-#define log_info(fmt, args...) pr_level(0, stdout, fmt, ##args)
-#define log_warn(fmt, args...) pr_level(0, stderr, "\033[0;34mWARN: " fmt "\033[0m", ##args)
-#define log_err(fmt, args...) pr_level(0, stderr, "\033[0;31mERROR: " fmt "\033[0m", ##args)
-#define log_debug(fmt, args...) pr_level(2, stdout, "DEBUG: " fmt, ##args)
+#define SMCLOG_INFO(fmt) LOG4CPLUS_INFO(g_smcLogger, fmt)
+#define SMCLOG_DEBUG(fmt) LOG4CPLUS_DEBUG(g_smcLogger, fmt)
+#define SMCLOG_WARN(fmt) LOG4CPLUS_WARN(g_smcLogger, fmt)
+#define SMCLOG_ERROR(fmt) LOG4CPLUS_ERROR(g_smcLogger, fmt)
+#define SMCLOG_FATAL(fmt) LOG4CPLUS_FATAL(g_smcLogger, fmt)
 
 #define SMC_ACC_KO_PATH "/usr/lib/smc/smc_acc.ko"
 
 #define SMC_UEID_NAME "SMCV2-OPENEULER-UEID"
+
+#define SMC_ACC_YAML_PATH "/usr/lib64/oeAware-plugin/smc_acc.yaml"
 
 #endif /* SMCTOOLS_COMMON_H */

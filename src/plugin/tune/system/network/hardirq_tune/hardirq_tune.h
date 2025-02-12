@@ -13,6 +13,20 @@
 #define HARDIRQ_TUNE_H
 
 #include "oeaware/interface.h"
+#include "libkperf/pmu.h"
+
+struct RecNetQueue {
+    uint64_t ts;
+    uint64_t queueMapping;
+    const void *skbaddr;
+    std::string dev;
+};
+
+struct RecNetThreads {
+    uint64_t ts;
+    uint32_t core;
+    const void *skbaddr;
+};
 
 namespace oeaware {
 class NetHardIrq : public Interface{
@@ -27,8 +41,21 @@ public:
     void Run() override;
 
 private:
+    std::vector<oeaware::Topic> subscribeTopics;
+    const int slidingWinLen = 200; // for match que and thread info
     bool irqbalanceStatus = false; // irqbalance status before tune
-
+    int netDataInterval = 0; // unit ms
+    int numaNuma = 0;
+    std::vector<int> cpu2Numa;
+    bool envInit = false;
+    std::vector<RecNetQueue> queueData;
+    std::vector<RecNetThreads> threadData;
+    void UpdateSystemInfo(const DataList &dataList);
+    void UpdateNetInfo(const DataList &dataList);
+    void UpdateQueueData(const PmuData *data, int dataLen);
+    void UpdateThreadData(const PmuData *data, int dataLen);
+    void MatchThreadAndQueue();
+    void UpdateThreadAndQueueInfo(const RecNetQueue &queData, const RecNetThreads &thrData);
 };
 }
 

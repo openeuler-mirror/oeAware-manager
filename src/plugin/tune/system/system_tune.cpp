@@ -16,6 +16,7 @@
 #include "network/hardirq_tune/hardirq_tune.h"
 #include "xcall/xcall_tune.h"
 #include "power/seep_tune/seep_tune.h"
+#include "transparent_hugepage_tune/transparent_hugepage_tune.h"
 #include "preload/preload_tune.h"
 using namespace oeaware;
 
@@ -25,6 +26,7 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<SmcTune>());
     interface.emplace_back(std::make_shared<NetHardIrq>());
     interface.emplace_back(std::make_shared<XcallTune>());
+    interface.emplace_back(std::make_shared<TransparentHugepageTune>());
     interface.emplace_back(std::make_shared<Seep>());
     interface.emplace_back(std::make_shared<PreloadTune>());
 }

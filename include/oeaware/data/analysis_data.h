@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#define MEMORY_ANALYSIS 		"memory_analysis"
+
 typedef enum {
 	ANALYSIS_REPORT_REALTIME,
 	ANALYSIS_REPORT_SUMMARY
@@ -26,6 +28,16 @@ typedef struct {
 	char *data;
 } AnalysisReport;
 
+typedef struct {
+    double l1iTlbMiss;
+    double l1dTlbMiss;
+    double l2iTlbMiss;
+    double l2dTlbMiss;
+} TlbMiss;
+
+typedef struct {
+	TlbMiss tlbMiss;
+} MemoryAnalysisData;
 #ifdef __cplusplus
 }
 #endif

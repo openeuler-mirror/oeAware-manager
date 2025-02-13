@@ -514,6 +514,42 @@ int PmuUncoreDataDeserialize(void **data, InStream &in)
     ((PmuUncoreData*)(*data))->pmuData = pmuData;
     return 0;
 }
+
+int TlbMissSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const TlbMiss*>(data);
+    out << tmpData->l1iTlbMiss << tmpData->l1dTlbMiss << tmpData->l2iTlbMiss << tmpData->l2dTlbMiss;
+    return 0;
+}
+
+int TlbMissDeserialize(void **data, InStream &in)
+{
+    *data = new TlbMiss();
+    auto tlbMiss = static_cast<TlbMiss*>(*data);
+    in >> tlbMiss->l1iTlbMiss >> tlbMiss->l1dTlbMiss >> tlbMiss->l2iTlbMiss >> tlbMiss->l2dTlbMiss;
+    return 0;
+}
+
+int TlbMissDeserialize(TlbMiss &tlbMiss, InStream &in)
+{
+    in >> tlbMiss.l1iTlbMiss >> tlbMiss.l1dTlbMiss >> tlbMiss.l2iTlbMiss >> tlbMiss.l2dTlbMiss;
+    return 0;
+}
+
+int MemoryAnalysisDataSerialize(const void *data, OutStream &out)
+{
+    auto tmpData = static_cast<const MemoryAnalysisData*>(data);
+    TlbMissSerialize(&tmpData->tlbMiss, out);
+    return 0;
+}
+
+int MemoryAnalysisDataDeserialize(void **data, InStream &in)
+{
+    *data = new MemoryAnalysisData();
+    auto memoryAnalysisData = static_cast<MemoryAnalysisData*>(*data);
+    TlbMissDeserialize(memoryAnalysisData->tlbMiss, in);
+    return 0;
+}
 #endif
 
 void ThreadInfoFree(void *data)
@@ -808,12 +844,13 @@ void Register::InitRegisterData()
 
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
+    RegisterData("analysis_aware::memory_analysis", RegisterEntry(MemoryAnalysisDataSerialize,
+        MemoryAnalysisDataDeserialize));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
     RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
-    RegisterData("analysis_aware", RegisterEntry(AnalysisDataSerialize, AnalysisDataDeserialize, AnalysisDataFree));
     RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize));
     RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize));
 }

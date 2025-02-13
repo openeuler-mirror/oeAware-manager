@@ -15,8 +15,11 @@
 #include <string>
 #include <vector>
 #include <oeaware/topic.h>
+#include "analysis_data.h"
 #include "pmu_counting_data.h"
+#include "analysis_compose.h"
 
+namespace oeaware {
 struct TlbInfo {
     /* data */
     uint64_t l1iTlbRefill = 0;
@@ -29,22 +32,16 @@ struct TlbInfo {
     uint64_t l2dTlb = 0;
 };
 
-struct TlbMiss {
-    double l1iTlbMiss;
-    double l1dTlbMiss;
-    double l2iTlbMiss;
-    double l2dTlbMiss;
-};
-
-class HugeDetect {
+class MemoryAnalysis : public AnalysisCompose {
 public:
-    void Init(std::vector<oeaware::Topic> &topics);
-    void UpdateData(const std::string &topicName, PmuCountingData *data);
-    void Cal();
-    void Reset();
+    void Init() override;
+    void UpdateData(const std::string &topicName, void *data) override;
+    void Analysis() override;
+    void* GetResult() override;
+    void Reset() override;
 private:
     TlbInfo tlbInfo;
-    TlbMiss tlbMiss;
+    MemoryAnalysisData memoryAnalysisData;
 };
-
+}
 #endif

@@ -56,21 +56,21 @@ AnalysisAware::AnalysisAware()
 	description += "                        5.pmu_sampling_collector::net:napi_gro_receive_entry\n";
 	description += "[usage] \n";
 	description += "        example:You can use `oeawarectl analysis -t 10` to get 10s report\n";
+	for (auto &topic : topicStrs) {
+		supportTopics.emplace_back(Topic{name, topic, ""});
+	}
+}
+
+void AnalysisAware::InitAnalysisCompose()
+{
+	oeaware::Topic memTopic{name, MEMORY_ANALYSIS, ""};
+	analysisComposes[memTopic.GetType()] = new MemoryAnalysis();
 }
 
 Result AnalysisAware::Enable(const std::string &param)
 {
 	(void)param;
-	subscribeTopics.emplace_back(Topic{ "pmu_spe_collector", "spe", "" });
-	subscribeTopics.emplace_back(Topic{ "pmu_counting_collector", "net:netif_rx", "" });
-	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "cycles", "" });
-	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "skb:skb_copy_datagram_iovec", "" });
-	subscribeTopics.emplace_back(Topic{ "pmu_sampling_collector", "net:napi_gro_receive_entry", "" });
-	hugeDetect.Init(subscribeTopics);
-	for (const auto &topic : subscribeTopics) {
-		Subscribe(topic);
-	}
-	analysis.Init();
+	InitAnalysisCompose();
 	return Result(OK);
 }
 
@@ -79,7 +79,6 @@ void AnalysisAware::Disable()
 	for (const auto &topic : subscribeTopics) {
 		Unsubscribe(topic);
 	}
-	analysis.Exit();
 }
 
 bool AnalysisAware::TopicStatus::Init(const oeaware::Topic &topic)
@@ -97,47 +96,43 @@ bool AnalysisAware::TopicStatus::Init(const oeaware::Topic &topic)
 
 Result AnalysisAware::OpenTopic(const oeaware::Topic &topic)
 {
-	// If the topic contains complex parameters in the future,
-	// add a check here to verify whether multiple topic combinations are valid
-	if (!topicStatus[topic.GetType()].Init(topic)) {
+	if (std::find(topicStrs.begin(), topicStrs.end(), topic.topicName) == topicStrs.end()) {
 		return Result(FAILED, "topic " + topic.topicName + " not support!");
 	}
-	topicStatus[topic.GetType()].open = true;
+	auto topicType = topic.GetType();
+	analysisComposes[topicType]->Init();
+	topicStatus[topicType].open = true;
+	for (auto &topic : analysisComposes[topicType]->subTopics) {
+		Subscribe(topic);
+	}
 	return Result(OK);
 }
 
 void AnalysisAware::CloseTopic(const oeaware::Topic &topic)
 {
-	topicStatus[topic.GetType()].open = false;
+	auto topicType = topic.GetType();
+	topicStatus[topicType].open = false;
+	for (auto &topic : analysisComposes[topicType]->subTopics) {
+		Unsubscribe(topic);
+	}
 }
 
 void AnalysisAware::UpdateData(const DataList &dataList)
 {
+	std::string instanceName = dataList.topic.instanceName;
 	std::string topicName = dataList.topic.topicName;
-	if (topicName == "spe") {
-		PmuSpeData *dataTmp = static_cast<PmuSpeData *>(dataList.data[0]);
-		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
-	} else if (topicName == "net:netif_rx") {
-		PmuCountingData *dataTmp = static_cast<PmuCountingData *>(dataList.data[0]);
-		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
-	} else if (topicName == "cycles") {
-		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
-		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, dataTmp->interval);
-	} else if (topicName == "skb:skb_copy_datagram_iovec") {
-		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
-		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
-	} else if (topicName == "net:napi_gro_receive_entry") {
-		PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
-		analysis.UpdatePmu(topicName, dataTmp->len, dataTmp->pmuData, 0);
-	} else {
-		hugeDetect.UpdateData(topicName, static_cast<PmuCountingData *>(dataList.data[0]));
+	for (auto &p : topicStatus) {
+		if (p.second.open) {
+			analysisComposes[p.first]->UpdateData(topicName, dataList.data[0]);
+		}
 	}
 }
 
 void AnalysisAware::PublishData()
 {
 	for (auto &item : topicStatus) {
-		const auto &topic = Topic::GetTopicFromType(item.first);
+		auto topicType = item.first;
+		const auto &topic = Topic::GetTopicFromType(topicType);
 		auto &status = item.second;
 		if (status.open) {
 			DataList dataList;
@@ -149,14 +144,28 @@ void AnalysisAware::PublishData()
 			strcpy_s(dataList.topic.params, topic.params.size() + 1, topic.params.data());
 			dataList.len = 1;
 			dataList.data = new void *[dataList.len];
-			AnalysisReport *report = new AnalysisReport();
-			bool isSummary = topic.params == "quit";
-			const std::string &str = analysis.GetReport(isSummary);
-			report->data = new char [str.size() + 1];
-			strcpy_s(report->data, str.size() + 1, str.data());
-			report->reportType = isSummary ? ANALYSIS_REPORT_SUMMARY : ANALYSIS_REPORT_REALTIME;
-			dataList.data[0] = report;
+			dataList.data[0] = analysisComposes[topicType]->GetResult();
 			Publish(dataList);
+		}
+	}
+}
+
+void AnalysisAware::Analyze()
+{
+	for (auto &item : topicStatus) {
+		auto &status = item.second;
+		if (status.open) {
+			analysisComposes[item.first]->Analysis();
+		}
+	}
+}
+
+void AnalysisAware::Reset()
+{
+	for (auto &item : topicStatus) {
+		auto &status = item.second;
+		if (status.open) {
+			analysisComposes[item.first]->Reset();
 		}
 	}
 }
@@ -173,11 +182,9 @@ void AnalysisAware::Run()
 			isSummary = true;
 		}
 	}
-	analysis.Analyze(isSummary);
-	hugeDetect.Cal();
+	Analyze();
 	PublishData();
-	pmuData.clear();
-	hugeDetect.Reset();
+	Reset();
 }
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)

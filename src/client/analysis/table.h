@@ -22,13 +22,12 @@ public:
         LEFT,
         RIGHT
     };
-    Table() {}
-    Table(int cols, const std::string &name) : columns(cols), name(name), hasBorder(true),
-        columnWidth(DEFAULT_COLUMN_WIDTH)
+    Table() :hasBorder(true), columnWidth(DEFAULT_COLUMN_WIDTH) {}
+    Table(int cols, const std::string &name) : hasBorder(true), columnWidth(DEFAULT_COLUMN_WIDTH)
     {
-        alignments.resize(cols, Alignment::LEFT);
-        columnWidths.resize(cols, columnWidth);
+        Init(cols, name);
     }
+    void Init(int cols, const std::string &name);
     bool AddRow(const std::vector<std::string> &row);
     bool RemoveRow(int rowIndex);
     bool SetColumnAlignment(int colIndex, Alignment alignment);

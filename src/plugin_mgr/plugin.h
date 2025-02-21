@@ -31,6 +31,7 @@ struct Instance {
     const static std::string pluginStateOn;
     const static std::string pluginStateOff;
     std::string GetInfo() const;
+    std::string GetName() const;
 };
 
 class Plugin {

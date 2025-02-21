@@ -21,6 +21,7 @@ void Client::CmdGroupsInit()
     cmdHandlerGroups.insert(std::make_pair('e', std::make_shared<EnabledHandler>()));
     cmdHandlerGroups.insert(std::make_pair('d', std::make_shared<DisabledHandler>()));
     cmdHandlerGroups.insert(std::make_pair('L', std::make_shared<ListHandler>()));
+    cmdHandlerGroups.insert(std::make_pair('I', std::make_shared<InfoCmdHandler>()));
     cmdHandlerGroups.insert(std::make_pair('i', std::make_shared<InstallHandler>()));
     cmdHandlerGroups.insert(std::make_pair(START, std::make_shared<StartHandler>()));
     cmdHandlerGroups.insert(std::make_pair(STOP, std::make_shared<StopHandler>()));

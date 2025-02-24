@@ -9,7 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "analysis_cli.h"
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
@@ -22,7 +22,7 @@
 #include "oeaware/data/analysis_data.h"
 // own
 #include "config.h"
-#include "analysis_cli.h"
+#include "analysis_report.h"
 
 static int CallBack(const DataList *dataList)
 {
@@ -63,21 +63,11 @@ static void PrintProgressBar(const std::string &head, float progress, int barWid
 
 void AnalysisCli::Run()
 {
-    OeSubscribe(&topicRtRpt, CallBack);
-    auto start = std::chrono::high_resolution_clock::now();
-    while (runRealTimeAnalysis) {
-        while (!rtRptFinish) {
-            usleep(10); // 10us sleep to avoid busy loop
-        }
-        rtRptFinish = false;
-        PrintReport(false);
-        auto dur = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::high_resolution_clock::now() - start).count();
-        PrintProgressBar("Runing", analysisTime <= 0 ? 0 : dur * 1.0 / analysisTime);
-        if (dur > analysisTime) {
-            runRealTimeAnalysis = false;
-        }
-    }
+    auto &analysisReport = oeaware::AnalysisReport::GetInstance();
+    analysisReport.Init(std::vector<std::string>{MEMORY_ANALYSIS});
+    sleep(analysisTime);
+    analysisReport.AnalyzeResult();
+    analysisReport.Print();
 }
 
 void AnalysisCli::StopRun()
@@ -161,14 +151,10 @@ int AnalysisCli::Proc(int argc, char **argv)
     if (!config.Init(argc, argv)) {
         return -1;
     }
-    if (signal(SIGINT, AnalysisQuitHandler) == SIG_ERR || signal(SIGTERM, AnalysisQuitHandler) == SIG_ERR) {
-        return -1;
-    }
     AnalysisCli &cli = AnalysisCli::GetInstance();
     if (!cli.Init()) {
         return -1;
     }
     cli.Run();
-    cli.Exit(); // show summary
     return 0;
 }

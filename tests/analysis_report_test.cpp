@@ -15,7 +15,7 @@
 
 TEST(AnalysisReport, Report)
 {
-    oeaware::AnalysisReport analysisReport;
+    auto &analysisReport = oeaware::AnalysisReport::GetInstance();
 
     oeaware::AnalysisTemplate analysisTemplate;
     oeaware::Table memoryTable(3, "Memory");

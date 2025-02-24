@@ -13,8 +13,9 @@
 #define ANALYSIS_AWARE_H
 #include "oeaware/interface.h"
 #include "analysis.h"
-#include "huge_detect.h"
+#include "analysis_compose.h"
 #include "libkperf/pmu.h"
+#include "memory_analysis.h"
 
 namespace oeaware {
 class AnalysisAware : public Interface {
@@ -34,9 +35,13 @@ public:
 private:
 	std::vector<Topic> subscribeTopics;
 	void PublishData();
+	void InitAnalysisCompose();
+	void Analyze();
+	void Reset();
 private:
 	Analysis analysis;
-	HugeDetect hugeDetect;
+	std::unordered_map<std::string, AnalysisCompose*> analysisComposes;
+	std::vector<std::string> topicStrs{MEMORY_ANALYSIS};
 	std::vector<std::string> analysisData;
 	std::unordered_map<std::string, PmuData *> pmuData;
 	std::unordered_map<std::string, TopicStatus> topicStatus;

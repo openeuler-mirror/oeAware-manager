@@ -14,6 +14,13 @@
 #include <iomanip>
 
 namespace oeaware {
+void Table::Init(int cols, const std::string &tempName)
+{
+    columns = cols;
+    name = tempName;
+    alignments.resize(cols, Alignment::LEFT);
+    columnWidths.resize(cols, columnWidth);
+}
 bool Table::AddRow(const std::vector<std::string> &row)
 {
     if (row.size() != columns) {

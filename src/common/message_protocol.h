@@ -35,6 +35,7 @@ enum class Opt {
     QUERY_SUB_GRAPH,
     QUERY_ALL_SUB_GRAPH,
     LIST,
+    INFO,
     DOWNLOAD,
     SUBSCRIBE,
     UNSUBSCRIBE,

@@ -6,6 +6,8 @@ chmod 640 ./config.yaml
 cp config.yaml /etc/oeAware
 chmod 640 ./preload.yaml
 cp preload.yaml /etc/oeAware
+chmod 640 ./info_cmd.yaml
+cp info_cmd.yaml /etc/oeAware
 cp build/output/sdk/liboeaware-sdk.so /lib64
 
 mkdir -p /lib64/oeAware-plugin

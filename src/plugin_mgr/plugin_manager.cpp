@@ -24,6 +24,7 @@
 #include "event/unsubscribe_handler.h"
 #include "event/publish_handler.h"
 #include "event/query_subscribe_graph.h"
+#include "event/info_cmd_handler.h"
 
 namespace oeaware {
 void PrintHelp()
@@ -56,6 +57,7 @@ void PluginManager::InitEventHandler(std::shared_ptr<SafeQueue<std::shared_ptr<I
     eventHandler[Opt::ENABLED] = std::make_shared<EnableHandler>(instanceRunHandler);
     eventHandler[Opt::DISABLED] = std::make_shared<DisableHandler>(instanceRunHandler);
     eventHandler[Opt::LIST] = std::make_shared<ListHandler>(config);
+    eventHandler[Opt::INFO] = std::make_shared<InfoCmdHandler>(config);
     eventHandler[Opt::DOWNLOAD] = std::make_shared<DownloadHandler>(config);
     eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(instanceRunHandler);
     eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(instanceRunHandler);

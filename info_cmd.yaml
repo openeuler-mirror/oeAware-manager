@@ -1,0 +1,36 @@
+InfoCmd:
+  - instance: unixbench_tune
+    description: "This instance focuses on optimizing UnixBench testing."
+    effect: "This instance ensures that the system is in an optimal state before running UnixBench tests by disabling unnecessary services and background processes."
+
+  - instance: stealtask_tune
+    description: "This instance focuses on enhancing the fetching of tasks for idle CPUs and optimizing overall CPU utilization."
+    effect: "This instance implements intelligent task scheduling to better distribute workloads across all available CPU cores, especially targeting idle CPUs."
+
+  - instance: smc_tune
+    description: "This solution employs Shared Memory Communications - Direct Memory Access (SMC-D) for TCP connections to local peers that also support this functionality."
+    effect: "SMC-D optimizes local peer TCP communication via shared memory, reducing CPU usage, lowering latency, and enhancing data transfer efficiency."
+
+  - instance: net_hard_irq_tune
+    description: "This instance involves binding the interrupts of network interface queues to specific NUMA (Non-Uniform Memory Access) nodes."
+    effect: "By doing so, it ensures that the processing of network packets is localized to a particular NUMA node, reducing latency and improving throughput by minimizing cross-NUMA node memory accesses."
+
+  - instance: xcall_tune
+    description: "This instance optimizes SYSCALL execution by identifying and skipping unnecessary code paths during system call processing."
+    effect: "Reduces unnecessary operations in SYSCALL handling, decreases processing time, and enhances overall efficiency."
+
+  - instance: transparent_hugepage_tune
+    description: "This instance refers to the system's ability to automatically configure and enable Transparent Huge Pages (THP)."
+    effect: "This reduces the workload on administrators for manual configuration, ensuring more efficient memory usage."
+
+  - instance: seep_tune
+    description: "This instance is specifically designed for platforms with hardware-manager P-states through Collaborative Processor Performance Control (CPPC)."
+    effect: "This design allows for fine-tuned control over CPU power states, leading to improved energy efficiency and performance."
+
+  - instance: preload_tune
+    description: "This instance configures the shared objects required by an application and ensures they are automatically loaded at runtime."
+    effect: "This setup reduces manual configuration efforts, minimizes startup errors related to missing dependencies, and ensures that all required libraries are available when needed."
+
+  - instance: docker_cpu_burst
+    description: "This instance enables CPU Burst functionality, which provides temporary additional CPU resources to containers during sudden spikes in load."
+    effect: "By dynamically allocating extra CPU resources during high demand periods, this feature reduces the impact of CPU constraints on application performance."

@@ -69,6 +69,12 @@ public:
     void ResHandler(Message &msg) override;
 };
 
+class InfoCmdHandler : public CmdHandler {
+public:
+    void Handler(Message &msg) override;
+    void ResHandler(Message &msg) override;
+};
+
 class InstallHandler : public CmdHandler {
 public:
     void Handler(Message &msg) override;

@@ -179,6 +179,27 @@ void ListHandler::ResHandler(Message &msg)
     std::cout << "------------------------------------------------------------\n";
 }
 
+void InfoCmdHandler::Handler(Message &msg)
+{
+    msg.opt = Opt::INFO;
+}
+
+void InfoCmdHandler::ResHandler(Message &msg)
+{
+    if (msg.opt == Opt::RESPONSE_ERROR) {
+        std::cerr << "Query list failed, because "<< msg.payload[0] << ".\n";
+        return;
+    }
+    std::cout << "The tuned instance plugin table is as follows.\n";
+    std::cout << "------------------------------------------------------------\n";
+    std::cout << "Use oeawarectl -e [instance] to enable.\n";
+    std::cout << "    oeawarectl -d [instance] to disable.\n";
+    std::cout << "------------------------------------------------------------\n";
+    for (auto &info : msg.payload) {
+        std::cout << info;
+    }
+}
+
 void InstallHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();

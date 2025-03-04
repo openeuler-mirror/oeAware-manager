@@ -18,6 +18,8 @@
 #include <getopt.h>
 #include <iostream>
 
+const int L1_MISS_THRESHOLD = 200;
+const int L2_MISS_THRESHOLD = 201;
 
 class Config {
 public:
@@ -34,16 +36,28 @@ public:
     {
         return showVerbose;
     }
+    int GetL1MissThreshold() const
+    {
+        return l1MissThreshold;
+    }
+    int GetL2MissThreshold() const
+    {
+        return l2MissThreshold;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
+    int l1MissThreshold = 5;
+    int l2MissThreshold = 10;
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
         {"realtime", no_argument, nullptr, 'r'},
         {"time", required_argument, nullptr, 't'},
         {"verbose", no_argument, nullptr, 'v'},
+        {"l1-miss-threshold", required_argument, nullptr, L1_MISS_THRESHOLD},
+        {"l2-miss-threshold", required_argument, nullptr, L2_MISS_THRESHOLD},
         {nullptr, 0, nullptr, 0}
     };
     bool isShowRealTimeReport = false;

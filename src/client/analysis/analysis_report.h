@@ -13,6 +13,7 @@
 #define CLIENT_ANALYSIS_REPORT_H
 #include "table.h"
 #include "oeaware/data/analysis_data.h"
+#include "config.h"
 
 namespace oeaware {
 const int DEFAULT_ROW = 3;
@@ -43,7 +44,7 @@ public:
     }
     AnalysisReport(const AnalysisReport &) = delete;
     AnalysisReport &operator=(const AnalysisReport &) = delete;
-    void Init(const std::vector<std::string> &topics);
+    void Init(const std::vector<std::string> &topics, const Config &config);
     void Print();
     void SetAnalysisTemplate(const AnalysisTemplate &data);
     void UpdateMemoryData(const MemoryAnalysisData &memoryAnalysisData);

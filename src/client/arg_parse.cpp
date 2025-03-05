@@ -81,6 +81,8 @@ int ArgParse::InitCmd(int &cmd, int opt)
         if (optarg) {
             SetArg(optarg);
         }
+    } else {
+        return -1;
     }
     return 0;
 }
@@ -120,10 +122,16 @@ int ArgParse::Init(int argc, char *argv[])
                 break;
             }
             default: {
-                InitCmd(cmd, opt);
+                if (InitCmd(cmd, opt) < 0) {
+                    return -1;
+                }
                 break;
             }
         }
+    }
+    for (int i = optind; i < argc; ++i) {
+        ArgError("invalid option [" + std::string(argv[i]) + "].");
+        return -1;
     }
     if (help) {
         PrintHelp();

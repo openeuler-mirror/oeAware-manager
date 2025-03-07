@@ -26,6 +26,8 @@ public:
     EventResult Handle(const Event &event) override;
     InfoCmd GetInfo(const std::string& name);
     bool CreateInfoCmdInstances(const std::string& filePath, std::vector<InfoCmd>& infoCmds);
+    void FormatAndPrint(const std::string& instanceName, const std::string& description,
+                        const std::string& effect, std::ostringstream &formattedRes);
 private:
     ErrorCode AddList(std::string &res);
     std::vector<InfoCmd> infoCmd;

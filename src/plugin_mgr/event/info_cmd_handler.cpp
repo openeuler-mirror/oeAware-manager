@@ -98,6 +98,34 @@ std::vector<std::string> wrapText(const std::string& text, size_t width)
     return wrapped;
 }
 
+void InfoCmdHandler::FormatAndPrint(const std::string& instanceName, const std::string& description,
+                                    const std::string& effect, std::ostringstream &formattedRes)
+{
+    auto instanceNames = wrapText(instanceName, instanceWidth);
+    auto descriptions = wrapText(description, descriptionWidth);
+    auto effects = wrapText(effect, effectWidth);
+    size_t maxLines = std::max({descriptions.size(), effects.size(), static_cast<size_t>(1)});
+    for (size_t j = 0; j < maxLines; ++j) {
+            if (j < instanceNames.size()) {
+            formattedRes << std::left << std::setw(instanceWidth) << instanceNames[j];
+        } else {
+            formattedRes << std::left << std::setw(instanceWidth) << "";
+        }
+        if (j < descriptions.size()) {
+            formattedRes << "|" << std::setw(descriptionWidth) << descriptions[j];
+        } else {
+            formattedRes << "|" << std::setw(descriptionWidth) << "";
+        }
+        if (j < effects.size()) {
+            formattedRes << "|" << std::setw(effectWidth) << effects[j];
+        } else {
+            formattedRes << "|" << std::setw(effectWidth) << "";
+        }
+        formattedRes << "\n";
+    }
+    formattedRes << std::string(instanceWidth + 1 + descriptionWidth + 1 + effectWidth, '-') << "\n";
+}
+
 ErrorCode InfoCmdHandler::AddList(std::string &res)
 {
     std::vector<std::shared_ptr<Plugin>> allPlugins = memoryStore->GetAllPlugins();
@@ -119,31 +147,10 @@ ErrorCode InfoCmdHandler::AddList(std::string &res)
         for (size_t i = 0; i < p->GetInstanceLen(); ++i) {
                 auto instance = p->GetInstance(i);
                 auto infoPartner = GetInfo(instance->GetName());
-                std::string instanceName = infoPartner.instance;
+                std::string instanceName = instance->GetRun();
                 std::string description = infoPartner.description;
                 std::string effect = infoPartner.effect;
-                auto descriptions = wrapText(description, descriptionWidth);
-                auto effects = wrapText(effect, effectWidth);
-                size_t maxLines = std::max({descriptions.size(), effects.size(), static_cast<size_t>(1)});
-                formattedRes << std::left << std::setw(instanceWidth) << instanceName;
-                formattedRes << "|" << std::setw(descriptionWidth) << descriptions[0];
-                formattedRes << "|" << std::setw(effectWidth) << effects[0];
-                formattedRes << "\n";
-                for (size_t j = 1; j < maxLines; ++j) {
-                    formattedRes << std::left << std::setw(instanceWidth) << "";
-                    if (j < descriptions.size()) {
-                        formattedRes << "|" << std::setw(descriptionWidth) << descriptions[j];
-                    } else {
-                        formattedRes << "|" << std::setw(descriptionWidth) << "";
-                    }
-                    if (j < effects.size()) {
-                        formattedRes << "|" << std::setw(effectWidth) << effects[j];
-                    } else {
-                        formattedRes << "|" << std::setw(effectWidth) << "";
-                    }
-                    formattedRes << "\n";
-                }
-                formattedRes << std::string(instanceWidth + 1 + descriptionWidth + 1 + effectWidth, '-') << "\n";
+                FormatAndPrint(instanceName, description, effect, formattedRes);
             }
     }
     res = formattedRes.str();

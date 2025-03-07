@@ -32,6 +32,7 @@ struct Instance {
     const static std::string pluginStateOff;
     std::string GetInfo() const;
     std::string GetName() const;
+    std::string GetRun() const;
 };
 
 class Plugin {

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <securec.h>
 #include "oe_client.h"
+#include "config.h"
 #include "data_register.h"
 
 namespace oeaware {
@@ -39,7 +40,7 @@ void AnalysisReport::UpdateTlbMiss(const TlbMiss &tempTlbMiss)
     tlbMissAnalysis.Add(tempTlbMiss);
 }
 
-void AnalysisReport::Init(const std::vector<std::string> &topics)
+void AnalysisReport::Init(const std::vector<std::string> &topics, const Config &config)
 {
     for (auto &topic : topics) {
         char *name = new char[topic.size() + 1];
@@ -48,6 +49,8 @@ void AnalysisReport::Init(const std::vector<std::string> &topics)
         OeSubscribe(&cTopic, CallBack);
         delete []name;
     }
+    tlbMissAnalysis.threshold1 = config.GetL1MissThreshold();
+    tlbMissAnalysis.threshold2 = config.GetL2MissThreshold();
     analysisTemplate.suggestions.Init(DEFAULT_ROW, "suggestion");
     analysisTemplate.suggestions.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     analysisTemplate.suggestions.AddRow({"suggestion", "operation", "result"});

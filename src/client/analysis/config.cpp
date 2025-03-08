@@ -22,6 +22,8 @@ void Config::PrintHelp()
     usage += "   -r|--realtime              show real time report.\n";
     usage += "   -v|--verbose               show verbose information.\n";
     usage += "   -h|--help                  show this help message.\n";
+    usage += "   --l1-miss-threshold                  set l1 tlbmiss threshold.\n";
+    usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
     std::cout << usage;
 }
 
@@ -58,13 +60,18 @@ bool Config::Init(int argc, char **argv)
             case 'v':
                 showVerbose = true;
                 break;
+            case L1_MISS_THRESHOLD:
+                l1MissThreshold = atoi(optarg);
+                break;
+            case L2_MISS_THRESHOLD:
+                l2MissThreshold = atoi(optarg);
+                break;
             case 'h':
             default:
                 PrintHelp();
                 return false;
         }
     }
-
     if (optind != argc) {
         PrintHelp();
         return false;

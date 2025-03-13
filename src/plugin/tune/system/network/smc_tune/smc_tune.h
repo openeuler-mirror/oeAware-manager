@@ -27,7 +27,7 @@ public:
     void Run() override;
 
 private:
-    std::pair<std::string, std::string> ReadConfig(const std::string &path);
+    int ReadConfig(const std::string &path);
     std::string blackPortList;
     std::string whitePortList;
 };

@@ -48,8 +48,8 @@ private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
-    int l1MissThreshold = 5;
-    int l2MissThreshold = 10;
+    double l1MissThreshold = 5;
+    double l2MissThreshold = 10;
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},

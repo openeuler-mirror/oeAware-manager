@@ -61,10 +61,10 @@ bool Config::Init(int argc, char **argv)
                 showVerbose = true;
                 break;
             case L1_MISS_THRESHOLD:
-                l1MissThreshold = atoi(optarg);
+                l1MissThreshold = atof(optarg);
                 break;
             case L2_MISS_THRESHOLD:
-                l2MissThreshold = atoi(optarg);
+                l2MissThreshold = atof(optarg);
                 break;
             case 'h':
             default:

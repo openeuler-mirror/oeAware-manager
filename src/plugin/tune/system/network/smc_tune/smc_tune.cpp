@@ -48,8 +48,10 @@ void SmcTune::UpdateData(const DataList &dataList)
 oeaware::Result SmcTune::Enable(const std::string &param)
 {
     (void)param;
-    auto listpair = ReadConfig(SMC_ACC_YAML_PATH);
-    SMC_OP->InputPortList(listpair.first, listpair.second);
+    if (ReadConfig(SMC_ACC_YAML_PATH) < 0) {
+        return oeaware::Result(FAILED);
+    }
+    SMC_OP->InputPortList(blackPortList, whitePortList);
     int ret = (SMC_OP->EnableSmcAcc() == EXIT_SUCCESS ? OK : FAILED);
     return oeaware::Result(ret);
 }
@@ -63,23 +65,22 @@ void SmcTune::Disable()
 
 void SmcTune::Run()
 {
-    auto listpair = ReadConfig(SMC_ACC_YAML_PATH);
-    if (SMC_OP->IsSamePortList(listpair.first, listpair.second)) {
+    ReadConfig(SMC_ACC_YAML_PATH);
+    if (SMC_OP->IsSamePortList(blackPortList, whitePortList)) {
         return;
     }
-    SMC_OP->InputPortList(listpair.first, listpair.second);
+    SMC_OP->InputPortList(blackPortList, whitePortList);
     if (SMC_OP->ReRunSmcAcc() != EXIT_SUCCESS)
         WARN(logger, "failed to ReRunSmcAcc");
 }
 
-std::pair<std::string, std::string> oeaware::SmcTune::ReadConfig(const std::string &path)
+int oeaware::SmcTune::ReadConfig(const std::string &path)
 {
     std::ifstream sysFile(path);
-    std::string blackPortList, whitePortList;
 
     if (!sysFile.is_open()) {
         WARN(logger, "smc_acc.yaml config open failed.");
-        return std::make_pair("", "");
+        return -1;
     }
     YAML::Node node = YAML::LoadFile(path);
 
@@ -88,5 +89,5 @@ std::pair<std::string, std::string> oeaware::SmcTune::ReadConfig(const std::stri
     whitePortList = node["white_port_list_param"] ? node["white_port_list_param"].as<std::string>() : "";
 
     sysFile.close();
-    return std::make_pair(blackPortList, whitePortList);
+    return 0;
 }

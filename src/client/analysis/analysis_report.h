@@ -29,8 +29,8 @@ struct AnalysisTemplate {
 struct TlbMissAnalysis {
     TlbMiss tlbMiss;
     int cnt = -1; // The first data is invalid.
-    int threshold1 = 5;
-    int threshold2 = 5;
+    double threshold1 = 5;
+    double threshold2 = 10;
     bool IsHighMiss();
     void Add(const TlbMiss &tempTlbMiss);
 };

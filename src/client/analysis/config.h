@@ -36,11 +36,11 @@ public:
     {
         return showVerbose;
     }
-    int GetL1MissThreshold() const
+    double GetL1MissThreshold() const
     {
         return l1MissThreshold;
     }
-    int GetL2MissThreshold() const
+    double GetL2MissThreshold() const
     {
         return l2MissThreshold;
     }

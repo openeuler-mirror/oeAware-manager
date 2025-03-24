@@ -67,6 +67,9 @@ void AnalysisReport::MemoryAnalyze()
     memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     const TlbMiss &tlbMiss = tlbMissAnalysis.tlbMiss;
     int cnt = tlbMissAnalysis.cnt;
+    if (cnt == 0) {
+        cnt = 1;
+    }
     double l1dTlbMiss = tlbMiss.l1dTlbMiss * PERCENT / cnt;
     double l1iTlbMiss = tlbMiss.l1iTlbMiss * PERCENT / cnt;
     double l2dTlbMiss = tlbMiss.l2dTlbMiss * PERCENT / cnt;

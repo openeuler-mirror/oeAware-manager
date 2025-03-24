@@ -65,6 +65,7 @@ void AnalysisCli::Run()
 {
     auto &analysisReport = oeaware::AnalysisReport::GetInstance();
     analysisReport.Init(std::vector<std::string>{MEMORY_ANALYSIS}, config);
+    std::cout << "Analyzing... Please wait " << analysisTime << "s.\n";
     sleep(analysisTime);
     analysisReport.AnalyzeResult();
     analysisReport.Print();

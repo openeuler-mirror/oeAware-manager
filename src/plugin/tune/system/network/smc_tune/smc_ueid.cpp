@@ -20,7 +20,8 @@ const struct nla_policy smc_gen_ueid_policy[SMC_ACC_NLA_EID_TABLE_MAX + 1] = {
 const std::vector<std::string> whiteList ={
     "lsmod",
     "grep",
-    "rmmod"
+    "rmmod",
+    "insmod"
 };
 
 static int HandleGenUeidReply(struct nl_msg *msg, void *arg)

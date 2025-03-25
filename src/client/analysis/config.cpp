@@ -11,6 +11,8 @@
  ******************************************************************************/
 
 #include "config.h"
+#include <regex>
+
 void Config::PrintHelp()
 {
     std::string usage = "";
@@ -40,6 +42,12 @@ bool Config::ParseTime(const char *arg)
     return true;
 }
 
+static bool IsNum(const std::string &s)
+{
+    std::regex num(R"(^[+]?\d+(\.\d+)?$)");
+    return std::regex_match(s, num);
+}
+
 bool Config::Init(int argc, char **argv)
 {
     if (argv == nullptr) {
@@ -61,9 +69,19 @@ bool Config::Init(int argc, char **argv)
                 showVerbose = true;
                 break;
             case L1_MISS_THRESHOLD:
+                if (!IsNum(optarg)) {
+                    std::cerr << "Error: Invalid l1-miss-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
                 l1MissThreshold = atof(optarg);
                 break;
             case L2_MISS_THRESHOLD:
+                if (!IsNum(optarg)) {
+                    std::cerr << "Error: Invalid l2-miss-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
                 l2MissThreshold = atof(optarg);
                 break;
             case 'h':

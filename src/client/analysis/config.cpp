@@ -12,20 +12,22 @@
 
 #include "config.h"
 #include <regex>
+#include "oeaware/utils.h"
 
 void Config::PrintHelp()
 {
     std::string usage = "";
     usage += "usage: oeawarectl analysis [options]...\n";
     usage += "  options\n";
-    usage += "   -t|--time <s>              set analysis duration in seconds(default "\
-        + std::to_string(analysisTime) + "s), range from " + std::to_string(minAnalyzeTime) \
-        + " to " + std::to_string(maxAnalyzeTime) + ".\n";
+    usage += "   -t|--time <s>              set analysis duration in seconds(default " +
+        std::to_string(analysisTime) + "s), range from " + std::to_string(minAnalyzeTime) +
+        " to " + std::to_string(maxAnalyzeTime) + ".\n";
     usage += "   -r|--realtime              show real time report.\n";
     usage += "   -v|--verbose               show verbose information.\n";
     usage += "   -h|--help                  show this help message.\n";
     usage += "   --l1-miss-threshold                  set l1 tlbmiss threshold.\n";
     usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
+    usage += "   --out-path                           set the path of the analysis report.\n";
     std::cout << usage;
 }
 
@@ -84,6 +86,17 @@ bool Config::Init(int argc, char **argv)
                 }
                 l2MissThreshold = atof(optarg);
                 break;
+            case OUT_PATH: {
+                std::string path(optarg);
+                if (oeaware::FileExist(path)) {
+                    outMarkDownPath = optarg;
+                } else {
+                    std::cerr << "Error: Invalid out-path: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                break;
+            }
             case 'h':
             default:
                 PrintHelp();

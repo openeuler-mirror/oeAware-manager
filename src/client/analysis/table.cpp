@@ -49,6 +49,17 @@ std::string Table::GetTableName() const
     return name;
 }
 
+std::string Table::GetContent(int i, int j) const
+{
+    if (i < 0 || i >= data.size()) {
+        return "";
+    }
+    if (j < 0 || j >= data[i].size()) {
+        return "";
+    }
+    return data[i][j];
+}
+
 void Table::SetBorder(bool border)
 {
     hasBorder = border;
@@ -129,5 +140,24 @@ void Table::PrintTable() const
             PrintBoard();
         }
     }
+}
+
+std::string Table::GetMarkDownTable()
+{
+    std::string ret = "";
+
+    for (int i = 0; i < data.size(); ++i) {
+        for (int j = 0; j < data[i].size(); ++j) {
+            ret += "| " + data[i][j] + " ";
+        }
+        ret += "|\n";
+        if (!i) {
+            for (int j = 0; j < data[i].size(); ++j) {
+                ret += "| --- ";
+            }
+            ret += "|\n";
+        }
+    }
+    return ret;
 }
 }

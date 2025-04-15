@@ -20,7 +20,7 @@
 
 const int L1_MISS_THRESHOLD = 200;
 const int L2_MISS_THRESHOLD = 201;
-
+const int OUT_PATH = 202;
 class Config {
 public:
     bool Init(int argc, char **argv);
@@ -44,12 +44,17 @@ public:
     {
         return l2MissThreshold;
     }
+    std::string GetOutMarkDownPath() const
+    {
+        return outMarkDownPath;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
     double l1MissThreshold = 5;
     double l2MissThreshold = 10;
+    std::string  outMarkDownPath = "";
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
@@ -58,6 +63,7 @@ private:
         {"verbose", no_argument, nullptr, 'v'},
         {"l1-miss-threshold", required_argument, nullptr, L1_MISS_THRESHOLD},
         {"l2-miss-threshold", required_argument, nullptr, L2_MISS_THRESHOLD},
+        {"out-path", required_argument, nullptr, OUT_PATH},
         {nullptr, 0, nullptr, 0}
     };
     bool isShowRealTimeReport = false;

@@ -40,6 +40,7 @@ public:
     void Print();
     void SetAnalysisTemplate(const AnalysisTemplate &data);
     void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name);
+    void PrintMarkDown(const std::string &path);
 private:
     AnalysisReport() {}
     ~AnalysisReport() {}
@@ -52,6 +53,7 @@ private:
     const std::vector<std::string> &params);
     void PrintTitle(const std::string &title);
     void PrintSubtitle(const std::string &subtitle);
+    
     std::vector<std::vector<std::string>> topics;
     AnalysisTemplate analysisTemplate;
     const int reportWidth = 120;

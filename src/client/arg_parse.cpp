@@ -81,6 +81,26 @@ int ArgParse::InitCmd(int &cmd, int opt)
         if (optarg) {
             SetArg(optarg);
         }
+        if (cmd == 'e') {
+            if (optind == argCnt) {
+                return 0;
+            }
+            while (optind < argCnt) {
+                if (argValue[optind][0] != '-') {
+                    ArgError("invalid enable params.");
+                    return -1;
+                }
+                std::string key = std::string(argValue[optind]).substr(1);
+                optind++;
+                if (optind >= argCnt) {
+                    ArgError("invalid enable params.");
+                    return -1;
+                }
+                std::string value = std::string(argValue[optind]);
+                enableParams[key] = value;
+                optind++;
+            }
+        }
     } else {
         return -1;
     }
@@ -90,6 +110,8 @@ int ArgParse::InitCmd(int &cmd, int opt)
 int ArgParse::Init(int argc, char *argv[])
 {
     constexpr int START_OR_STOP = 2;
+    argCnt = argc;
+    argValue = argv;
     if (argc == START_OR_STOP) {
         if (strcmp(argv[1], "start") == 0) {
             return START;

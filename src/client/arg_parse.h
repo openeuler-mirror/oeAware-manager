@@ -13,6 +13,7 @@
 #define CLIENT_ARG_PARSE_H
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <getopt.h>
 
@@ -36,16 +37,23 @@ public:
     {
         return arg;
     }
+    std::unordered_map<std::string, std::string> GetEnableParams()
+    {
+        return enableParams;
+    }
 private:
     ArgParse() { }
     void InitOpts();
     int InitCmd(int &cmd, int opt);
     void SetArg(const std::string &newArg);
 private:
+    int argCnt;
+    char **argValue;
     std::string arg;
     std::unordered_set<char> opts;
     static const std::string optString;
     std::vector<Option> longOptions;
+    std::unordered_map<std::string, std::string> enableParams;
 };
 }
 

@@ -12,7 +12,7 @@
 #include "enable_handler.h"
 
 namespace oeaware {
-ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
+ErrorCode EnableHandler::InstanceEnabled(const std::string &name, const std::string &param)
 {
     if (!memoryStore->IsInstanceExist(name)) {
         return ErrorCode::ENABLE_INSTANCE_NOT_LOAD;
@@ -24,7 +24,7 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
     if (instance->enabled) {
         return ErrorCode::ENABLE_INSTANCE_ALREADY_ENABLED;
     }
-    auto msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, std::vector<std::string>{instance->name});
+    auto msg = std::make_shared<InstanceRunMessage>(RunType::ENABLED, std::vector<std::string>{instance->name, param});
     /* Send message to InstanceRunHandler. */
     instanceRunHandler->RecvQueuePush(msg);
     /* Wait for InstanceRunHandler to finsh this task. */
@@ -38,13 +38,15 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name)
 EventResult EnableHandler::Handle(const Event &event)
 {
     auto name = event.payload[0];
-    auto retCode = InstanceEnabled(name);
+    auto param = event.payload[1];
+    auto retCode = InstanceEnabled(name, param);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {
-        INFO(logger, name << " enabled successful.");
+        INFO(logger, name << "(param:'"<< LogText(param) << "')" << " enabled successful.");
         eventResult.opt = Opt::RESPONSE_OK;
     } else {
-        WARN(logger, name << " enabled failed. because " << ErrorText::GetErrorText(retCode) << ".");
+        WARN(logger, name << "(param:'"<< LogText(param) << "')" << " enabled failed. because " <<
+            ErrorText::GetErrorText(retCode) << ".");
         eventResult.opt = Opt::RESPONSE_ERROR;
         eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
     }

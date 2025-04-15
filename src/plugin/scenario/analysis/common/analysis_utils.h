@@ -9,28 +9,15 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef ANALYSIS_COMPOSE_H
-#define ANALYSIS_COMPOSE_H
+#ifndef ANALYSIS_UTILS_H
+#define ANALYSIS_UTILS_H
+#include <vector>
 #include <string>
-#include "oeaware/topic.h"
+#include <securec.h>
 #include "oeaware/data/analysis_data.h"
-
 namespace oeaware {
-class AnalysisCompose {
-public:
-    virtual void Init() = 0;
-    // @brief Update the subscribed collection data.
-    virtual void UpdateData(const std::string &topicName, void *data) = 0;
-    // @brief Analyze the data collected within a certain period of time and generate an analysis report.
-    virtual void Analysis() = 0;
-    // @brief Get the analysis report.
-    virtual void* GetResult() = 0;
-    virtual void Reset() = 0;
-    // Collection topic to be subscribed to.
-    std::vector<Topic> subTopics;
-    // The report of analysis results.
-    AnalysisResultItem analysisResultItem;
-};
+const int ANALYSIS_TIME_PERIOD = 1000;
+void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metrics, const std::string &conclusion,
+    const std::vector<std::string> &suggestionItem, AnalysisResultItem *analysisResultItem);
 }
-
 #endif

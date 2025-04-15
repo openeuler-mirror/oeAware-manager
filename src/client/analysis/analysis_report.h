@@ -11,6 +11,7 @@
  ******************************************************************************/
 #ifndef CLIENT_ANALYSIS_REPORT_H
 #define CLIENT_ANALYSIS_REPORT_H
+#include <unordered_map>
 #include "table.h"
 #include "oeaware/data/analysis_data.h"
 #include "config.h"
@@ -21,18 +22,9 @@ const int PERCENT = 100;
 const int DEFAULT_SUGGESTION_WIDTH = 20;
 const int DEFAULT_CONCLUSION_WIDTH = 80;
 struct AnalysisTemplate {
-    std::vector<Table> datas;
+    std::unordered_map<std::string, Table> datas;
     std::vector<Table> conclusions;
     Table suggestions;
-};
-
-struct TlbMissAnalysis {
-    TlbMiss tlbMiss;
-    int cnt = -1; // The first data is invalid.
-    double threshold1 = 5;
-    double threshold2 = 10;
-    bool IsHighMiss();
-    void Add(const TlbMiss &tempTlbMiss);
 };
 
 class AnalysisReport {
@@ -44,21 +36,24 @@ public:
     }
     AnalysisReport(const AnalysisReport &) = delete;
     AnalysisReport &operator=(const AnalysisReport &) = delete;
-    void Init(const std::vector<std::string> &topics, const Config &config);
+    void Init(const Config &config);
     void Print();
     void SetAnalysisTemplate(const AnalysisTemplate &data);
-    void UpdateMemoryData(const MemoryAnalysisData &memoryAnalysisData);
-    void UpdateTlbMiss(const TlbMiss &tempTlbMiss);
-    void AnalyzeResult();
+    void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name);
 private:
     AnalysisReport() {}
     ~AnalysisReport() {}
-    void MemoryAnalyze();
+    // @brief: Add a analysis topic.
+    // @param insName Instance name.
+    // @param topicName Topic name.
+    // @param params Analysis topic param, for example
+    // t:10,c:20      a comma-separated (key:value) pair.
+    void AddAnalysisTopic(const std::string &insName, const std::string &topicName,
+    const std::vector<std::string> &params);
     void PrintTitle(const std::string &title);
     void PrintSubtitle(const std::string &subtitle);
-    
+    std::vector<std::vector<std::string>> topics;
     AnalysisTemplate analysisTemplate;
-    TlbMissAnalysis tlbMissAnalysis;
     const int reportWidth = 120;
 };
 }

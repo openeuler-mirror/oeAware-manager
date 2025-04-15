@@ -64,10 +64,9 @@ static void PrintProgressBar(const std::string &head, float progress, int barWid
 void AnalysisCli::Run()
 {
     auto &analysisReport = oeaware::AnalysisReport::GetInstance();
-    analysisReport.Init(std::vector<std::string>{MEMORY_ANALYSIS}, config);
+    analysisReport.Init(config);
     std::cout << "Analyzing... Please wait " << analysisTime << "s.\n";
-    sleep(analysisTime);
-    analysisReport.AnalyzeResult();
+    sleep(analysisTime + timeout);
     analysisReport.Print();
 }
 

@@ -17,14 +17,14 @@ namespace oeaware {
 constexpr int INSTANCE_RUN_ONCE = 2;
 constexpr int INSTANCE_RUN_ALWAYS = 1;
 
-Result InstanceRunHandler::EnableInstance(const std::string &name)
+Result InstanceRunHandler::EnableInstance(const std::string &name, const std::string &params)
 {
     if (!memoryStore->IsInstanceExist(name)) {
         WARN(logger, "instance {" << name << "} does not exist.");
         return Result(FAILED, "instance {" + name + "} does not exist.");
     }
     auto instance = memoryStore->GetInstance(name);
-    auto result = instance->interface->Enable();
+    auto result = instance->interface->Enable(params);
     if (result.code < 0) {
         WARN(logger, name << " instance enabled failed, " << result.payload);
         return result;
@@ -65,7 +65,7 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
     constexpr int subscriberIndex = 1;
     auto instance = memoryStore->GetInstance(topic.instanceName);
     if (!instance->enabled) {
-        result = EnableInstance(instance->name);
+        result = EnableInstance(instance->name, topic.params);
         if (result.code < 0) {
             WARN(logger, "failed to start the instance of the subscription topic, instance: " << instance->name);
             return result;

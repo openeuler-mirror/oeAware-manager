@@ -22,38 +22,69 @@ static int CallBack(const DataList *dataList)
     std::string topicName(dataList->topic.topicName);
     std::string instanceName(dataList->topic.instanceName);
     auto &analysisReport = AnalysisReport::GetInstance();
-    if (topicName == MEMORY_ANALYSIS) {
-        TlbMiss tempTlbMiss;
-        auto *memoryAnalysisData = static_cast<MemoryAnalysisData*>(dataList->data[0]);
-        analysisReport.UpdateMemoryData(*memoryAnalysisData);
-    }
+    auto recv = static_cast<AnalysisResultItem*>(dataList->data[0]);
+    analysisReport.AddAnalysisReportItem(recv, topicName);
 	return 0;
 }
 
-void AnalysisReport::UpdateMemoryData(const MemoryAnalysisData &memoryAnalysisData)
+void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name)
 {
-    UpdateTlbMiss(memoryAnalysisData.tlbMiss);
-}
-
-void AnalysisReport::UpdateTlbMiss(const TlbMiss &tempTlbMiss)
-{
-    tlbMissAnalysis.Add(tempTlbMiss);
-}
-
-void AnalysisReport::Init(const std::vector<std::string> &topics, const Config &config)
-{
-    for (auto &topic : topics) {
-        char *name = new char[topic.size() + 1];
-        strcpy_s(name, topic.size() + 1, topic.data());
-        CTopic cTopic{OE_ANALYSIS_AWARE, name, ""};
-        OeSubscribe(&cTopic, CallBack);
-        delete []name;
+    if (name == "hugepage") {
+        for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
+            std::string metric = analysisResultItem->dataItem[i].metric;
+            std::string value = analysisResultItem->dataItem[i].value;
+            std::string extra = analysisResultItem->dataItem[i].extra;
+            analysisTemplate.datas["Memory"].AddRow({metric, value, extra});
+        }
     }
-    tlbMissAnalysis.threshold1 = config.GetL1MissThreshold();
-    tlbMissAnalysis.threshold2 = config.GetL2MissThreshold();
+    Table conclusion(1, "conclusion");
+    conclusion.SetBorder(false);
+    conclusion.SetColumnWidth(DEFAULT_CONCLUSION_WIDTH);
+    conclusion.AddRow({std::string(analysisResultItem->conclusion)});
+    analysisTemplate.conclusions.emplace_back(conclusion);
+    analysisTemplate.suggestions.AddRow({std::string(analysisResultItem->suggestionItem.suggestion),
+        std::string(analysisResultItem->suggestionItem.opt), std::string(analysisResultItem->suggestionItem.extra)});
+}
+
+void AnalysisReport::AddAnalysisTopic(const std::string &insName, const std::string &topicName,
+    const std::vector<std::string> &params)
+{
+    std::string param = "";
+    for (size_t i = 0; i < params.size(); ++i) {
+        if (i) param += ",";
+        param += params[i];
+    }
+    topics.emplace_back(std::vector<std::string>{insName, topicName, param});
+}
+
+void AnalysisReport::Init(const Config &config)
+{
+    std::string timeParam = "t:" + std::to_string(config.GetAnalysisTimeMs());
+    std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
+    std::string threshold2 = "threshold2:" + std::to_string(config.GetL2MissThreshold());
+    AddAnalysisTopic("hugepage_analysis", "hugepage", {timeParam, threshold1, threshold2});
+    const int INS_NAME_INDEX = 0;
+    const int TOPIC_NAME_INDEX = 1;
+    const int PARAM_INDEX = 2;
+    for (auto &topic : topics) {
+        char *insName = new char[topic[INS_NAME_INDEX].size() + 1];
+        strcpy_s(insName, topic[INS_NAME_INDEX].size() + 1, topic[INS_NAME_INDEX].data());
+        char *topicName = new char[topic[TOPIC_NAME_INDEX].size() + 1];
+        strcpy_s(topicName, topic[TOPIC_NAME_INDEX].size() + 1, topic[TOPIC_NAME_INDEX].data());
+        char *param = new char[topic[PARAM_INDEX].size() + 1];
+        strcpy_s(param, topic[PARAM_INDEX].size() + 1, topic[PARAM_INDEX].data());
+        CTopic cTopic{insName, topicName, param};
+        OeSubscribe(&cTopic, CallBack);
+        delete []insName;
+        delete []topicName;
+        delete []param;
+    }
     analysisTemplate.suggestions.Init(DEFAULT_ROW, "suggestion");
     analysisTemplate.suggestions.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     analysisTemplate.suggestions.AddRow({"suggestion", "operation", "result"});
+    oeaware::Table memoryTable(DEFAULT_ROW, "Memory");
+    memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    analysisTemplate.datas["Memory"] = memoryTable;
 }
 
 void AnalysisReport::SetAnalysisTemplate(const AnalysisTemplate &data)
@@ -61,52 +92,14 @@ void AnalysisReport::SetAnalysisTemplate(const AnalysisTemplate &data)
     analysisTemplate = data;
 }
 
-void AnalysisReport::MemoryAnalyze()
-{
-    oeaware::Table memoryTable(DEFAULT_ROW, "Memory");
-    memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
-    const TlbMiss &tlbMiss = tlbMissAnalysis.tlbMiss;
-    int cnt = tlbMissAnalysis.cnt;
-    if (cnt == 0) {
-        cnt = 1;
-    }
-    double l1dTlbMiss = tlbMiss.l1dTlbMiss * PERCENT / cnt;
-    double l1iTlbMiss = tlbMiss.l1iTlbMiss * PERCENT / cnt;
-    double l2dTlbMiss = tlbMiss.l2dTlbMiss * PERCENT / cnt;
-    double l2iTlbMiss = tlbMiss.l2iTlbMiss * PERCENT / cnt;
-    memoryTable.AddRow({"metric", "value", "note"});
-    memoryTable.AddRow({"l1dtlb_miss", std::to_string(l1dTlbMiss) + "%", (l1dTlbMiss > tlbMissAnalysis.threshold1 ?
-        "high" : "low")});
-    memoryTable.AddRow({"l1itlb_miss", std::to_string(l1iTlbMiss) + "%", (l1iTlbMiss > tlbMissAnalysis.threshold1 ?
-        "high" : "low")});
-    memoryTable.AddRow({"l2dtlb_miss", std::to_string(l2dTlbMiss) + "%", (l2dTlbMiss > tlbMissAnalysis.threshold2 ?
-        "high" : "low")});
-    memoryTable.AddRow({"l2itlb_miss", std::to_string(l2iTlbMiss) + "%", (l2iTlbMiss > tlbMissAnalysis.threshold2 ?
-        "high" : "low")});
-    analysisTemplate.datas.emplace_back(memoryTable);
-    if (tlbMissAnalysis.IsHighMiss()) {
-        oeaware::Table highTlbMiss(1, "higTlbMiss");
-        highTlbMiss.SetBorder(false);
-        highTlbMiss.SetColumnWidth(DEFAULT_CONCLUSION_WIDTH);
-        highTlbMiss.AddRow({"The tlbmiss is too high."});
-        analysisTemplate.conclusions.emplace_back(highTlbMiss);
-        analysisTemplate.suggestions.AddRow({"use huge page", "oeawarectl -e transparent_hugepage_tune",
-            "reduce the number of tlb items and reduce the missing rate"});
-    }
-}
-
-void AnalysisReport::AnalyzeResult()
-{
-    MemoryAnalyze();
-}
-
 void AnalysisReport::Print()
 {
     PrintTitle("Analysis Report");
     PrintSubtitle("Data Analysis");
-    for (size_t i = 1; i <= analysisTemplate.datas.size(); ++i) {
-        std::cout << i << ". " << analysisTemplate.datas[i - 1].GetTableName() << std::endl;
-        analysisTemplate.datas[i - 1].PrintTable();
+    int index = 1;
+    for (auto &p : analysisTemplate.datas) {
+        std::cout << index++ << ". " << p.second.GetTableName() << std::endl;
+        p.second.PrintTable();
     }
     PrintSubtitle("Analysis Conclusion");
     for (size_t i = 0; i < analysisTemplate.conclusions.size(); ++i) {
@@ -132,20 +125,4 @@ void AnalysisReport::PrintSubtitle(const std::string &subtitle)
         std::endl;
 }
 
-void TlbMissAnalysis::Add(const TlbMiss &tempTlbMiss)
-{
-    tlbMiss.l1iTlbMiss += tempTlbMiss.l1iTlbMiss;
-    tlbMiss.l1dTlbMiss += tempTlbMiss.l1dTlbMiss;
-    tlbMiss.l2iTlbMiss += tempTlbMiss.l2iTlbMiss;
-    tlbMiss.l2dTlbMiss += tempTlbMiss.l2dTlbMiss;
-    cnt++;
-}
-
-bool TlbMissAnalysis::IsHighMiss()
-{
-    return tlbMiss.l1dTlbMiss * PERCENT / cnt >= threshold1 ||
-        tlbMiss.l1iTlbMiss * PERCENT / cnt >= threshold1 ||
-        tlbMiss.l2dTlbMiss * PERCENT / cnt >= threshold2 ||
-        tlbMiss.l2iTlbMiss * PERCENT / cnt >= threshold2;
-}
 }

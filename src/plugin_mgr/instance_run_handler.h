@@ -76,7 +76,7 @@ private:
     Result Unsubscribe(const std::vector<std::string> &payload);
     Result UnsubscribeSdk(const std::vector<std::string> &payload);
     void UpdateInstance();
-    Result EnableInstance(const std::string &name);
+    Result EnableInstance(const std::string &name, const std::string &params = "");
     void DisableInstance(const std::string &name);
     Result Publish(const std::vector<std::string> &payload);
     void CloseInstance(std::shared_ptr<Instance> instance);

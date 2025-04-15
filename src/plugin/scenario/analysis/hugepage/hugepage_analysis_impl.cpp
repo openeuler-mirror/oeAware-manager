@@ -9,13 +9,14 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "memory_analysis.h"
+#include "hugepage_analysis_impl.h"
 #include <oeaware/data_list.h>
 #include <securec.h>
 #include "data_register.h"
+#include "analysis_utils.h"
 
 namespace oeaware {
-void MemoryAnalysis::Init()
+void HugepageAnalysisImpl::Init()
 {
     subTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb", ""});
     subTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb_refill", ""});
@@ -27,7 +28,7 @@ void MemoryAnalysis::Init()
     subTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb_refill", ""});
 }
 
-void MemoryAnalysis::UpdateData(const std::string &topicName, void *data)
+void HugepageAnalysisImpl::UpdateData(const std::string &topicName, void *data)
 {
     auto countingData = static_cast<PmuCountingData*>(data);
     for (int i = 0; i < countingData->len; ++i) {
@@ -52,21 +53,34 @@ void MemoryAnalysis::UpdateData(const std::string &topicName, void *data)
     }
 }
 
-void MemoryAnalysis::Analysis()
+void HugepageAnalysisImpl::Analysis()
 {
-    TlbMiss &tlbMiss = memoryAnalysisData.tlbMiss;
-    tlbMiss.l1dTlbMiss = tlbInfo.l1dTlb == 0 ? 0 : 1.0 * tlbInfo.l1dTlbRefill / tlbInfo.l1dTlb;
-    tlbMiss.l1iTlbMiss = tlbInfo.l1iTlb == 0 ? 0 : 1.0 * tlbInfo.l1iTlbRefill / tlbInfo.l1iTlb;
-    tlbMiss.l2dTlbMiss = tlbInfo.l2dTlb == 0 ? 0 : 1.0 * tlbInfo.l2dTlbRefill / tlbInfo.l2dTlb;
-    tlbMiss.l2iTlbMiss = tlbInfo.l2iTlb == 0 ? 0 : 1.0 * tlbInfo.l2iTlbRefill / tlbInfo.l2iTlb;
+    std::vector<std::vector<std::string>> metrics;
+    metrics.emplace_back(std::vector<std::string>{"l1dtlb_miss", std::to_string(tlbInfo.L1dTlbMiss() * 100) + "%",
+        (tlbInfo.L1dTlbMiss() * 100 > threshold1 ? "high" : "low")});
+    metrics.emplace_back(std::vector<std::string>{"l1itlb_miss", std::to_string(tlbInfo.L1iTlbMiss() * 100) + "%",
+        (tlbInfo.L1iTlbMiss() * 100 > threshold1 ? "high" : "low")});
+    metrics.emplace_back(std::vector<std::string>{"l2dtlb_miss", std::to_string(tlbInfo.L2dTlbMiss() * 100) + "%",
+        (tlbInfo.L2dTlbMiss() * 100 > threshold2 ? "high" : "low")});
+    metrics.emplace_back(std::vector<std::string>{"l2itlb_miss", std::to_string(tlbInfo.L2iTlbMiss() * 100) + "%",
+        (tlbInfo.L2iTlbMiss() * 100 > threshold2 ? "high" : "low")});
+    std::string conclusion;
+    std::vector<std::string> suggestionItem;
+    if (tlbInfo.IsHighMiss(threshold1, threshold2)) {
+        conclusion = "The tlbmiss is too high.";
+        suggestionItem.emplace_back("use huge page");
+        suggestionItem.emplace_back("oeawarectl -e transparent_hugepage_tune");
+        suggestionItem.emplace_back("reduce the number of tlb items and reduce the missing rate");
+    }
+    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, &analysisResultItem);
 }
 
-void* MemoryAnalysis::GetResult()
+void* HugepageAnalysisImpl::GetResult()
 {
-    return &memoryAnalysisData;
+    return &analysisResultItem;
 }
 
-void MemoryAnalysis::Reset()
+void HugepageAnalysisImpl::Reset()
 {
     memset_s(&tlbInfo, sizeof(tlbInfo), 0, sizeof(tlbInfo));
 }

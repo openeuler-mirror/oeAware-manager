@@ -21,6 +21,7 @@
 #define OE_THREAD_COLLECTOR          "thread_collector"
 #define OE_COMMAND_COLLECTOR         "command_collector"
 #define OE_ANALYSIS_AWARE            "analysis_aware"
+#define OE_HUGEPAGE_ANALYSIS         "hugepage_analysis"
 #define OE_ENV_INFO                  "env_info_collector"
 #define OE_UNIXBENCH_TUNE            "unixbench_tune"
 #define OE_DOCKER_CPU_BURST_TUNE     "docker_cpu_burst"

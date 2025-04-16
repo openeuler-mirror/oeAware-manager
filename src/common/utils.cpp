@@ -298,4 +298,39 @@ bool ServiceControl(const std::string &serviceName, const std::string &action)
     return true;
 }
 
+// 0,1,3-5 => {0,1,3,4,5}
+std::vector<int> ParseRange(const std::string &rangeStr)
+{
+    std::vector<int> numbers;
+    std::stringstream ss(rangeStr);
+    std::string token;
+    while (std::getline(ss, token, ',')) {
+        size_t dashPos = token.find('-');
+        if (dashPos != std::string::npos) {
+            int start = std::stoi(token.substr(0, dashPos));
+            int end = std::stoi(token.substr(dashPos + 1));
+            for (int i = start; i <= end; ++i) {
+                numbers.emplace_back(i);
+            }
+        } else {
+            numbers.emplace_back(std::stoi(token));
+        }
+    }
+    return numbers;
+}
+
+bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
+{
+    std::string smpAffinityPath = "/proc/irq/" + std::to_string(irqNum) + "/smp_affinity_list";
+
+    std::ofstream file(smpAffinityPath);
+    if (!file.is_open()) {
+        return false;
+    }
+
+    file << preferredCpu << '\n';
+    file.close();
+    return true;
+}
+
 }

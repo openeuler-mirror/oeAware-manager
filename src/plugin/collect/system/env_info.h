@@ -30,13 +30,21 @@ private:
     struct TopicParam {
         bool open = false;
     };
-    std::vector<std::string> topicStr = { "static", "realtime", "cpu_rate" };
+    std::vector<std::string> topicStr = { "static", "realtime", "cpu_util" };
     std::unordered_map<std::string, TopicParam> topicParams;
     EnvStaticInfo envStaticInfo = {};
     EnvRealTimeInfo envRealTimeInfo = {};
+    std::vector<std::vector<uint64_t>> cpuTime; // [cpu][type]
+    EnvCpuUtilParam envCpuUtilInfo = {};
     void InitNumaDistance();
     bool InitEnvStaticInfo();
+    bool InitEnvRealTimeInfo();
+    void InitEnvCpuUtilInfo();
     void GetEnvRealtimeInfo();
+    void GetEnvCpuUtilInfo();
+    bool UpdateProcStat();
+    bool UpdateCpuDiffTime(std::vector<std::vector<uint64_t>> oldCpuTime);
+    void ResetEnvCpuUtilInfo();
 };
 
 #endif // OEAWARE_MANAGER_ENV_INFO_H

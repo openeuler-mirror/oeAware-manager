@@ -48,6 +48,10 @@ target_include_directories( analysis_report_test PUBLIC
     ${SRC_DIR}/client/analysis
 )
 
+target_include_directories(table_test PUBLIC
+    ${SRC_DIR}/client/analysis
+)
+
 target_link_libraries(serialize_test PRIVATE common GTest::gtest_main)
 target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus)
 target_link_libraries(safe_queue_test PRIVATE GTest::gtest_main)
@@ -64,3 +68,5 @@ set_target_properties(utils_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BI
 set_target_properties(data_register_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(table_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 set_target_properties(analysis_report_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
+
+add_subdirectory(ST/sdk)

@@ -1,0 +1,70 @@
+#include <iostream>
+#include <string>
+#include <functional>
+#include <map>
+#include "oeaware/data_list.h"
+#include "test_inc.h"
+
+using CallbackFunction = std::function<bool()>;
+
+class CallbackManager {
+public:
+    void RegisterCallback(const std::string &name, CallbackFunction callback, const std::string &description)
+    {
+        callbacks[name] = callback;
+        descriptions[name] = description;
+    }
+
+    bool InvokeCallback(const std::string &name)
+    {
+        auto it = callbacks.find(name);
+        if (it != callbacks.end()) {
+            return it->second();
+        } else {
+            std::cout << "Callback not found: " << name << std::endl;
+            return false;
+        }
+    }
+
+    bool IsValidOption(const std::string &option) const
+    {
+        return callbacks.find(option) != callbacks.end();
+    }
+
+    void ShowCallbackDescriptions() const
+    {
+        std::cout << "usage: test_sdk [options].." << std::endl;
+        std::cout << "options:" << std::endl;
+        for (const auto &entry : descriptions) {
+            std::cout << "       " << entry.first << "             " << entry.second << std::endl;
+        }
+    }
+
+private:
+    std::map<std::string, CallbackFunction> callbacks;
+    std::map<std::string, std::string> descriptions;
+};
+
+int main(int argc, char *argv[])
+{
+    CallbackManager manager;
+    std::string options;
+    manager.RegisterCallback(std::string(OE_ENV_INFO) + "::static", TestEnvStaticInfo, "show environment static info");
+    manager.RegisterCallback(std::string(OE_ENV_INFO) + "::realtime", TestEnvRealTimeInfo, "show environment realtime info");
+    manager.RegisterCallback(std::string(OE_ENV_INFO) + "::cpu_util", TestCpuUtilInfo, "show cpu util info");
+    if (argc >= 2) {
+        options = std::string(argv[1]);
+        if (!manager.IsValidOption(options)) {
+            manager.ShowCallbackDescriptions();
+            return -1;
+        }
+    } else {
+        manager.ShowCallbackDescriptions();
+        return -1;
+    }
+    if (!manager.InvokeCallback(options)) {
+        std::cout << "ST Test failed, Case:" << options << std::endl;
+        return -1;
+    }
+    return 0;
+}

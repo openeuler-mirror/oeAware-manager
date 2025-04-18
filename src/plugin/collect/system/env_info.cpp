@@ -13,9 +13,81 @@
 #include "env_info.h"
 #include <numa.h>
 #include <unistd.h>
+#include <iostream>
+#include <securec.h>
+#include <dirent.h>
+#include <cstdlib>
 #include "oeaware/data/env_data.h"
 
 using namespace oeaware;
+
+bool EnvInfo::UpdateProcStat()
+{
+    std::string path = "/proc/stat";
+    FILE *file = fopen(path.c_str(), "r");
+    if (!file) {
+        std::cerr << "Failed to open file: " << path << std::endl;
+        return false;
+    }
+    int cpuNum = envStaticInfo.cpuNumConfig;
+    if (fscanf_s(file, "%*s %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
+        &cpuTime[cpuNum][CPU_USER],
+        &cpuTime[cpuNum][CPU_NICE],
+        &cpuTime[cpuNum][CPU_SYSTEM],
+        &cpuTime[cpuNum][CPU_IDLE],
+        &cpuTime[cpuNum][CPU_IOWAIT],
+        &cpuTime[cpuNum][CPU_IRQ],
+        &cpuTime[cpuNum][CPU_SOFTIRQ],
+        &cpuTime[cpuNum][CPU_STEAL],
+        &cpuTime[cpuNum][CPU_GUEST],
+        &cpuTime[cpuNum][CPU_GNICE]) != CPU_UTIL_TYPE_MAX - 1) {
+        if (fclose(file) == EOF) {
+            std::cerr << "Failed to close file: " << path << std::endl;
+        }
+        return false;
+    }
+
+    while (cpuNum--) {
+        int readCpu = -1; // adapt offline cpu
+        if (fscanf_s(file, "cpu%d ", &readCpu) != 1) {
+            break; // read finish
+        }
+        if (fscanf_s(file, " %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
+            &cpuTime[readCpu][CPU_USER],
+            &cpuTime[readCpu][CPU_NICE],
+            &cpuTime[readCpu][CPU_SYSTEM],
+            &cpuTime[readCpu][CPU_IDLE],
+            &cpuTime[readCpu][CPU_IOWAIT],
+            &cpuTime[readCpu][CPU_IRQ],
+            &cpuTime[readCpu][CPU_SOFTIRQ],
+            &cpuTime[readCpu][CPU_STEAL],
+            &cpuTime[readCpu][CPU_GUEST],
+            &cpuTime[readCpu][CPU_GNICE]) != CPU_UTIL_TYPE_MAX - 1) {
+            if (fclose(file) == EOF) {
+                std::cerr << "Failed to close file: " << path << std::endl;
+            }
+            return false;
+        }
+    }
+
+    if (fclose(file) == EOF) {
+        std::cerr << "Failed to close file: " << path << std::endl;
+    }
+    return true;
+}
+
+bool EnvInfo::UpdateCpuDiffTime(std::vector<std::vector<uint64_t>> oldCpuTime)
+{
+    bool ret = UpdateProcStat();
+    for (int cpu = 0; cpu < envStaticInfo.cpuNumConfig + 1; cpu++) {
+        envCpuUtilInfo.times[cpu][CPU_TIME_SUM] = 0;
+        for (int type = 0; type < CPU_TIME_SUM; type++) {
+            envCpuUtilInfo.times[cpu][type] = cpuTime[cpu][type] - oldCpuTime[cpu][type];
+            envCpuUtilInfo.times[cpu][CPU_TIME_SUM] += envCpuUtilInfo.times[cpu][type];
+        }
+    }
+    return ret;
+}
 
 void ResetEnvStaticInfo(EnvStaticInfo &envStaticInfo)
 {
@@ -42,6 +114,23 @@ void ResetEnvRealTimeInfo(EnvRealTimeInfo &envRealTimeInfo)
 {
     envRealTimeInfo.dataReady = ENV_DATA_NOT_READY;
     envRealTimeInfo.cpuNumOnline = 0;
+    envRealTimeInfo.cpuNumConfig = 0;
+    if (envRealTimeInfo.cpuOnLine != nullptr) {
+        delete[] envRealTimeInfo.cpuOnLine;
+        envRealTimeInfo.cpuOnLine = nullptr;
+    }
+}
+
+void EnvInfo::ResetEnvCpuUtilInfo()
+{
+    envCpuUtilInfo.cpuNumConfig = 0;
+    envCpuUtilInfo.dataReady = ENV_DATA_NOT_READY;
+    for (int cpu = 0; cpu < envStaticInfo.cpuNumConfig + 1; cpu++) {
+        delete[] envCpuUtilInfo.times[cpu];
+        envCpuUtilInfo.times[cpu] = nullptr;
+    }
+    delete[] envCpuUtilInfo.times;
+    envCpuUtilInfo.times = nullptr;
 }
 
 EnvInfo::EnvInfo()
@@ -76,7 +165,8 @@ EnvInfo::EnvInfo()
     description += "                        none\n";
 	description += "[provide topics]\n";
 	description += "                 topicName:static, params:\"\", usage:get static environment info\n";
-	description += "                 topicName:realtime, params:\"\", usage:get realtime environment info\n";
+    description += "                 topicName:realtime, params:\"\", usage:get realtime environment info\n";
+    description += "                 topicName:cpu_util, params:\"\", usage:get cpu utilization info\n";
 }
 
 oeaware::Result EnvInfo::OpenTopic(const oeaware::Topic &topic)
@@ -97,6 +187,11 @@ oeaware::Result EnvInfo::OpenTopic(const oeaware::Topic &topic)
             return oeaware::Result(OK);
         }
         topicParams[iter].open = true;
+        if (topic.topicName == "realtime") {
+            InitEnvRealTimeInfo();
+        } else if (topic.topicName == "cpu_util") {
+            InitEnvCpuUtilInfo();
+        }
         return oeaware::Result(OK);
     }
     return oeaware::Result(OK);
@@ -108,9 +203,13 @@ void EnvInfo::CloseTopic(const oeaware::Topic &topic)
         WARN(logger, "CloseTopic failed, " + topic.GetType() + " not open.");
         return;
     }
+    std::cout << "CloseTopic " << topic.GetType() << std::endl;
     topicParams[topic.topicName].open = false;
     if (topic.topicName == "realtime") {
         ResetEnvRealTimeInfo(envRealTimeInfo);
+    }
+    if (topic.topicName == "cpu_util") {
+        ResetEnvCpuUtilInfo();
     }
 }
 
@@ -154,6 +253,14 @@ void EnvInfo::Run()
             dataList.len = 1;
             dataList.data = new void* [1];
             dataList.data[0] = &envRealTimeInfo;
+        } else if (topicName == "cpu_util") {
+            GetEnvCpuUtilInfo();
+            oeaware::SetDataListTopic(&dataList, name, topicName, "");
+            dataList.len = 1;
+            dataList.data = new void* [1];
+            dataList.data[0] = &envCpuUtilInfo;
+        } else {
+            continue;
         }
         Publish(dataList);
     }
@@ -186,6 +293,47 @@ void EnvInfo::InitNumaDistance()
     }
 }
 
+bool InitCpu2Node(int numaNum, int *cpu2Node, int cpuNum)
+{
+    /*
+    * numa_node_to_cpus or numa_node_of_cpu can't work when cpu offline
+    * use /sys/devices/system/node/nodeN/cpuM instead
+    */
+    for (int n = 0; n < numaNum; ++n) {
+        std::string basePath = "/sys/devices/system/node/node" + std::to_string(n) + "/";
+        DIR *cpuDir = opendir(basePath.c_str());
+        if (!cpuDir) {
+            std::cerr << "Failed to open directory: " << basePath << std::endl;
+            return false;
+        }
+        struct dirent *cpuEntry;
+        const std::string prefix = "cpu";
+        while ((cpuEntry = readdir(cpuDir)) != nullptr) {
+            // format: cpuX
+            std::string cpuDirName = cpuEntry->d_name;
+            if (cpuDirName.size() <= prefix.length() || cpuDirName.compare(0, prefix.length(), "cpu") != 0 \
+                || !isdigit(cpuDirName[prefix.length()])) {
+                continue;
+            }
+            int cpuId = -1;
+            try {
+                cpuId = std::atoi(cpuDirName.substr(prefix.length()).c_str());
+            }
+            catch (...) {
+                continue;
+            }
+            if (cpuId < 0 || cpuId >= cpuNum) {
+                std::cerr << "Invalid CPU ID: " << cpuId << std::endl;
+                closedir(cpuDir);
+                return false;
+            }
+            cpu2Node[cpuId] = n;
+        }
+        closedir(cpuDir);
+    }
+    return true;
+}
+
 bool EnvInfo::InitEnvStaticInfo()
 {
     envStaticInfo.numaNum = numa_num_configured_nodes();
@@ -194,21 +342,49 @@ bool EnvInfo::InitEnvStaticInfo()
         return false;
     }
     envStaticInfo.cpu2Node = new int[envStaticInfo.cpuNumConfig];
-    struct bitmask *cpumask = numa_allocate_cpumask();
-    for (int nid = 0; nid < envStaticInfo.numaNum; ++nid) {
-        numa_bitmask_clearall(cpumask);
-        numa_node_to_cpus(nid, cpumask);
-        for (int cpu = 0; cpu < envStaticInfo.cpuNumConfig; cpu++) {
-            if (numa_bitmask_isbitset(cpumask, cpu)) {
-                envStaticInfo.cpu2Node[cpu] = nid;
-            }
-        }
-    }
-    numa_free_nodemask(cpumask);
-
+    InitCpu2Node(envStaticInfo.numaNum, envStaticInfo.cpu2Node, envStaticInfo.cpuNumConfig);
     envStaticInfo.pageSize = sysconf(_SC_PAGE_SIZE);
     envStaticInfo.pageMask = GetPageMask(envStaticInfo.pageSize);
     InitNumaDistance();
+    return true;
+}
+
+bool EnvInfo::InitEnvRealTimeInfo()
+{
+    envRealTimeInfo.dataReady = ENV_DATA_NOT_READY;
+    envRealTimeInfo.cpuNumConfig = envStaticInfo.cpuNumConfig;
+    envRealTimeInfo.cpuNumOnline = 0;
+    envRealTimeInfo.cpuOnLine = new int[envRealTimeInfo.cpuNumConfig];
+    return false;
+}
+
+void EnvInfo::InitEnvCpuUtilInfo()
+{
+    cpuTime.clear();
+    cpuTime.resize(envStaticInfo.cpuNumConfig + 1);
+    for (int i = 0; i < envStaticInfo.cpuNumConfig + 1; ++i) {
+        // not need use CPU_UTIL_TYPE_MAX to include CPU_TIME_SUM
+        cpuTime[i].resize(CPU_TIME_SUM, 0);
+    }
+    envCpuUtilInfo.cpuNumConfig = envStaticInfo.cpuNumConfig;
+    envCpuUtilInfo.times = new uint64_t* [envStaticInfo.cpuNumConfig + 1];
+    for (int i = 0; i < envStaticInfo.cpuNumConfig + 1; ++i) {
+        envCpuUtilInfo.times[i] = new uint64_t[CPU_UTIL_TYPE_MAX];
+    }
+    UpdateProcStat();
+}
+
+bool GetOnlineCpus(std::vector<int> &onlineCpus)
+{
+    std::ifstream file("/sys/devices/system/cpu/online");
+    if (!file.is_open()) {
+        std::cerr << "Failed to open /sys/devices/system/cpu/online" << std::endl;
+        return false;
+    }
+
+    std::string line;
+    std::getline(file, line);
+    onlineCpus = ParseRange(line);
     return true;
 }
 
@@ -219,5 +395,24 @@ void EnvInfo::GetEnvRealtimeInfo()
         envRealTimeInfo.dataReady = ENV_DATA_NOT_READY;
         return;
     }
+    std::vector<int> onlineCpus;
+    if (!GetOnlineCpus(onlineCpus)) {
+        envRealTimeInfo.dataReady = ENV_DATA_NOT_READY;
+        return;
+    }
+    for (int i = 0; i < envRealTimeInfo.cpuNumConfig; ++i) {
+        envRealTimeInfo.cpuOnLine[i] = 0;
+    }
+    for (const auto &cpu : onlineCpus) {
+        envRealTimeInfo.cpuOnLine[cpu] = 1;
+    }
     envRealTimeInfo.dataReady = ENV_DATA_READY;
+}
+
+void EnvInfo::GetEnvCpuUtilInfo()
+{
+    envCpuUtilInfo.dataReady = ENV_DATA_NOT_READY;
+    if (UpdateCpuDiffTime(cpuTime)) {
+        envCpuUtilInfo.dataReady = ENV_DATA_READY;
+    }
 }

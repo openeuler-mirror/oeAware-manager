@@ -40,8 +40,36 @@ typedef struct {
      * in order to avoid the framework outputting incorrect data
      */
     int dataReady;            // ENV_DATA_NOT_READY: data not ready, ENV_DATA_READY: ready
+    int cpuNumConfig;
     int cpuNumOnline;
+    int *cpuOnLine;           // 0 offline, 1 online
 } EnvRealTimeInfo;
+
+typedef enum {
+    CPU_USER,
+    CPU_NICE,
+    CPU_SYSTEM,
+    CPU_IDLE,
+    CPU_IOWAIT,
+    CPU_IRQ,
+    CPU_SOFTIRQ,
+    CPU_STEAL,
+    CPU_GUEST,
+    CPU_GNICE,
+    CPU_TIME_SUM,  // sum of all above
+    CPU_UTIL_TYPE_MAX,
+} EnvCpuUtilType;
+
+typedef struct {
+    int dataReady;
+    int cpuNumConfig;
+    /*
+     * (cpuNumConfig + 1) * CPU_UTIL_TYPE_MAX
+     *  times[1][CPU_USER] / times[1][CPU_TIME_SUM] is cpu1 user util
+     *  times[cpuNumConfig][CPU_USER] / times[cpuNumConfig][CPU_TIME_SUM] is system user util
+     */
+    uint64_t **times;
+} EnvCpuUtilParam;
 
 #ifdef __cplusplus
 }

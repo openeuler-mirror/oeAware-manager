@@ -19,4 +19,5 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<ThreadCollector>());
     interface.emplace_back(std::make_shared<KernelConfig>());
     interface.emplace_back(std::make_shared<CommandCollector>());
+    interface.emplace_back(std::make_shared<EnvInfo>());
 }

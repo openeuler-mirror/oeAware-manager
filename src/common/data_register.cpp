@@ -775,6 +775,7 @@ int EnvStaticDataSerialize(const void *data, OutStream &out)
     auto envData = static_cast<const EnvStaticInfo *>(data);
     out << envData->numaNum;
     out << envData->cpuNumConfig;
+    out << envData->pageSize;
     out << envData->pageMask;
     for (int i = 0; i < envData->cpuNumConfig; ++i) {
         out << envData->cpu2Node[i];
@@ -793,8 +794,8 @@ int EnvStaticDataDeserialize(void **data, InStream &in)
     auto envData = static_cast<EnvStaticInfo *>(*data);
     in >> envData->numaNum;
     in >> envData->cpuNumConfig;
+    in >> envData->pageSize;
     in >> envData->pageMask;
-
     envData->cpu2Node = new int[envData->cpuNumConfig];
     for (int i = 0; i < envData->cpuNumConfig; ++i) {
         in >> envData->cpu2Node[i];
@@ -814,7 +815,11 @@ int EnvRealTimeDataSerialize(const void *data, OutStream &out)
 {
     auto envData = static_cast<const EnvRealTimeInfo *>(data);
     out << envData->dataReady;
+    out << envData->cpuNumConfig;
     out << envData->cpuNumOnline;
+    for (int i = 0; i < envData->cpuNumConfig; ++i) {
+        out << envData->cpuOnLine[i];
+    }
     return 0;
 }
 
@@ -823,9 +828,50 @@ int EnvRealTimeDataDeserialize(void **data, InStream &in)
     *data = new EnvRealTimeInfo();
     auto envData = static_cast<EnvRealTimeInfo *>(*data);
     in >> envData->dataReady;
+    in >> envData->cpuNumConfig;
     in >> envData->cpuNumOnline;
+    envData->cpuOnLine = new int[envData->cpuNumConfig];
+    for (int i = 0; i < envData->cpuNumConfig; ++i) {
+        in >> envData->cpuOnLine[i];
+    }
     return 0;
 }
+
+int EnvCpuUtilSerialize(const void *data, OutStream &out)
+{
+    auto envData = static_cast<const EnvCpuUtilParam *>(data);
+    out << envData->dataReady;
+    out << envData->cpuNumConfig;
+    for (int cpu = 0; cpu < envData->cpuNumConfig + 1; ++cpu) {
+        for (int type = 0; type < CPU_UTIL_TYPE_MAX; ++type) {
+            out << envData->times[cpu][type];
+        }
+    }
+
+    return 0;
+}
+
+int EnvCpuUtilDeserialize(void **data, InStream &in)
+{
+    *data = new EnvCpuUtilParam();
+    auto envData = static_cast<EnvCpuUtilParam *>(*data);
+    in >> envData->dataReady;
+    in >> envData->cpuNumConfig;
+    envData->times = new uint64_t *[envData->cpuNumConfig + 1];
+    for (int cpu = 0; cpu < envData->cpuNumConfig + 1; ++cpu) {
+        envData->times[cpu] = new uint64_t[CPU_UTIL_TYPE_MAX];
+        for (int type = 0; type < CPU_UTIL_TYPE_MAX; ++type) {
+            in >> envData->times[cpu][type];
+        }
+    }
+    return 0;
+}
+
+void EnvCpuUtilFree(void *data)
+{
+    // to do
+}
+
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
     registerEntry[name] = entry;
@@ -853,6 +899,7 @@ void Register::InitRegisterData()
     RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
     RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize));
     RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize));
+    RegisterData("env_info_collector::cpu_util", RegisterEntry(EnvCpuUtilSerialize, EnvCpuUtilDeserialize, EnvCpuUtilFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

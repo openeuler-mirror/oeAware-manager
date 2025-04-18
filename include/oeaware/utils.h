@@ -13,6 +13,7 @@
 #define OEAWARE_UTILS_H
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <oeaware/data_list.h>
 
 namespace oeaware {
@@ -37,6 +38,7 @@ uint64_t GetCpuFreqByDmi();
 bool ExecCommand(const std::string &command, std::string &result);
 bool ServiceIsActive(const std::string &serviceName, bool &isActive);
 bool ServiceControl(const std::string &serviceName, const std::string &action);
+std::unordered_map<std::string, std::string> GetKeyValueFromString(const std::string &params);
 std::vector<int> ParseRange(const std::string &range);
 bool IrqSetSmpAffinity(int preferredCpu, int irqNum);
 }

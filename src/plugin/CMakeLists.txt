@@ -18,6 +18,5 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     add_subdirectory(scenario/analysis)
 endif()
 add_subdirectory(scenario/thread_aware)
-
 add_subdirectory(tune/system)
 add_subdirectory(tune/unixbench)

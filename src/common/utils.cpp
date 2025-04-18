@@ -298,6 +298,21 @@ bool ServiceControl(const std::string &serviceName, const std::string &action)
     return true;
 }
 
+std::unordered_map<std::string, std::string> GetKeyValueFromString(const std::string &params)
+{
+    std::unordered_map<std::string, std::string> result;
+    std::stringstream ss(params);
+    std::string pair;
+    while (std::getline(ss, pair, ',')) {
+        auto pos = pair.find(':');
+        if (pos != std::string::npos) {
+            std::string key = pair.substr(0, pos);
+            std::string value = pair.substr(pos + 1);
+            result[key] = value;
+        }
+    }
+    return result;
+}
 // 0,1,3-5 => {0,1,3,4,5}
 std::vector<int> ParseRange(const std::string &rangeStr)
 {

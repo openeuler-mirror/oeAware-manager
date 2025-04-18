@@ -9,19 +9,18 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#ifndef ANALYSIS_AWARE_H
-#define ANALYSIS_AWARE_H
+#ifndef HUGEPAGE_ANALYSIS_H
+#define HUGEPAGE_ANALYSIS_H
 #include "oeaware/interface.h"
 #include "analysis.h"
 #include "analysis_compose.h"
-#include "libkperf/pmu.h"
-#include "memory_analysis.h"
+#include "hugepage_analysis_impl.h"
 
 namespace oeaware {
-class AnalysisAware : public Interface {
+class HugePageAnalysis : public Interface {
 public:
-	AnalysisAware();
-	~AnalysisAware() override = default;
+	HugePageAnalysis();
+	~HugePageAnalysis() override = default;
 	Result OpenTopic(const oeaware::Topic &topic) override;
 	void CloseTopic(const oeaware::Topic &topic) override;
 	void UpdateData(const DataList &dataList) override;
@@ -29,22 +28,22 @@ public:
 	void Disable() override;
 	void Run() override;
 	struct TopicStatus {
-		bool Init(const oeaware::Topic &topic);
 		bool open = false;
 	};
 private:
 	std::vector<Topic> subscribeTopics;
-	void PublishData();
+	void PublishData(const Topic &topic);
 	void InitAnalysisCompose();
-	void Analyze();
-	void Reset();
 private:
-	Analysis analysis;
-	std::unordered_map<std::string, AnalysisCompose*> analysisComposes;
-	std::vector<std::string> topicStrs{MEMORY_ANALYSIS};
+	std::unordered_map<std::string, AnalysisCompose*> topicImpl;
+	std::vector<std::string> topicStrs{"hugepage"};
 	std::vector<std::string> analysisData;
 	std::unordered_map<std::string, PmuData *> pmuData;
 	std::unordered_map<std::string, TopicStatus> topicStatus;
+	int time = 10;
+	int curTime = 0;
+	double threshold1 = 5;
+    double threshold2 = 10;
 };
 }
 #endif

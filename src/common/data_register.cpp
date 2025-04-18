@@ -90,7 +90,7 @@ int DataListSerialize(const DataList *dataList, OutStream &out)
     out << dataList->len;
     auto &reg = Register::GetInstance();
     auto func = reg.GetDataSerialize(Concat({dataList->topic.instanceName, dataList->topic.topicName}, "::"));
-     if (func == nullptr) {
+    if (func == nullptr) {
         func = reg.GetDataSerialize(dataList->topic.instanceName);
     }
     for (uint64_t i = 0; i < dataList->len; ++i) {
@@ -515,41 +515,6 @@ int PmuUncoreDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
-int TlbMissSerialize(const void *data, OutStream &out)
-{
-    auto tmpData = static_cast<const TlbMiss*>(data);
-    out << tmpData->l1iTlbMiss << tmpData->l1dTlbMiss << tmpData->l2iTlbMiss << tmpData->l2dTlbMiss;
-    return 0;
-}
-
-int TlbMissDeserialize(void **data, InStream &in)
-{
-    *data = new TlbMiss();
-    auto tlbMiss = static_cast<TlbMiss*>(*data);
-    in >> tlbMiss->l1iTlbMiss >> tlbMiss->l1dTlbMiss >> tlbMiss->l2iTlbMiss >> tlbMiss->l2dTlbMiss;
-    return 0;
-}
-
-int TlbMissDeserialize(TlbMiss &tlbMiss, InStream &in)
-{
-    in >> tlbMiss.l1iTlbMiss >> tlbMiss.l1dTlbMiss >> tlbMiss.l2iTlbMiss >> tlbMiss.l2dTlbMiss;
-    return 0;
-}
-
-int MemoryAnalysisDataSerialize(const void *data, OutStream &out)
-{
-    auto tmpData = static_cast<const MemoryAnalysisData*>(data);
-    TlbMissSerialize(&tmpData->tlbMiss, out);
-    return 0;
-}
-
-int MemoryAnalysisDataDeserialize(void **data, InStream &in)
-{
-    *data = new MemoryAnalysisData();
-    auto memoryAnalysisData = static_cast<MemoryAnalysisData*>(*data);
-    TlbMissDeserialize(memoryAnalysisData->tlbMiss, in);
-    return 0;
-}
 #endif
 
 void ThreadInfoFree(void *data)
@@ -867,6 +832,70 @@ int EnvCpuUtilDeserialize(void **data, InStream &in)
     return 0;
 }
 
+static int DataItemDeserialize(DataItem *dataItem, int len, InStream &in)
+{
+    for (int i = 0; i < len; ++i) {
+        std::string metric;
+        std::string value;
+        std::string extra;
+        in >> metric >> value >> extra;
+        dataItem[i].metric = new char[metric.size() + 1];
+        strcpy_s(dataItem[i].metric, metric.size() + 1, metric.data());
+        dataItem[i].value = new char[value.size() + 1];
+        strcpy_s(dataItem[i].value, value.size() + 1, value.data());
+        dataItem[i].extra = new char[extra.size() + 1];
+        strcpy_s(dataItem[i].extra, extra.size() + 1, extra.data());
+    }
+    return 0;
+}
+
+static int SuggestionItemDeserialize(SuggestionItem *suggestionItem, InStream &in)
+{
+    std::string suggestion;
+    std::string opt;
+    std::string extra;
+    in >> suggestion >> opt >> extra;
+    suggestionItem->suggestion = new char[suggestion.size() + 1];
+    strcpy_s(suggestionItem->suggestion, suggestion.size() + 1, suggestion.data());
+    suggestionItem->opt = new char[opt.size() + 1];
+    strcpy_s(suggestionItem->opt, opt.size() + 1, opt.data());
+    suggestionItem->extra = new char[extra.size() + 1];
+    strcpy_s(suggestionItem->extra, extra.size() + 1, extra.data());
+    return 0;
+}
+
+int AnalysisResultItemSerialize(const void *data, OutStream &out)
+{
+    auto analysisResultItem = static_cast<const AnalysisResultItem*>(data);
+    out << analysisResultItem->dataItemLen;
+    for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
+        auto dataItem = analysisResultItem->dataItem[i];
+        out << std::string(dataItem.metric) << std::string(dataItem.value) << std::string(dataItem.extra);
+    }
+    out << std::string(analysisResultItem->conclusion);
+
+    auto &suggestionItem = analysisResultItem->suggestionItem;
+    out << std::string(suggestionItem.suggestion) << std::string(suggestionItem.opt) <<
+        std::string(suggestionItem.extra);
+    return 0;
+}
+
+int AnalysisResultItemDeserialize(void **data, InStream &in)
+{
+    *data = new AnalysisResultItem();
+    auto analysisResultItem = static_cast<AnalysisResultItem*>(*data);
+    
+    in >> analysisResultItem->dataItemLen;
+    analysisResultItem->dataItem = new DataItem[analysisResultItem->dataItemLen];
+    DataItemDeserialize(analysisResultItem->dataItem, analysisResultItem->dataItemLen, in);
+    std::string conclusion;
+    in >> conclusion;
+    analysisResultItem->conclusion = new char[conclusion.size() + 1];
+    strcpy_s(analysisResultItem->conclusion, conclusion.size() + 1, conclusion.data());
+    SuggestionItemDeserialize(&analysisResultItem->suggestionItem, in);
+    return 0;
+}
+
 void EnvCpuUtilFree(void *data)
 {
     // to do
@@ -890,8 +919,7 @@ void Register::InitRegisterData()
 
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
-    RegisterData("analysis_aware::memory_analysis", RegisterEntry(MemoryAnalysisDataSerialize,
-        MemoryAnalysisDataDeserialize));
+    RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

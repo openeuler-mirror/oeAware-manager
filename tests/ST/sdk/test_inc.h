@@ -5,4 +5,7 @@ bool TestEnvStaticInfo();
 bool TestEnvRealTimeInfo();
 bool TestCpuUtilInfo();
 
+// net interface test
+bool TestNetIntfBaseInfo();
+bool TestNetIntfDirverInfo();
 #endif

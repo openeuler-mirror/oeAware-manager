@@ -20,6 +20,7 @@
 #include <iostream>
 #include <cctype>
 #include <array>
+#include <linux/if.h>
 
 namespace oeaware {
 const static int ST_MODE_MASK = 0777;
@@ -346,6 +347,28 @@ bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
     file << preferredCpu << '\n';
     file.close();
     return true;
+}
+
+std::string GetNetOperateStr(int state)
+{
+    std::vector<std::string> stateMap = { "unknown",
+        "notpresent", "down", "lowerlayerdown", "testing", "dormant", "up" };
+    if (state < 0 || state >= stateMap.size()) {
+        return "unknown";
+    }
+    return stateMap[state];
+}
+
+int GetNetOperateTypeByStr(const std::string &state)
+{
+    std::vector<std::string> stateMap = { "unknown",
+        "notpresent", "down", "lowerlayerdown", "testing", "dormant", "up" };
+    for (int i = 0; i < stateMap.size(); i++) {
+        if (stateMap[i] == state) {
+            return i;
+        }
+    }
+    return IF_OPER_UNKNOWN;
 }
 
 }

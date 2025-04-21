@@ -13,6 +13,7 @@
 #include "kernel_config.h"
 #include "command/command_collector.h"
 #include "env_info.h"
+#include "net_interface/net_interface.h"
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
@@ -20,4 +21,5 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<KernelConfig>());
     interface.emplace_back(std::make_shared<CommandCollector>());
     interface.emplace_back(std::make_shared<EnvInfo>());
+    interface.emplace_back(std::make_shared<NetInterface>());
 }

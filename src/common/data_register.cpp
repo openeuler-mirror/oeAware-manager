@@ -13,6 +13,7 @@
 #include "oeaware/data/command_data.h"
 #include "oeaware/data/analysis_data.h"
 #include "oeaware/data/env_data.h"
+#include "oeaware/data/network_interface_data.h"
 
 namespace oeaware {
 void TopicFree(CTopic *topic)
@@ -901,6 +902,117 @@ void EnvCpuUtilFree(void *data)
     // to do
 }
 
+int NetIntfBaseSerialize(const void *data, OutStream &out)
+{
+    auto netData = static_cast<const NetIntfBaseDataList *>(data);
+    out << netData->count;
+    for (int n = 0; n < netData->count; ++n) {
+        out << std::string(netData->base[n].name);
+        out << netData->base[n].operstate;
+    }
+    return 0;
+}
+
+int NetIntfBaseDeserialize(void **data, InStream &in)
+{
+    *data = new NetIntfBaseDataList();
+    auto netData = static_cast<NetIntfBaseDataList *>(*data);
+    in >> netData->count;
+    if (netData <= 0) {
+        return 0;
+    }
+    netData->base = new NetworkInterfaceData[netData->count];
+    for (int n = 0; n < netData->count; ++n) {
+        std::string name = "";
+        in >> name;
+        std::size_t length = std::min(name.size(), sizeof(netData->base[n].name) - 1);
+        std::copy(name.begin(), name.begin() + length, netData->base[n].name);
+        netData->base[n].name[length] = '\0';
+        in >> netData->base[n].operstate;
+    }
+    return 0;
+}
+
+void NetIntfBaseFree(void *data)
+{
+    auto netData = static_cast<NetIntfBaseDataList*>(data);
+    if (netData == nullptr) {
+        return;
+    }
+    if (netData->base != nullptr) {
+        delete[] netData->base;
+        netData->base = nullptr;
+    }
+    netData->count = 0;
+    delete netData;
+    netData = nullptr;
+}
+
+int NetIntfDriverSerialize(const void *data, OutStream &out)
+{
+    auto netData = static_cast<const NetIntfDriverDataList *>(data);
+    out << netData->count;
+    for (int n = 0; n < netData->count; ++n) {
+        out << std::string(netData->driver[n].name);
+        out << std::string(netData->driver[n].driver);
+        out << std::string(netData->driver[n].version);
+        out << std::string(netData->driver[n].fwVersion);
+        out << std::string(netData->driver[n].busInfo);
+    }
+    return 0;
+}
+
+static void CopyStringToCharArray(const std::string &source, char *dest, size_t destSize)
+{
+    std::size_t length = std::min(source.size(), destSize - 1);
+    std::copy(source.begin(), source.begin() + length, dest);
+    dest[length] = '\0';
+}
+
+int NetIntfDriverDeserialize(void **data, InStream &in)
+{
+    *data = new NetIntfDriverDataList();
+    auto netData = static_cast<NetIntfDriverDataList *>(*data);
+    in >> netData->count;
+    if (netData <= 0) {
+        return 0;
+    }
+    netData->driver = new NetworkInterfaceDriverData[netData->count];
+    for (int n = 0; n < netData->count; ++n) {
+        std::string name = "";
+        in >> name;
+        CopyStringToCharArray(name, netData->driver[n].name, sizeof(netData->driver[n].name));
+        std::string driver = "";
+        in >> driver;
+        CopyStringToCharArray(driver, netData->driver[n].driver, sizeof(netData->driver[n].driver));
+        std::string version = "";
+        in >> version;
+        CopyStringToCharArray(version, netData->driver[n].version, sizeof(netData->driver[n].version));
+        std::string fwVersion = "";
+        in >> fwVersion;
+        CopyStringToCharArray(fwVersion, netData->driver[n].fwVersion, sizeof(netData->driver[n].fwVersion));
+        std::string busInfo = "";
+        in >> busInfo;
+        CopyStringToCharArray(busInfo, netData->driver[n].busInfo, sizeof(netData->driver[n].busInfo));
+    }
+    return 0;
+}
+
+void NetIntfDriverFree(void *data)
+{
+    auto netData = static_cast<NetIntfDriverDataList*>(data);
+    if (netData == nullptr) {
+        return;
+    }
+    if (netData->driver != nullptr) {
+        delete[] netData->driver;
+        netData->driver = nullptr;
+    }
+    netData->count = 0;
+    delete netData;
+    netData = nullptr;
+}
+
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
     registerEntry[name] = entry;
@@ -928,6 +1040,10 @@ void Register::InitRegisterData()
     RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize));
     RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize));
     RegisterData("env_info_collector::cpu_util", RegisterEntry(EnvCpuUtilSerialize, EnvCpuUtilDeserialize, EnvCpuUtilFree));
+    std::string name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_BASE_TOPIC);
+    RegisterData(name, RegisterEntry(NetIntfBaseSerialize, NetIntfBaseDeserialize, NetIntfBaseFree));
+    name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC);
+    RegisterData(name, RegisterEntry(NetIntfDriverSerialize, NetIntfDriverDeserialize, NetIntfDriverFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

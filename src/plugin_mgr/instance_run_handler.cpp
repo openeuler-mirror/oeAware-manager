@@ -209,7 +209,7 @@ bool InstanceRunHandler::HandleMessage()
         DEBUG(logger, "handle message " << (int)msg->GetType());
         switch (msg->GetType()) {
             case RunType::ENABLED: {
-                msg->result = EnableInstance(msg->payload[0]);
+                msg->result = EnableInstance(msg->payload[0], msg->payload[1]);
                 break;
             }
             case RunType::DISABLED: {

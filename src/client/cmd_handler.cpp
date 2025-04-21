@@ -132,6 +132,16 @@ void EnabledHandler::Handler(Message &msg)
 {
     std::string arg = ArgParse::GetInstance().GetArg();
     msg.payload.emplace_back(arg);
+    std::string param = "";
+    bool first = true;
+    for (auto &p : ArgParse::GetInstance().GetEnableParams()) {
+        if (!first) param += ",";
+        param += p.first;
+        param += ":";
+        param += p.second;
+        first = false;
+    }
+    msg.payload.emplace_back(param);
     msg.opt = Opt::ENABLED;
 }
 

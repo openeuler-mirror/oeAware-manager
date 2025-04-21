@@ -17,6 +17,7 @@
 #include <vector>
 #include <getopt.h>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 const int L1_MISS_THRESHOLD = 200;
 const int L2_MISS_THRESHOLD = 201;
@@ -26,6 +27,7 @@ const int DYNAMIC_SMT_THRESHOLD = 203;
 class Config {
 public:
     bool Init(int argc, char **argv);
+    bool LoadConfig(const std::string& configPath);
     int GetAnalysisTimeMs() const
     {
         return analysisTime;
@@ -76,9 +78,11 @@ private:
     };
     bool isShowRealTimeReport = false;
     bool showVerbose = false;
+    bool l1MissThresholdSet = false;
+    bool l2MissThresholdSet = false;
+    bool dynamicSmtThresholdSet = false;
     bool ParseTime(const char *arg);
     void PrintHelp();
 };
-
 
 #endif

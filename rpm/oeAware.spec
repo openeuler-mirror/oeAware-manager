@@ -37,10 +37,11 @@ bash build.sh
 install -D -m 0750 build/output/bin/oeaware    %{buildroot}%{_bindir}/oeaware
 install -D -m 0750 build/output/bin/oeawarectl %{buildroot}%{_bindir}/oeawarectl
 install -D -m 0640 config.yaml                 %{buildroot}%{_sysconfdir}/oeAware/config.yaml
-install -D -m 0640 preload.yaml                %{buildroot}%{_sysconfdir}/oeAware/preload.yaml
 install -D -p -m 0644 oeaware.service          %{buildroot}%{_unitdir}/oeaware.service
 
 #install plugin
+install -D -m 0640 preload.yaml                %{buildroot}%{_sysconfdir}/oeAware/preload.yaml
+install -D -m 0640 etc/analysis_config.yaml    %{buildroot}%{_sysconfdir}/oeAware/analysis_config.yaml
 mkdir -p %{buildroot}%{_libdir}/oeAware-plugin/
 mkdir -p %{buildroot}%{_includedir}/oeaware/data
 install -dm 0755 %{buildroot}%{_prefix}/lib/smc
@@ -79,6 +80,7 @@ fi
 %attr(0750, root, root) %{_bindir}/oeawarectl
 %attr(0640, root, root) %{_sysconfdir}/oeAware/config.yaml
 %attr(0640, root, root) %{_sysconfdir}/oeAware/preload.yaml
+%attr(0640, root, root) %{_sysconfdir}/oeAware/analysis_config.yaml
 %attr(0644, root, root) %{_unitdir}/oeaware.service
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/ub_tune.conf
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/thread_scenario.conf

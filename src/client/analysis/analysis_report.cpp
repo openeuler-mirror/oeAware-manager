@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "analysis_report.h"
 #include <iostream>
+#include <fstream>
 #include <securec.h>
 #include "oe_client.h"
 #include "config.h"
@@ -84,6 +85,7 @@ void AnalysisReport::Init(const Config &config)
     analysisTemplate.suggestions.AddRow({"suggestion", "operation", "result"});
     oeaware::Table memoryTable(DEFAULT_ROW, "Memory");
     memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    memoryTable.AddRow({"metric", "value", "note"});
     analysisTemplate.datas["Memory"] = memoryTable;
 }
 
@@ -102,9 +104,14 @@ void AnalysisReport::Print()
         p.second.PrintTable();
     }
     PrintSubtitle("Analysis Conclusion");
+    index = 1;
     for (size_t i = 0; i < analysisTemplate.conclusions.size(); ++i) {
-        std::cout << (i + 1) << ". ";
-        analysisTemplate.conclusions[i].PrintTable();
+        auto conclusion = analysisTemplate.conclusions[i];
+        auto content = conclusion.GetContent(0, 0);
+        if (!content.empty()) {
+            std::cout << index++ << ". ";
+            conclusion.PrintTable();
+        }
     }
     PrintSubtitle("Analysis Suggestion");
     analysisTemplate.suggestions.PrintTable();
@@ -125,4 +132,28 @@ void AnalysisReport::PrintSubtitle(const std::string &subtitle)
         std::endl;
 }
 
+void AnalysisReport::PrintMarkDown(const std::string &path)
+{
+    std::ofstream out(path + "/analysis_report.md");
+    if (out.is_open()) {
+        out << "## Data Analysis\n";
+        int index = 1;
+        for (auto data : analysisTemplate.datas) {
+            auto name = data.first;
+            out << index++ << ". " << name << "\n";
+            out << data.second.GetMarkDownTable();
+        }
+        out << "## Conclusion\n";
+        index = 1;
+        for (auto conclusion : analysisTemplate.conclusions) {
+            auto content = conclusion.GetContent(0, 0);
+            if (!content.empty()) {
+                out << index++ << ". " << content << "\n";
+            }
+        }
+        out << "## Suggestion\n";
+        out << analysisTemplate.suggestions.GetMarkDownTable();
+        out.close();
+    }
+}
 }

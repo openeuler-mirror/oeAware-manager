@@ -34,8 +34,10 @@ public:
     void SetBorder(bool border);
     void SetColumnWidth(int width);
     void PrintTable() const;
+    std::string GetMarkDownTable();
     int GetTableWidth() const;
     std::string GetTableName() const;
+    std::string GetContent(int i, int j) const;
 private:
     void PrintBoard() const;
     int columns;

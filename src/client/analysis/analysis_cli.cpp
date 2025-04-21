@@ -68,6 +68,9 @@ void AnalysisCli::Run()
     std::cout << "Analyzing... Please wait " << analysisTime << "s.\n";
     sleep(analysisTime + timeout);
     analysisReport.Print();
+    if (!config.GetOutMarkDownPath().empty()) {
+        analysisReport.PrintMarkDown(config.GetOutMarkDownPath());
+    }
 }
 
 void AnalysisCli::StopRun()

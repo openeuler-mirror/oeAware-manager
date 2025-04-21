@@ -95,9 +95,6 @@ void NetInterface::Run()
     for (const auto &it : netTopicInfo) {
         const auto &topic = it.first;
         const auto &info = it.second;
-        if (info.openedParams.empty()) {
-            continue;
-        }
         for (const auto &param : info.openedParams) {
             if (topic == OE_NETWORK_INTERFACE_BASE_TOPIC) {
                 PublishBaseInfo(param);

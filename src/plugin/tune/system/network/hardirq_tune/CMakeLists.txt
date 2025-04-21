@@ -1,6 +1,7 @@
 project(net_hardirq_tune)
 
 add_library(net_hardirq_tune STATIC
+        irq_frontend.cpp
         hardirq_tune.cpp
 )
 

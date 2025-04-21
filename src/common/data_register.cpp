@@ -1032,6 +1032,7 @@ void Register::InitRegisterData()
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
     RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
+    RegisterData("dynamic_smt_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

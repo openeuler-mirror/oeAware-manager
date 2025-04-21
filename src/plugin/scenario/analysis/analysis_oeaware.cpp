@@ -10,7 +10,10 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "hugepage/hugepage_analysis.h"
+#include "dynamic_smt/dynamic_smt_analysis.h"
+
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<oeaware::HugePageAnalysis>());
+    interface.emplace_back(std::make_shared<oeaware::DynamicSmtAnalysis>());
 }

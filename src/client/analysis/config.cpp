@@ -28,6 +28,7 @@ void Config::PrintHelp()
     usage += "   --l1-miss-threshold                  set l1 tlbmiss threshold.\n";
     usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
     usage += "   --out-path                           set the path of the analysis report.\n";
+    usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
     std::cout << usage;
 }
 
@@ -97,6 +98,14 @@ bool Config::Init(int argc, char **argv)
                 }
                 break;
             }
+            case DYNAMIC_SMT_THRESHOLD:
+                if (!IsNum(optarg)) {
+                    std::cerr << "Error: Invalid dynamic-smt-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                dynamicSmtThreshold = atof(optarg);
+                break;
             case 'h':
             default:
                 PrintHelp();

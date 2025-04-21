@@ -1,5 +1,6 @@
 set(test_sdk_src
     test_env_info.cpp
+    test_net_intf.cpp
     main.cpp
 )
 

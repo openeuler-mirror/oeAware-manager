@@ -39,6 +39,8 @@ bool ServiceIsActive(const std::string &serviceName, bool &isActive);
 bool ServiceControl(const std::string &serviceName, const std::string &action);
 std::vector<int> ParseRange(const std::string &range);
 bool IrqSetSmpAffinity(int preferredCpu, int irqNum);
+std::string GetNetOperateStr(int state);
+int GetNetOperateTypeByStr(const std::string &state);
 }
 
 #endif

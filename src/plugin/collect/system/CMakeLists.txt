@@ -8,6 +8,9 @@ add_library(system_collector SHARED
             env_info.cpp
             ./command/command_collector.cpp
             ./command/command_base.cpp
+            # net intf
+            ./net_interface/net_interface.cpp
+            ./net_interface/net_intf_comm.cpp
             )
 target_include_directories(system_collector PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(system_collector PRIVATE ${CMAKE_SOURCE_DIR}/src/common)

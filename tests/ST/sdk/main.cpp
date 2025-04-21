@@ -3,6 +3,7 @@
 #include <functional>
 #include <map>
 #include "oeaware/data_list.h"
+#include "oeaware/data/network_interface_data.h"
 #include "test_inc.h"
 
 using CallbackFunction = std::function<bool()>;
@@ -52,6 +53,8 @@ int main(int argc, char *argv[])
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::static", TestEnvStaticInfo, "show environment static info");
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::realtime", TestEnvRealTimeInfo, "show environment realtime info");
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::cpu_util", TestCpuUtilInfo, "show cpu util info");
+    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) +std::string("::")+ std::string(OE_NETWORK_INTERFACE_BASE_TOPIC), TestNetIntfBaseInfo, "show base net intf info");
+    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) +std::string("::")+ std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC), TestNetIntfDirverInfo, "show driver net intf info");
     if (argc >= 2) {
         options = std::string(argv[1]);
         if (!manager.IsValidOption(options)) {

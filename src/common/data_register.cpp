@@ -918,7 +918,7 @@ int NetIntfBaseDeserialize(void **data, InStream &in)
     *data = new NetIntfBaseDataList();
     auto netData = static_cast<NetIntfBaseDataList *>(*data);
     in >> netData->count;
-    if (netData <= 0) {
+    if (netData->count <= 0) {
         return 0;
     }
     netData->base = new NetworkInterfaceData[netData->count];
@@ -974,7 +974,7 @@ int NetIntfDriverDeserialize(void **data, InStream &in)
     *data = new NetIntfDriverDataList();
     auto netData = static_cast<NetIntfDriverDataList *>(*data);
     in >> netData->count;
-    if (netData <= 0) {
+    if (netData->count <= 0) {
         return 0;
     }
     netData->driver = new NetworkInterfaceDriverData[netData->count];
@@ -1031,6 +1031,7 @@ void Register::InitRegisterData()
 
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
+    RegisterData("smc_d_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData("dynamic_smt_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
 #endif

@@ -34,4 +34,7 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<Seep>());
     interface.emplace_back(std::make_shared<PreloadTune>());
     interface.emplace_back(std::make_shared<BinaryTune>());
+#ifdef BUILD_NETIRQ_TUNE
+    interface.emplace_back(std::make_shared<NetHardIrq>());
+#endif
 }

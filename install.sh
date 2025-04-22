@@ -20,7 +20,7 @@ chmod 640 build/output/plugin/lib/*.conf
 cp build/output/plugin/lib/*.conf /lib64/oeAware-plugin
 chmod 640 build/output/plugin/lib/*.yaml
 cp build/output/plugin/lib/*.yaml /lib64/oeAware-plugin
-chmod 640 ./config/hardirq_tune.conf
+chmod 640 ./etc/hardirq_tune.conf
 cp ./etc/hardirq_tune.conf /lib64/oeAware-plugin/
 chmod 400 build/output/plugin/ko/*.ko
 mkdir -p /usr/lib/smc/

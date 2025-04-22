@@ -46,6 +46,7 @@ mkdir -p %{buildroot}%{_includedir}/oeaware/data
 install -dm 0755 %{buildroot}%{_prefix}/lib/smc
 %ifarch aarch64
 install -b -m740  ./build/libkperf/output/lib/*.so                %{buildroot}%{_libdir}
+install -D -m 0640 etc/hardirq_tune.conf                          %{buildroot}%{_libdir}/oeAware-plugin/
 %endif
 install -b -m740 ./build/output/plugin/lib/*.so                   %{buildroot}%{_libdir}/oeAware-plugin/
 install -b -m740 ./build/output/include/oeaware/*.h               %{buildroot}%{_includedir}/oeaware
@@ -89,6 +90,7 @@ fi
 %ifarch aarch64
 %attr(0755, root, root) %{_libdir}/libkperf.so
 %attr(0755, root, root) %{_libdir}/libsym.so
+%attr(0640, root, root) %{_libdir}/oeAware-plugin/hardirq_tune.conf
 %endif
 %attr(0440, root, root) %{_libdir}/oeAware-plugin/*.so
 %attr(0440, root, root) %{_libdir}/liboeaware-sdk.so

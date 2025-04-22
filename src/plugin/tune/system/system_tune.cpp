@@ -18,6 +18,7 @@
 #include "power/seep_tune/seep_tune.h"
 #include "transparent_hugepage_tune/transparent_hugepage_tune.h"
 #include "preload/preload_tune.h"
+#include "binary/binary_tune.h"
 #ifdef BUILD_NETIRQ_TUNE
 #include "network/hardirq_tune/hardirq_tune.h"
 #endif
@@ -32,4 +33,5 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<TransparentHugepageTune>());
     interface.emplace_back(std::make_shared<Seep>());
     interface.emplace_back(std::make_shared<PreloadTune>());
+    interface.emplace_back(std::make_shared<BinaryTune>());
 }

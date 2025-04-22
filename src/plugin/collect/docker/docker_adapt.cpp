@@ -11,23 +11,46 @@
  ******************************************************************************/
 #include "docker_adapt.h"
 #include <iostream>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <unordered_map>
-#include <csignal>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <securec.h>
 
 constexpr int PERIOD = 1000;
 constexpr int PRIORITY = 0;
 
-static bool GetContainersInfo(int64_t &val, const std::string &container_id, const std::string &element)
+static bool GetContainerTasks(const std::string& containerId, std::vector<int32_t>& tasks) 
 {
-    std::string file_name = "/sys/fs/cgroup/cpu/docker/" + container_id +"/" +element;
-    std::ifstream file(file_name);
+    std::string fileName = "/sys/fs/cgroup/cpu/docker/" + containerId + "/tasks";
+    std::ifstream file(fileName);
+    if (!file.is_open()) {
+        return false;
+    }
+
+    std::string line;
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+        int64_t tid = stoi(line);
+        tasks.emplace_back(tid);
+    }
+    return true;
+}
+
+static bool GetContainersInfo(int64_t &val, const std::string &containerId, const std::string &element)
+{
+    std::string fileName = "/sys/fs/cgroup/cpu/docker/" + containerId +"/" + element;
+    std::ifstream file(fileName);
+    if (!file.is_open()) {
+        return false;
+    }
+
+    if (!(file >> val)) {
+        return false;
+    }
+    return true;
+}
+
+static bool GetContainersInfo(std::string &val, const std::string &containerId, const std::string &element)
+{
+    std::string fileName = "/sys/fs/cgroup/cpuset/docker/" + containerId +"/" + element;
+    std::ifstream file(fileName);
     if (!file.is_open()) {
         return false;
     }
@@ -116,17 +139,15 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
     }
     // update/add container
     for (const auto &dir : directories) {
-        Container tmp;
-        bool read_success = true;
-        read_success &= GetContainersInfo(tmp.cfs_period_us, dir, "cpu.cfs_period_us");
-        read_success &= GetContainersInfo(tmp.cfs_quota_us, dir, "cpu.cfs_quota_us");
-        read_success &= GetContainersInfo(tmp.cfs_burst_us, dir, "cpu.cfs_burst_us");
-        if (read_success) {
-            Container container;
-            container.cfs_period_us = tmp.cfs_period_us;
-            container.cfs_quota_us = tmp.cfs_quota_us;
-            container.cfs_burst_us = tmp.cfs_burst_us;
-            container.id = dir;
+        Container container;
+        container.id = dir;
+        bool ret = true;
+        ret &= GetContainersInfo(container.cfs_period_us, dir, "cpu.cfs_period_us");
+        ret &= GetContainersInfo(container.cfs_quota_us, dir, "cpu.cfs_quota_us");
+        ret &= GetContainersInfo(container.cfs_burst_us, dir, "cpu.cfs_burst_us");
+        ret &= GetContainersInfo(container.cpus, dir, "cpuset.cpus");
+        ret &= GetContainerTasks(dir, container.tasks);
+        if (ret) {
             containers[dir] = container;
         }
     }

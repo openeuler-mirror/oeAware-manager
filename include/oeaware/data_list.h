@@ -27,6 +27,7 @@
 #define OE_NET_INTF_INFO             "net_interface_info"
 #define OE_UNIXBENCH_TUNE            "unixbench_tune"
 #define OE_DOCKER_CPU_BURST_TUNE     "docker_cpu_burst"
+#define OE_BINARY_TUNE               "binary_tune"
 #define OE_STEALTASK_TUNE            "stealtask_tune"
 #define OE_DYNAMICSMT_TUNE           "dynamic_smt_tune"
 #define OE_SMC_TUNE                  "smc_tune"

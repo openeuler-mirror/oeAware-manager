@@ -18,6 +18,6 @@
 namespace oeaware {
 const int ANALYSIS_TIME_PERIOD = 1000;
 void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metrics, const std::string &conclusion,
-    const std::vector<std::string> &suggestionItem, AnalysisResultItem *analysisResultItem);
+    const std::vector<std::string> &suggestionItem, const std::vector<int> type, AnalysisResultItem *analysisResultItem);
 }
 #endif

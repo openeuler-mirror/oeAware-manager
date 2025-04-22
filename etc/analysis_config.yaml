@@ -1,0 +1,6 @@
+dynamic_smt:
+  threshold: 40.0
+
+hugepage:
+  l1_miss_threshold: 5.0
+  l2_miss_threshold: 10.0

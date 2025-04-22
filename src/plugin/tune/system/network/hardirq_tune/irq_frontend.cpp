@@ -1,0 +1,162 @@
+/******************************************************************************
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd. All rights reserved.
+ * oeAware is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ ******************************************************************************/
+
+#include <regex>
+#include <fstream>
+#include <iostream>
+#include "irq_frontend.h"
+
+void IrqFrontEnd::GetEthQueData(std::unordered_map<std::string, EthQueInfo> &ethQueData, const std::vector<std::string> &queueRegex)
+{
+    std::unordered_map<int, std::string> irqWithDesc;
+    GetIrqWithDesc(irqWithDesc);
+    for (auto &item : ethQueData) {
+        EthQueInfo &info = item.second;
+        info.AddRegex(queueRegex);
+        info.UpdateQue2Irq(irqWithDesc);
+    }
+}
+
+void IrqFrontEnd::GetIrqWithDesc(std::unordered_map<int, std::string> &irqWithDesc)
+{
+    std::ifstream file("/proc/interrupts");
+    if (!file) {
+        std::cerr << "Failed to open file." << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::regex pattern(R"(^\s*(\d+):.*?\s+([a-zA-Z].*)$)");
+    getline(file, line);
+    while (std::getline(file, line)) {
+        std::smatch match;
+        if (std::regex_match(line, match, pattern)) {
+            std::string irqNum = match[1].str();
+            std::string desc = match[2].str();
+            int value;
+            try {
+                value = std::stoi(irqNum);
+            }
+            catch (...) {
+                continue;
+            }
+            irqWithDesc[value] = desc;
+        }
+    }
+
+    file.close();
+}
+
+static std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement)
+{
+    std::string result = input;
+    size_t pos = 0;
+    while ((pos = result.find(target, pos)) != std::string::npos) {
+        result.replace(pos, target.length(), replacement);
+        pos += replacement.length();
+    }
+    return result;
+}
+
+// make sure net interface info init complete before use this function
+void EthQueInfo::AddRegex(const std::vector<std::string> &regexSrc)
+{
+    for (const auto &str : regexSrc) {
+        std::string regexTmp = ReplaceString(str, "VAR_BUSINFO", busInfo);
+        regexTmp = ReplaceString(regexTmp, "VAR_ETH", dev);
+        regexTmp = ReplaceString(regexTmp, "VAR_QUEUE", "(\\d+)");
+        /* todo
+        * 1. replace special symbols in VAR_XXX to avoid regex error
+        * 2. use VAR_ETH_BEGIN-eth0-VAR_ETH_END to support special eth name
+        */
+        regex.emplace_back(regexTmp);
+    }
+}
+
+void EthQueInfo::UpdateQue2Irq(std::unordered_map<int, std::string> &irqWithDesc)
+{
+    auto it = regex.begin();
+    while (it != regex.end()) {
+        std::string re = *it;
+        // todo: add debug trace
+        try {
+            std::regex pattern(re);
+            for (const auto &irqIt : irqWithDesc) {
+                const int &irqId = irqIt.first;
+                const std::string &desc = irqIt.second;
+                std::smatch matches;
+                if (!std::regex_search(desc, matches, pattern) || matches.size() <= 1) {
+                    continue;
+                }
+                try {
+                    // to do : add debug trace
+                    que2Irq[std::stoi(matches[1])] = irqId;
+                }
+                catch (...) {
+                    continue;
+                }
+            }
+        }
+        catch (...) {
+            // todo: add debug trace
+            it = regex.erase(it);
+        }
+        ++it;
+    }
+}
+bool IrqFrontEnd::InitConf(const std::string &path)
+{
+    confPath = path;
+    return ReadQue2IrqConf();
+}
+
+bool IrqFrontEnd::ReadQue2IrqConf()
+{
+    std::ifstream configFile(confPath);
+    if (!configFile.is_open()) {
+        std::cerr << "Failed to open config file: " << confPath << std::endl;
+        return false;
+    }
+
+    std::string line;
+    bool inQueue2IrqSection = false;
+    const std::string prefix = "REGEXP:";
+
+    while (std::getline(configFile, line)) {
+        // Trim leading and trailing whitespace
+        line.erase(0, line.find_first_not_of(" \t\n\r\f\v"));
+        line.erase(line.find_last_not_of(" \t\n\r\f\v") + 1);
+
+        if (line.empty() || line[0] == '#') {
+            continue; // Skip empty lines and comments
+        }
+
+        if (line == "[Queue2Irq]") {
+            inQueue2IrqSection = true;
+            continue;
+        }
+        if (!inQueue2IrqSection) {
+            continue;
+        }
+        if (line.find("[") == 0) {
+            break; // End of [Queue2Irq] section
+        }
+        if (line.find(prefix) == 0) {
+            std::string pattern = line.substr(prefix.length()); // Remove "REGEXP:" prefix
+            if (!pattern.empty()) {
+                queRegex.emplace_back(pattern);
+            }
+        }
+    }
+    configFile.close();
+    return true;
+}

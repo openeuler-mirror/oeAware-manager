@@ -10,9 +10,10 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 
-#include "config.h"
 #include <regex>
+#include <fstream>
 #include "oeaware/utils.h"
+#include "config.h"
 
 void Config::PrintHelp()
 {
@@ -20,14 +21,15 @@ void Config::PrintHelp()
     usage += "usage: oeawarectl analysis [options]...\n";
     usage += "  options\n";
     usage += "   -t|--time <s>              set analysis duration in seconds(default " +
-        std::to_string(analysisTime) + "s), range from " + std::to_string(minAnalyzeTime) +
-        " to " + std::to_string(maxAnalyzeTime) + ".\n";
+             std::to_string(analysisTime) + "s), range from " + std::to_string(minAnalyzeTime) +
+             " to " + std::to_string(maxAnalyzeTime) + ".\n";
     usage += "   -r|--realtime              show real time report.\n";
     usage += "   -v|--verbose               show verbose information.\n";
     usage += "   -h|--help                  show this help message.\n";
     usage += "   --l1-miss-threshold                  set l1 tlbmiss threshold.\n";
     usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
     usage += "   --out-path                           set the path of the analysis report.\n";
+    usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
     std::cout << usage;
 }
 
@@ -77,6 +79,7 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 l1MissThreshold = atof(optarg);
+                l1MissThresholdSet = true;
                 break;
             case L2_MISS_THRESHOLD:
                 if (!IsNum(optarg)) {
@@ -85,6 +88,7 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 l2MissThreshold = atof(optarg);
+                l2MissThresholdSet = true;
                 break;
             case OUT_PATH: {
                 std::string path(optarg);
@@ -97,7 +101,15 @@ bool Config::Init(int argc, char **argv)
                 }
                 break;
             }
-            case 'h':
+            case DYNAMIC_SMT_THRESHOLD:
+                if (!IsNum(optarg)) {
+                    std::cerr << "Error: Invalid dynamic-smt-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                dynamicSmtThreshold = atof(optarg);
+                dynamicSmtThresholdSet = true;
+                break;
             default:
                 PrintHelp();
                 return false;
@@ -108,4 +120,32 @@ bool Config::Init(int argc, char **argv)
         return false;
     }
     return true;
+}
+
+bool Config::LoadConfig(const std::string& configPath)
+{
+    try {
+        YAML::Node config = YAML::LoadFile(configPath);
+        if (config["dynamic_smt"]) {
+            auto dynamic_smt = config["dynamic_smt"];
+            if (dynamic_smt["threshold"] && !dynamicSmtThresholdSet) {
+                const_cast<Config*>(this)->dynamicSmtThreshold = dynamic_smt["threshold"].as<double>();
+            }
+        }
+
+        if (config["hugepage"]) {
+            auto hugepage = config["hugepage"];
+            if (hugepage["l1_miss_threshold"] && !l1MissThresholdSet) {
+                const_cast<Config*>(this)->l1MissThreshold = hugepage["l1_miss_threshold"].as<double>();
+            }
+            if (hugepage["l2_miss_threshold"] && !l2MissThresholdSet) {
+                const_cast<Config*>(this)->l2MissThreshold = hugepage["l2_miss_threshold"].as<double>();
+            }
+        }
+
+        return true;
+    } catch (const YAML::Exception& e) {
+        std::cerr << "Error loading config file: " << e.what() << std::endl;
+        return false;
+    }
 }

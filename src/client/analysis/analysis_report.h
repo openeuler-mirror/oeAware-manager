@@ -36,10 +36,10 @@ public:
     }
     AnalysisReport(const AnalysisReport &) = delete;
     AnalysisReport &operator=(const AnalysisReport &) = delete;
-    void Init(const Config &config);
+    void Init(Config &config);
     void Print();
     void SetAnalysisTemplate(const AnalysisTemplate &data);
-    void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name);
+    void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem);
     void PrintMarkDown(const std::string &path);
 private:
     AnalysisReport() {}

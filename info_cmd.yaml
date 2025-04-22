@@ -7,6 +7,10 @@ InfoCmd:
     description: "This instance focuses on enhancing the fetching of tasks for idle CPUs and optimizing overall CPU utilization."
     effect: "This instance implements intelligent task scheduling to better distribute workloads across all available CPU cores, especially targeting idle CPUs."
 
+  - instance: dynamic_smt_tune
+    description: "This instance focuses on improving system performance by allocating  physical cores."
+    effect: "This instance intelligently allocates computational resources by activating idle physical cores during low system loads to improve performance"
+
   - instance: smc_tune
     description: "This solution employs Shared Memory Communications - Direct Memory Access (SMC-D) for TCP connections to local peers that also support this functionality."
     effect: "SMC-D optimizes local peer TCP communication via shared memory, reducing CPU usage, lowering latency, and enhancing data transfer efficiency."

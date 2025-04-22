@@ -26,7 +26,15 @@ typedef struct {
 	char *data;
 } AnalysisReport;
 
+typedef enum {
+	DATA_TYPE_CPU,
+	DATA_TYPE_MEMORY,
+	DATA_TYPE_IO,
+	DATA_TYPE_NETWORK
+} DataType;
+
 typedef struct {
+	int type; // DataType
 	char *metric;
 	char *value;
 	char *extra;

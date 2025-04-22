@@ -7,6 +7,7 @@ set(analysis_src
     analysis/env.cpp
     hugepage/hugepage_analysis.cpp
     hugepage/hugepage_analysis_impl.cpp
+    dynamic_smt/dynamic_smt_analysis.cpp
     common/analysis_utils.cpp
 )
 

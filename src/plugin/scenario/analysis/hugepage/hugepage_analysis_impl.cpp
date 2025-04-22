@@ -55,13 +55,18 @@ void HugepageAnalysisImpl::UpdateData(const std::string &topicName, void *data)
 
 void HugepageAnalysisImpl::Analysis()
 {
+    std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
+    type.emplace_back(DATA_TYPE_MEMORY);
     metrics.emplace_back(std::vector<std::string>{"l1dtlb_miss", std::to_string(tlbInfo.L1dTlbMiss() * 100) + "%",
         (tlbInfo.L1dTlbMiss() * 100 > threshold1 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
     metrics.emplace_back(std::vector<std::string>{"l1itlb_miss", std::to_string(tlbInfo.L1iTlbMiss() * 100) + "%",
         (tlbInfo.L1iTlbMiss() * 100 > threshold1 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
     metrics.emplace_back(std::vector<std::string>{"l2dtlb_miss", std::to_string(tlbInfo.L2dTlbMiss() * 100) + "%",
         (tlbInfo.L2dTlbMiss() * 100 > threshold2 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
     metrics.emplace_back(std::vector<std::string>{"l2itlb_miss", std::to_string(tlbInfo.L2iTlbMiss() * 100) + "%",
         (tlbInfo.L2iTlbMiss() * 100 > threshold2 ? "high" : "low")});
     std::string conclusion;
@@ -72,7 +77,7 @@ void HugepageAnalysisImpl::Analysis()
         suggestionItem.emplace_back("oeawarectl -e transparent_hugepage_tune");
         suggestionItem.emplace_back("reduce the number of tlb items and reduce the missing rate");
     }
-    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, &analysisResultItem);
+    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
 }
 
 void* HugepageAnalysisImpl::GetResult()

@@ -13,7 +13,7 @@
 
 namespace oeaware {
 void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metrics, const std::string &conclusion,
-    const std::vector<std::string> &suggestionItem, AnalysisResultItem *analysisResultItem)
+    const std::vector<std::string> &suggestionItem, const std::vector<int> type, AnalysisResultItem *analysisResultItem)
 {
     auto len = metrics.size();
     if (len == 0) {
@@ -34,6 +34,7 @@ void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metri
         strcpy_s(analysisResultItem->dataItem[i].value, value.size() + 1, value.data());
         analysisResultItem->dataItem[i].extra = new char[extra.size() + 1];
         strcpy_s(analysisResultItem->dataItem[i].extra, extra.size() + 1, extra.data());
+        analysisResultItem->dataItem[i].type = type[i];
     }
     analysisResultItem->conclusion = new char[conclusion.size() + 1];
     strcpy_s(analysisResultItem->conclusion, conclusion.size() + 1, conclusion.data());

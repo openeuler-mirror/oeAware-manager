@@ -9,13 +9,14 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "analysis_report.h"
 #include <iostream>
 #include <fstream>
 #include <securec.h>
+#include "oeaware/default_path.h"
 #include "oe_client.h"
 #include "config.h"
 #include "data_register.h"
+#include "analysis_report.h"
 
 namespace oeaware {
 static int CallBack(const DataList *dataList)
@@ -24,18 +25,24 @@ static int CallBack(const DataList *dataList)
     std::string instanceName(dataList->topic.instanceName);
     auto &analysisReport = AnalysisReport::GetInstance();
     auto recv = static_cast<AnalysisResultItem*>(dataList->data[0]);
-    analysisReport.AddAnalysisReportItem(recv, topicName);
-	return 0;
+    analysisReport.AddAnalysisReportItem(recv);
+    return 0;
 }
 
-void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name)
+void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultItem)
 {
-    if (name == "hugepage") {
-        for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
-            std::string metric = analysisResultItem->dataItem[i].metric;
-            std::string value = analysisResultItem->dataItem[i].value;
-            std::string extra = analysisResultItem->dataItem[i].extra;
+    for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
+        std::string metric = analysisResultItem->dataItem[i].metric;
+        std::string value = analysisResultItem->dataItem[i].value;
+        std::string extra = analysisResultItem->dataItem[i].extra;
+        if (analysisResultItem->dataItem[i].type == DATA_TYPE_CPU) {
+            analysisTemplate.datas["CPU"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_MEMORY) {
             analysisTemplate.datas["Memory"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_IO) {
+            analysisTemplate.datas["IO"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_NETWORK) {
+            analysisTemplate.datas["Network"].AddRow({metric, value, extra});
         }
     }
     Table conclusion(1, "conclusion");
@@ -58,12 +65,21 @@ void AnalysisReport::AddAnalysisTopic(const std::string &insName, const std::str
     topics.emplace_back(std::vector<std::string>{insName, topicName, param});
 }
 
-void AnalysisReport::Init(const Config &config)
+void AnalysisReport::Init(Config &config)
 {
+    std::string configPath = DEFAULT_ANALYSYS_PATH;
+    if (!config.LoadConfig(configPath)) {
+        std::cerr << "Warning: Failed to load configuration from " << configPath
+                  << ", using default values." << std::endl;
+    }
+
     std::string timeParam = "t:" + std::to_string(config.GetAnalysisTimeMs());
     std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
     std::string threshold2 = "threshold2:" + std::to_string(config.GetL2MissThreshold());
     AddAnalysisTopic("hugepage_analysis", "hugepage", {timeParam, threshold1, threshold2});
+    std::string threshold = "threshold:" + std::to_string(config.GetDynamicSmtThreshold());
+    AddAnalysisTopic("dynamic_smt_analysis", "dynamic_smt", {timeParam, threshold});
+
     const int INS_NAME_INDEX = 0;
     const int TOPIC_NAME_INDEX = 1;
     const int PARAM_INDEX = 2;
@@ -87,6 +103,18 @@ void AnalysisReport::Init(const Config &config)
     memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     memoryTable.AddRow({"metric", "value", "note"});
     analysisTemplate.datas["Memory"] = memoryTable;
+    oeaware::Table cpuTable(DEFAULT_ROW, "CPU");
+    cpuTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    cpuTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["CPU"] = cpuTable;
+    oeaware::Table ioTable(DEFAULT_ROW, "IO");
+    ioTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    ioTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["IO"] = ioTable;
+    oeaware::Table networkTable(DEFAULT_ROW, "Network");
+    networkTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    networkTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["Network"] = networkTable;
 }
 
 void AnalysisReport::SetAnalysisTemplate(const AnalysisTemplate &data)
@@ -100,8 +128,10 @@ void AnalysisReport::Print()
     PrintSubtitle("Data Analysis");
     int index = 1;
     for (auto &p : analysisTemplate.datas) {
-        std::cout << index++ << ". " << p.second.GetTableName() << std::endl;
-        p.second.PrintTable();
+        if (p.second.GetRowCount() > 1) {
+            std::cout << index++ << ". " << p.second.GetTableName() << std::endl;
+            p.second.PrintTable();
+        }
     }
     PrintSubtitle("Analysis Conclusion");
     index = 1;
@@ -127,7 +157,7 @@ void AnalysisReport::PrintTitle(const std::string &title)
 
 void AnalysisReport::PrintSubtitle(const std::string &subtitle)
 {
-     int cnt = (reportWidth - subtitle.size()) / 2;
+    int cnt = (reportWidth - subtitle.size()) / 2;
     std::cout << std::string(cnt, '=') << subtitle << std::string(reportWidth - cnt - subtitle.length(), '=') <<
         std::endl;
 }

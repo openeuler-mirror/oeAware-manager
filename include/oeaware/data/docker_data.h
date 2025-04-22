@@ -8,10 +8,12 @@
 extern "C" {
 #endif
 struct Container {
-    std::string id;
+    std::string id;   // change to char* if need to serialization
     int64_t cfs_period_us;
     int64_t cfs_quota_us;
     int64_t cfs_burst_us;
+    std::string cpus; // change to char* if need to serialization
+    std::vector<int32_t> tasks; // change to int32_t* if need to serialization
 };
 
 #ifdef __cplusplus

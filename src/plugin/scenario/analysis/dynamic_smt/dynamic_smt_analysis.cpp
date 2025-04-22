@@ -112,7 +112,9 @@ void DynamicSmtAnalysis::Run()
 
 void DynamicSmtAnalysis::Analysis()
 {
+    std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
+    type.emplace_back(DATA_TYPE_CPU);
     metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage * PERCENTAGE_FACTOR) + "%",
         (cpuUsage * PERCENTAGE_FACTOR > threshold ? "high for dynamic smt tune" : "low for dynamic smt tune")});
     std::string conclusion;
@@ -125,6 +127,6 @@ void DynamicSmtAnalysis::Analysis()
     } else {
         conclusion = "For dynamic_smt_tune, donot need to enable dynamic smt.";
     }
-    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, &analysisResultItem);
+    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
 }
 }

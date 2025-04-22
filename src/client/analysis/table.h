@@ -38,6 +38,7 @@ public:
     int GetTableWidth() const;
     std::string GetTableName() const;
     std::string GetContent(int i, int j) const;
+    int GetRowCount() const { return data.size(); }
 private:
     void PrintBoard() const;
     int columns;

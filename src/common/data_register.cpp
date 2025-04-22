@@ -839,7 +839,7 @@ static int DataItemDeserialize(DataItem *dataItem, int len, InStream &in)
         std::string metric;
         std::string value;
         std::string extra;
-        in >> metric >> value >> extra;
+        in >> dataItem[i].type >> metric >> value >> extra;
         dataItem[i].metric = new char[metric.size() + 1];
         strcpy_s(dataItem[i].metric, metric.size() + 1, metric.data());
         dataItem[i].value = new char[value.size() + 1];
@@ -871,7 +871,7 @@ int AnalysisResultItemSerialize(const void *data, OutStream &out)
     out << analysisResultItem->dataItemLen;
     for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
         auto dataItem = analysisResultItem->dataItem[i];
-        out << std::string(dataItem.metric) << std::string(dataItem.value) << std::string(dataItem.extra);
+        out << dataItem.type << std::string(dataItem.metric) << std::string(dataItem.value) << std::string(dataItem.extra);
     }
     out << std::string(analysisResultItem->conclusion);
 

@@ -39,7 +39,7 @@ public:
     void Init(Config &config);
     void Print();
     void SetAnalysisTemplate(const AnalysisTemplate &data);
-    void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name);
+    void AddAnalysisReportItem(AnalysisResultItem *analysisResultItem);
     void PrintMarkDown(const std::string &path);
 private:
     AnalysisReport() {}

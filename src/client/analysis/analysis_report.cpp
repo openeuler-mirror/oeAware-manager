@@ -25,25 +25,24 @@ static int CallBack(const DataList *dataList)
     std::string instanceName(dataList->topic.instanceName);
     auto &analysisReport = AnalysisReport::GetInstance();
     auto recv = static_cast<AnalysisResultItem*>(dataList->data[0]);
-    analysisReport.AddAnalysisReportItem(recv, topicName);
+    analysisReport.AddAnalysisReportItem(recv);
     return 0;
 }
 
-void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultItem, const std::string &name)
+void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultItem)
 {
-    if (name == "hugepage") {
-        for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
-            std::string metric = analysisResultItem->dataItem[i].metric;
-            std::string value = analysisResultItem->dataItem[i].value;
-            std::string extra = analysisResultItem->dataItem[i].extra;
-            analysisTemplate.datas["Memory"].AddRow({metric, value, extra});
-        }
-    } else if (name == "dynamic_smt") {
-        for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
-            std::string metric = analysisResultItem->dataItem[i].metric;
-            std::string value = analysisResultItem->dataItem[i].value;
-            std::string extra = analysisResultItem->dataItem[i].extra;
+    for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
+        std::string metric = analysisResultItem->dataItem[i].metric;
+        std::string value = analysisResultItem->dataItem[i].value;
+        std::string extra = analysisResultItem->dataItem[i].extra;
+        if (analysisResultItem->dataItem[i].type == DATA_TYPE_CPU) {
             analysisTemplate.datas["CPU"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_MEMORY) {
+            analysisTemplate.datas["Memory"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_IO) {
+            analysisTemplate.datas["IO"].AddRow({metric, value, extra});
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_NETWORK) {
+            analysisTemplate.datas["Network"].AddRow({metric, value, extra});
         }
     }
     Table conclusion(1, "conclusion");
@@ -108,6 +107,14 @@ void AnalysisReport::Init(Config &config)
     cpuTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     cpuTable.AddRow({"metric", "value", "note"});
     analysisTemplate.datas["CPU"] = cpuTable;
+    oeaware::Table ioTable(DEFAULT_ROW, "IO");
+    ioTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    ioTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["IO"] = ioTable;
+    oeaware::Table networkTable(DEFAULT_ROW, "Network");
+    networkTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    networkTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["Network"] = networkTable;
 }
 
 void AnalysisReport::SetAnalysisTemplate(const AnalysisTemplate &data)
@@ -121,8 +128,10 @@ void AnalysisReport::Print()
     PrintSubtitle("Data Analysis");
     int index = 1;
     for (auto &p : analysisTemplate.datas) {
-        std::cout << index++ << ". " << p.second.GetTableName() << std::endl;
-        p.second.PrintTable();
+        if (p.second.GetRowCount() > 1) {
+            std::cout << index++ << ". " << p.second.GetTableName() << std::endl;
+            p.second.PrintTable();
+        }
     }
     PrintSubtitle("Analysis Conclusion");
     index = 1;

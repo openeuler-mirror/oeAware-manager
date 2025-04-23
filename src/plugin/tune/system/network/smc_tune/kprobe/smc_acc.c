@@ -80,6 +80,7 @@ static int is_smc_loaded = SMC_LOADED;
 #define STR_LEN 512
 static char blackPortList[STR_LEN] = "";
 static char whitePortList[STR_LEN] = "";
+static int short_connection = 1;
 
 module_param_string(black_port_list_param, blackPortList, sizeof(blackPortList), 0644);
 MODULE_PARM_DESC(black_port_list_param, " A string parameter for filtering port not to switch TCP to SMC.\n"
@@ -93,6 +94,11 @@ MODULE_PARM_DESC(white_port_list_param, " A string parameter for filtering ports
                                         "       Separated by \',\' between ports. String length: 512.\n"
                                         "       e.g. white_port_list_param=\"80,8448\"");
 static DEFINE_IDR(white_port_map);
+module_param(short_connection, int, 0644);
+MODULE_PARM_DESC(short_connection, " Short connection suppression switch.\n"
+                                   "       If short_connection = true, the SMC is running properly.\n"
+                                   "       If short_connection = false, SMC ignores short connections in the \
+                                   system.\n");
 
 static long long unsigned int conn_count_smc;
 static long long unsigned int send_count_smc;
@@ -101,7 +107,7 @@ static long long unsigned int conn_count_tcp;
 static long long unsigned int send_count_tcp;
 static long long unsigned int release_count_tcp;
 static int net_tcp2smc = 1;
-#define NET_TCP2SMC_THRESHOLD 1024
+static unsigned long long NET_TCP2SMC_THRESHOLD = 1024;
 
 #define REFRESH_COUNT(type)       \
     {                             \
@@ -398,6 +404,9 @@ static int __init kprobe_init(void)
     if (rc != 0) {
         goto out;
     }
+    if (!short_connection) {
+        NET_TCP2SMC_THRESHOLD = ~0ULL;
+    }
     kp_sys_listen.pre_handler = handler_sys_listen;
     kp_sys_connect_file.pre_handler = handler_connect_file;
     kp_smc_connect.pre_handler = handle_smc_connect;
@@ -415,7 +424,7 @@ static int __init kprobe_init(void)
     register_kprobe(&kp_tcp_conn);
     register_kprobe(&kp_tcp_fin);
     register_kprobe(&kp_tcp_recv);
-    printk(KERN_INFO "smc_acc : module loaded\n");
+    printk(KERN_INFO "smc_acc : module loaded, short_connection=%d\n", short_connection);
     return rc;
 out:
     idr_destroy(&white_port_map);

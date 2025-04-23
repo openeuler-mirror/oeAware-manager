@@ -30,6 +30,7 @@ private:
     int ReadConfig(const std::string &path);
     std::string blackPortList;
     std::string whitePortList;
+    int shortConnection = 1;
 };
 } // namespace oeaware
 #endif // OEAWARE_MANAGER_SMC_TUNE_H

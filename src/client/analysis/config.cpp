@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #include <regex>
+#include <oeaware/utils.h>
 #include <fstream>
-#include "oeaware/utils.h"
 #include "config.h"
 
 void Config::PrintHelp()
@@ -46,12 +46,6 @@ bool Config::ParseTime(const char *arg)
     return true;
 }
 
-static bool IsNum(const std::string &s)
-{
-    std::regex num(R"(^[+]?\d+(\.\d+)?$)");
-    return std::regex_match(s, num);
-}
-
 bool Config::Init(int argc, char **argv)
 {
     if (argv == nullptr) {
@@ -73,7 +67,7 @@ bool Config::Init(int argc, char **argv)
                 showVerbose = true;
                 break;
             case L1_MISS_THRESHOLD:
-                if (!IsNum(optarg)) {
+                if (!oeaware::IsNum(optarg)) {
                     std::cerr << "Error: Invalid l1-miss-threshold: '" << optarg << "'\n";
                     PrintHelp();
                     return false;
@@ -82,7 +76,7 @@ bool Config::Init(int argc, char **argv)
                 l1MissThresholdSet = true;
                 break;
             case L2_MISS_THRESHOLD:
-                if (!IsNum(optarg)) {
+                if (!oeaware::IsNum(optarg)) {
                     std::cerr << "Error: Invalid l2-miss-threshold: '" << optarg << "'\n";
                     PrintHelp();
                     return false;
@@ -102,7 +96,7 @@ bool Config::Init(int argc, char **argv)
                 break;
             }
             case DYNAMIC_SMT_THRESHOLD:
-                if (!IsNum(optarg)) {
+                if (!oeaware::IsNum(optarg)) {
                     std::cerr << "Error: Invalid dynamic-smt-threshold: '" << optarg << "'\n";
                     PrintHelp();
                     return false;

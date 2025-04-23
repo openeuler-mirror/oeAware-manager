@@ -41,6 +41,8 @@ bool ServiceControl(const std::string &serviceName, const std::string &action);
 std::unordered_map<std::string, std::string> GetKeyValueFromString(const std::string &params);
 std::vector<int> ParseRange(const std::string &range);
 bool IrqSetSmpAffinity(int preferredCpu, int irqNum);
+/// @brief Check whether a string is an integer or a floating point number.
+bool IsNum(const std::string &s);
 std::string GetNetOperateStr(int state);
 int GetNetOperateTypeByStr(const std::string &state);
 }

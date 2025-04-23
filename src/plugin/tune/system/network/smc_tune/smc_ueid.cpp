@@ -157,6 +157,7 @@ int SmcOperator::RunSmcAcc()
     if (!whitePortList.empty()) {
         args << "white_port_list_param=\"" << whitePortList << "\" ";
     }
+    args << "short_connection=" << shortConnection;
     if (!FileExist(SMC_ACC_KO_PATH)) {
         SMCLOG_ERROR(SMC_ACC_KO_PATH << "  is not exist.");
         rc = EXIT_FAILURE;
@@ -260,6 +261,11 @@ bool SmcOperator::IsSamePortList(const std::string &blackPortStr, const std::str
     return (blackPortList == blackPortStr) && (whitePortList == whitePortStr);
 }
 
+void SmcOperator::SetShortConnection(int value)
+{
+    this->shortConnection = value;
+}
+
 int SmcOperator::ReRunSmcAcc()
 {
     int rc = EXIT_SUCCESS;
@@ -275,6 +281,7 @@ int SmcOperator::ReRunSmcAcc()
     if (!whitePortList.empty()) {
         args << "white_port_list_param=\"" << whitePortList << "\" ";
     }
+    args << "short_connection=" << shortConnection;
     SMCLOG_INFO("ReRunSmcAcc args:" << args.str());
     if (!FileExist(SMC_ACC_KO_PATH)) {
         SMCLOG_ERROR(SMC_ACC_KO_PATH << " is not exist.");

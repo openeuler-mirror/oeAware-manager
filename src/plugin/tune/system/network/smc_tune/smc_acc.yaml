@@ -9,3 +9,4 @@ black_port_list_param: ""
 # Separated by ',' between ports. String length: 512
 # e.g. white_port_list_param: "80,8448"
 white_port_list_param: ""
+short_connection: 1

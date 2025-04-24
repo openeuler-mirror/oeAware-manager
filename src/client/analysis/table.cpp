@@ -84,13 +84,24 @@ bool Table::SetColumnAlignment(int colIndex, Alignment alignment)
 
 std::vector<std::string> SplitCellContent(const std::string &content, size_t width)
 {
+    std::vector<std::string> contentSplit;
+    std::stringstream ss(content);
     std::vector<std::string> lines;
-    size_t start = 0;
-    while (start < content.length()) {
-        size_t end = std::min(start + width, content.size());
-        lines.emplace_back(content.substr(start, end - start));
-        start = end;
+    std::string tmp;
+    // step 1: split by '\n'
+    while (std::getline(ss, tmp, '\n')) {
+        contentSplit.push_back(tmp);
     }
+    // step2: split by max width
+    for (const auto &line : contentSplit) {
+        size_t start = 0;
+        while (start < line.length()) {
+            size_t end = std::min(start + width, line.size());
+            lines.emplace_back(line.substr(start, end - start));
+            start = end;
+        }
+    }
+
     return lines;
 }
 

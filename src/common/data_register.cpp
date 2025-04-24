@@ -1034,6 +1034,7 @@ void Register::InitRegisterData()
     RegisterData("smc_d_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData("dynamic_smt_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
+    RegisterData(OE_NET_HIRQ_ANALYSIS, RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

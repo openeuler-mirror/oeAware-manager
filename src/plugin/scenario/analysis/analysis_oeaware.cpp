@@ -12,10 +12,11 @@
 #include "hugepage/hugepage_analysis.h"
 #include "dynamic_smt/dynamic_smt_analysis.h"
 #include "smc_d_scenario/smc_d_analysis.h"
-
+#include "net_hirq/net_hirq_analysis.h"
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<oeaware::HugePageAnalysis>());
     interface.emplace_back(std::make_shared<oeaware::DynamicSmtAnalysis>());
     interface.emplace_back(std::make_shared<oeaware::SmcDAnalysis>());
+    interface.emplace_back(std::make_shared<oeaware::NetHirqAnalysis>());
 }

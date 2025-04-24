@@ -79,7 +79,8 @@ void AnalysisReport::Init(Config &config)
     AddAnalysisTopic("hugepage_analysis", "hugepage", {timeParam, threshold1, threshold2});
     std::string threshold = "threshold:" + std::to_string(config.GetDynamicSmtThreshold());
     AddAnalysisTopic("dynamic_smt_analysis", "dynamic_smt", {timeParam, threshold});
-    AddAnalysisTopic("smc_d_analysis", "smc_d", {timeParam});
+    AddAnalysisTopic("smc_d_analysis", "smc_d", { timeParam });
+    AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
 
     const int INS_NAME_INDEX = 0;
     const int TOPIC_NAME_INDEX = 1;

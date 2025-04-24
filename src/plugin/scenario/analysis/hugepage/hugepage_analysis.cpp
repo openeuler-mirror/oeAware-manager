@@ -1,3 +1,5 @@
+#include "hugepage_analysis.h"
+#include "hugepage_analysis.h"
 /******************************************************************************
  * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
@@ -9,22 +11,13 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "hugepage_analysis.h"
-#include <string>
-#include <iostream>
-#include "oeaware/data/analysis_data.h"
+
 #include "oeaware/utils.h"
-#include "analysis_utils.h"
- /* oeaware manager interface */
-#include "oeaware/interface.h"
-/* dependent external plugin interfaces */
 #include "oeaware/data/pmu_plugin.h"
 #include "oeaware/data/pmu_counting_data.h"
 #include "oeaware/data/pmu_sampling_data.h"
 #include "oeaware/data/pmu_spe_data.h"
-/* external plugin dependent interfaces */
-
-/* internal data processing interface */
+#include "hugepage_analysis.h"
 
 namespace oeaware {
 HugePageAnalysis::HugePageAnalysis()
@@ -37,35 +30,25 @@ HugePageAnalysis::HugePageAnalysis()
 	for (auto &topic : topicStrs) {
 		supportTopics.emplace_back(Topic{name, topic, ""});
 	}
-}
-
-void HugePageAnalysis::InitAnalysisCompose()
-{
-	oeaware::Topic memTopic{name, "hugepage", ""};
-	topicImpl["hugepage"] = new HugepageAnalysisImpl(threshold1, threshold2);
+	subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb_refill", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb_refill", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb_refill", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb_refill", ""});
 }
 
 Result HugePageAnalysis::Enable(const std::string &param)
 {
-	auto params_map = GetKeyValueFromString(param);
-	if (params_map.count("t")) {
-		time = atoi(params_map["t"].data());
-	}
-	if (params_map.count("threshold1")) {
-		threshold1 = atof(params_map["threshold1"].data());
-	}
-	if (params_map.count("threshold2")) {
-		threshold2 = atof(params_map["threshold2"].data());
-	}
-	InitAnalysisCompose();
+	(void)param;
 	return Result(OK);
 }
 
 void HugePageAnalysis::Disable()
 {
-	for (const auto &topic : subscribeTopics) {
-		Unsubscribe(topic);
-	}
+	topicStatus.clear();
 }
 
 Result HugePageAnalysis::OpenTopic(const oeaware::Topic &topic)
@@ -73,22 +56,36 @@ Result HugePageAnalysis::OpenTopic(const oeaware::Topic &topic)
 	if (std::find(topicStrs.begin(), topicStrs.end(), topic.topicName) == topicStrs.end()) {
 		return Result(FAILED, "topic " + topic.topicName + " not support!");
 	}
-	auto topicType = topic.GetType();
-	topicImpl[topic.topicName]->Init();
-	topicStatus[topicType].open = true;
-	for (auto &topic : topicImpl[topic.topicName]->subTopics) {
+	for (auto &topic : subscribeTopics) {
 		Subscribe(topic);
+	}
+	auto topicType = topic.GetType();
+	topicStatus[topicType].isOpen = true;
+	auto paramsMap = GetKeyValueFromString(topic.params);
+	if (paramsMap.count("t")) {
+		topicStatus[topicType].time = atoi(paramsMap["t"].data());
+	}
+	if (paramsMap.count("threshold1")) {
+		topicStatus[topicType].threshold1 = atof(paramsMap["threshold1"].data());
+	}
+	if (paramsMap.count("threshold2")) {
+		topicStatus[topicType].threshold2 = atof(paramsMap["threshold2"].data());
 	}
 	return Result(OK);
 }
 
 void HugePageAnalysis::CloseTopic(const oeaware::Topic &topic)
 {
-	auto topicType = topic.GetType();
-	topicStatus[topicType].open = false;
-	for (auto &topic : topicImpl[topic.topicName]->subTopics) {
+	for (auto &topic : subscribeTopics) {
 		Unsubscribe(topic);
 	}
+	auto topicType = topic.GetType();
+	topicStatus[topicType].isOpen = false;
+	topicStatus[topicType].isPublish = false;
+	topicStatus[topicType].curTime = 0;
+	topicStatus[topicType].threshold1 = THP_THRESHOLD1;
+	topicStatus[topicType].threshold2 = THP_THRESHOLD2;
+	memset_s(&topicStatus[topicType].tlbInfo, sizeof(topicStatus[topicType].tlbInfo), 0, sizeof(topicStatus[topicType].tlbInfo));
 }
 
 void HugePageAnalysis::UpdateData(const DataList &dataList)
@@ -98,8 +95,28 @@ void HugePageAnalysis::UpdateData(const DataList &dataList)
 	for (auto &p : topicStatus) {
 		auto topicType = p.first;
 		const auto &topic = Topic::GetTopicFromType(topicType);
-		if (p.second.open) {
-			topicImpl[topic.topicName]->UpdateData(topicName, dataList.data[0]);
+		if (p.second.isOpen) {
+			auto countingData = static_cast<PmuCountingData*>(dataList.data[0]);
+			for (int i = 0; i < countingData->len; ++i) {
+				uint64_t count = countingData->pmuData[i].count;
+				if (topicName == "l1d_tlb") {
+					p.second.tlbInfo.l1dTlb += count;
+				} else if (topicName == "l1d_tlb_refill") {
+					p.second.tlbInfo.l1dTlbRefill += count;
+				} else if (topicName == "l1i_tlb") {
+					p.second.tlbInfo.l1iTlb += count;
+				} else if (topicName == "l1i_tlb_refill") {
+					p.second.tlbInfo.l1iTlbRefill += count;
+				} else if (topicName == "l2d_tlb") {
+					p.second.tlbInfo.l2dTlb += count;
+				} else if (topicName == "l2d_tlb_refill") {
+					p.second.tlbInfo.l2dTlbRefill += count;
+				} else if (topicName == "l2i_tlb") {
+					p.second.tlbInfo.l2iTlb += count;
+				} else if (topicName == "l2i_tlb_refill") {
+					p.second.tlbInfo.l2iTlbRefill += count;
+				}
+			}
 		}
 	}
 }
@@ -110,25 +127,57 @@ void HugePageAnalysis::PublishData(const Topic &topic)
 	SetDataListTopic(&dataList, topic.instanceName, topic.topicName, topic.params);
 	dataList.len = 1;
 	dataList.data = new void *[dataList.len];
-	dataList.data[0] = topicImpl[topic.topicName]->GetResult();
+	dataList.data[0] = &analysisResultItem;
 	Publish(dataList);
 }
 
 void HugePageAnalysis::Run()
 {
-	curTime++;
-	if (curTime == time) {
-		for (auto &item : topicStatus) {
-			auto &status = item.second;
-			auto topicType = item.first;
-			const auto &topic = Topic::GetTopicFromType(topicType);
-			if (status.open) {
-				topicImpl[topic.topicName]->Analysis();
+	for (auto &item : topicStatus) {
+		auto &status = item.second;
+		if (status.isOpen) {
+			status.curTime++;
+			if (!status.isPublish && status.curTime == status.time) {
+				auto topicType = item.first;
+				const auto &topic = Topic::GetTopicFromType(topicType);
+				Analysis(topicType);
 				PublishData(topic);
-				topicImpl[topic.topicName]->Reset();
+				status.isPublish = true;
 			}
 		}
-		curTime = 0;
 	}
+}
+
+void HugePageAnalysis::Analysis(const std::string &topicType)
+{
+    std::vector<int> type;
+    std::vector<std::vector<std::string>> metrics;
+    type.emplace_back(DATA_TYPE_MEMORY);
+    metrics.emplace_back(std::vector<std::string>{"l1dtlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L1dTlbMiss() *
+		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L1dTlbMiss() * PERCENTAGE_FACTOR >
+		topicStatus[topicType].threshold1 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
+    metrics.emplace_back(std::vector<std::string>{"l1itlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L1iTlbMiss() *
+		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L1iTlbMiss() * PERCENTAGE_FACTOR >
+		topicStatus[topicType].threshold1 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
+    metrics.emplace_back(std::vector<std::string>{"l2dtlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L2dTlbMiss() *
+		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L2dTlbMiss() * PERCENTAGE_FACTOR >
+		topicStatus[topicType].threshold2 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
+    metrics.emplace_back(std::vector<std::string>{"l2itlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L2iTlbMiss() *
+		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L2iTlbMiss() * PERCENTAGE_FACTOR >
+		topicStatus[topicType].threshold2 ? "high" : "low")});
+    std::string conclusion;
+    std::vector<std::string> suggestionItem;
+    if (topicStatus[topicType].tlbInfo.IsHighMiss(topicStatus[topicType].threshold1, topicStatus[topicType].threshold2)) {
+        conclusion = "The tlbmiss is too high.";
+        suggestionItem.emplace_back("use huge page");
+        suggestionItem.emplace_back("oeawarectl -e transparent_hugepage_tune");
+        suggestionItem.emplace_back("reduce the number of tlb items and reduce the missing rate");
+    } else {
+		conclusion = "The tlbmiss is low, donot need to enable transparent_hugepage_tune.";
+	}
+    CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
 }
 }

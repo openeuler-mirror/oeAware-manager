@@ -6,7 +6,6 @@ set(analysis_src
     analysis/common.cpp
     analysis/env.cpp
     hugepage/hugepage_analysis.cpp
-    hugepage/hugepage_analysis_impl.cpp
     dynamic_smt/dynamic_smt_analysis.cpp
     smc_d_scenario/smc_d_analysis.cpp
     common/analysis_utils.cpp

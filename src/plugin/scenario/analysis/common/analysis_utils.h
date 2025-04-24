@@ -18,6 +18,8 @@
 namespace oeaware {
 const int PERCENTAGE_FACTOR = 100;
 const int DYNAMIC_SMT_THRESHOLD = 40;
+const int THP_THRESHOLD1 = 5;
+const int THP_THRESHOLD2 = 10;
 const int ANALYSIS_TIME_PERIOD = 1000;
 void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metrics, const std::string &conclusion,
     const std::vector<std::string> &suggestionItem, const std::vector<int> type, AnalysisResultItem *analysisResultItem);

@@ -13,7 +13,6 @@
 #define SMC_D_SCENARIO_AWARE_H
 #include "oeaware/interface.h"
 #include "analysis.h"
-#include "analysis_compose.h"
 
 namespace oeaware {
 class SmcDAnalysis : public Interface {

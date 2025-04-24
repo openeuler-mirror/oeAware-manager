@@ -13,8 +13,7 @@
 #define HUGEPAGE_ANALYSIS_H
 #include "oeaware/interface.h"
 #include "analysis.h"
-#include "analysis_compose.h"
-#include "hugepage_analysis_impl.h"
+#include "analysis_utils.h"
 
 namespace oeaware {
 class HugePageAnalysis : public Interface {
@@ -27,23 +26,56 @@ public:
 	Result Enable(const std::string &param) override;
 	void Disable() override;
 	void Run() override;
-	struct TopicStatus {
-		bool open = false;
+private:
+	struct TlbInfo {
+		/* data */
+		uint64_t l1iTlbRefill = 0;
+		uint64_t l1iTlb = 0;
+		uint64_t l2iTlbRefill = 0;
+		uint64_t l2iTlb = 0;
+		uint64_t l1dTlbRefill = 0;
+		uint64_t l1dTlb = 0;
+		uint64_t l2dTlbRefill = 0;
+		uint64_t l2dTlb = 0;
+		double L1dTlbMiss()
+		{
+			return l1dTlb == 0 ? 0 : 1.0 * l1dTlbRefill / l1dTlb;
+		}
+		double L1iTlbMiss()
+		{
+			return l1iTlb == 0 ? 0 : 1.0 * l1iTlbRefill / l1iTlb;
+		}
+		double L2dTlbMiss()
+		{
+			return l2dTlb == 0 ? 0 : 1.0 * l2dTlbRefill / l2dTlb;
+		}
+		double L2iTlbMiss()
+		{
+			return l2iTlb == 0 ? 0 : 1.0 * l2iTlbRefill / l2iTlb;
+		}
+		bool IsHighMiss(double threshold1, double threshold2)
+		{
+			return L1dTlbMiss() * PERCENTAGE_FACTOR >= threshold1 ||
+				L1iTlbMiss() * PERCENTAGE_FACTOR >= threshold1 ||
+				L2dTlbMiss() * PERCENTAGE_FACTOR >= threshold2 ||
+				L2iTlbMiss() * PERCENTAGE_FACTOR >= threshold2;
+		}
 	};
-private:
-	std::vector<Topic> subscribeTopics;
+	struct TopicStatus {
+		bool isOpen = false;
+		bool isPublish = false;
+		int curTime = 0;
+		int time;
+		double threshold1 = THP_THRESHOLD1;
+		double threshold2 = THP_THRESHOLD2;
+		TlbInfo tlbInfo;
+	};
 	void PublishData(const Topic &topic);
-	void InitAnalysisCompose();
-private:
-	std::unordered_map<std::string, AnalysisCompose*> topicImpl;
+	void Analysis(const std::string &topicType);
 	std::vector<std::string> topicStrs{"hugepage"};
-	std::vector<std::string> analysisData;
-	std::unordered_map<std::string, PmuData *> pmuData;
 	std::unordered_map<std::string, TopicStatus> topicStatus;
-	int time = 10;
-	int curTime = 0;
-	double threshold1 = 5;
-    double threshold2 = 10;
+	std::vector<Topic> subscribeTopics;
+	AnalysisResultItem analysisResultItem;
 };
 }
 #endif

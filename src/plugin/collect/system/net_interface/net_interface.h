@@ -41,6 +41,11 @@ private:
     void InitTopicInfo(const std::string &name);
     void PublishBaseInfo(const std::string &params);
     void PublishDriverInfo(const std::string &params);
+    oeaware::Result OpenNetFlow();
+    void CloseNetFlow();
+    void ReadFlow();
+
+    void *skel = nullptr;
 };
 
 #endif // OEAWARE_NET_INTERFACE_H

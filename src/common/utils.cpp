@@ -349,6 +349,12 @@ bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
     return true;
 }
 
+bool IsNum(const std::string &s)
+{
+    std::regex num(R"(^[+]?\d+(\.\d+)?$)");
+    return std::regex_match(s, num);
+}
+
 std::string GetNetOperateStr(int state)
 {
     std::vector<std::string> stateMap = { "unknown",

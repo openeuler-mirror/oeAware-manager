@@ -51,6 +51,7 @@ oeaware::Result SmcTune::Enable(const std::string &param)
     if (ReadConfig(SMC_ACC_YAML_PATH) < 0) {
         return oeaware::Result(FAILED);
     }
+    SMC_OP->SetShortConnection(shortConnection);
     SMC_OP->InputPortList(blackPortList, whitePortList);
     int ret = (SMC_OP->EnableSmcAcc() == EXIT_SUCCESS ? OK : FAILED);
     return oeaware::Result(ret);
@@ -87,7 +88,16 @@ int oeaware::SmcTune::ReadConfig(const std::string &path)
     blackPortList = node["black_port_list_param"] ? node["black_port_list_param"].as<std::string>() : "";
 
     whitePortList = node["white_port_list_param"] ? node["white_port_list_param"].as<std::string>() : "";
-
+    auto s = node["short_connection"] ? node["short_connection"].as<std::string>() : "";
+    if (!oeaware::IsNum(s)) {
+        WARN(logger, "smc_acc.yaml 'short_connection' error.");
+        return -1;
+    }
+    shortConnection = atoi(s.data());
+    if (shortConnection < 0 || shortConnection > 1) {
+        WARN(logger, "smc_acc.yaml 'short_connection' value invalid.");
+        return -1;
+    }
     sysFile.close();
     return 0;
 }

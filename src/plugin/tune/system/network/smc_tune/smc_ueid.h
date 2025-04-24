@@ -40,6 +40,7 @@ public:
     int AbleSmcAcc(int isEnable);
     int InputPortList(const std::string &blackPortStr, const std::string &whitePortStr);
     bool IsSamePortList(const std::string &blackPortStr, const std::string &whitePortStr);
+    void SetShortConnection(int value);
     int ReRunSmcAcc();
 
 private:
@@ -57,6 +58,7 @@ private:
     char targetEid[SMC_MAX_EID_LEN + 1];
     std::string blackPortList;
     std::string whitePortList;
+    int shortConnection;
 };
 
 #endif /* UEID_H_ */

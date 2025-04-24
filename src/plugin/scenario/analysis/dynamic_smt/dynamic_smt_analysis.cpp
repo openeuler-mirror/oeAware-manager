@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "oeaware/utils.h"
-#include "analysis_utils.h"
 #include "env_data.h"
 #include "dynamic_smt_analysis.h"
 
@@ -25,22 +24,18 @@ DynamicSmtAnalysis::DynamicSmtAnalysis()
     for (auto &topic : topicStrs) {
         supportTopics.emplace_back(Topic{name, topic, ""});
     }
+    subscribeTopics.emplace_back(oeaware::Topic{OE_ENV_INFO, "cpu_util", ""});
 }
 
 Result DynamicSmtAnalysis::Enable(const std::string &param)
 {
-    auto paramsMap = GetKeyValueFromString(param);
-    if (paramsMap.count("t")) {
-        time = atoi(paramsMap["t"].data());
-    }
-    if (paramsMap.count("threshold")) {
-        threshold = atof(paramsMap["threshold"].data());
-    }
+    (void)param;
     return Result(OK);
 }
 
 void DynamicSmtAnalysis::Disable()
 {
+    topicStatus.clear();
 }
 
 Result DynamicSmtAnalysis::OpenTopic(const oeaware::Topic &topic)
@@ -48,23 +43,32 @@ Result DynamicSmtAnalysis::OpenTopic(const oeaware::Topic &topic)
     if (std::find(topicStrs.begin(), topicStrs.end(), topic.topicName) == topicStrs.end()) {
         return Result(FAILED, "topic " + topic.topicName + " not support!");
     }
-    auto topicType = topic.GetType();
-    topicStatus[topicType] = true;
-    subscribeTopics.emplace_back(oeaware::Topic{OE_ENV_INFO, "cpu_util", ""});
     for (auto &topic : subscribeTopics) {
         Subscribe(topic);
+    }
+    auto topicType = topic.GetType();
+    topicStatus[topicType].isOpen = true;
+    topicStatus[topicType].curTime = 0;
+    auto paramsMap = GetKeyValueFromString(topic.params);
+    if (paramsMap.count("t")) {
+        topicStatus[topicType].time = atoi(paramsMap["t"].data());
+    }
+    if (paramsMap.count("threshold")) {
+        topicStatus[topicType].threshold = atof(paramsMap["threshold"].data());
     }
     return Result(OK);
 }
 
 void DynamicSmtAnalysis::CloseTopic(const oeaware::Topic &topic)
 {
-    auto topicType = topic.GetType();
-    topicStatus[topicType] = false;
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
-    subscribeTopics.clear();
+    auto topicType = topic.GetType();
+    topicStatus[topicType].isOpen = false;
+    topicStatus[topicType].isPublish = false;
+    topicStatus[topicType].curTime = 0;
+    topicStatus[topicType].threshold = DYNAMIC_SMT_THRESHOLD;
 }
 
 void DynamicSmtAnalysis::UpdateData(const DataList &dataList)
@@ -74,11 +78,11 @@ void DynamicSmtAnalysis::UpdateData(const DataList &dataList)
     for (auto &p : topicStatus) {
         auto topicType = p.first;
         const auto &topic = Topic::GetTopicFromType(topicType);
-        if (p.second) {
+        if (p.second.isOpen) {
             auto cpuUtilData = static_cast<EnvCpuUtilParam*>(dataList.data[0]);
             auto cpuIdle = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_IDLE];
             auto cpuSum = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_TIME_SUM];
-            cpuUsage = static_cast<double>(cpuSum - cpuIdle) / cpuSum;
+            p.second.cpuUsage = static_cast<double>(cpuSum - cpuIdle) / cpuSum;
         }
     }
 }
@@ -95,31 +99,32 @@ void DynamicSmtAnalysis::PublishData(const Topic &topic)
 
 void DynamicSmtAnalysis::Run()
 {
-    curTime++;
-    if (curTime == time) {
-        for (auto &item : topicStatus) {
-            auto &status = item.second;
-            auto topicType = item.first;
-            const auto &topic = Topic::GetTopicFromType(topicType);
-            if (status) {
-                Analysis();
+    for (auto &item : topicStatus) {
+        auto &status = item.second;
+        if (status.isOpen) {
+            status.curTime++;
+            if (!status.isPublish && status.curTime == status.time) {
+                auto topicType = item.first;
+                const auto topic = Topic::GetTopicFromType(topicType);
+                Analysis(topicType);
                 PublishData(topic);
+                status.isPublish = true;
             }
         }
-        curTime = 0;
     }
 }
 
-void DynamicSmtAnalysis::Analysis()
+void DynamicSmtAnalysis::Analysis(const std::string &topicType)
 {
     std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
     type.emplace_back(DATA_TYPE_CPU);
-    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage * PERCENTAGE_FACTOR) + "%",
-        (cpuUsage * PERCENTAGE_FACTOR > threshold ? "high for dynamic smt tune" : "low for dynamic smt tune")});
+    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(topicStatus[topicType].cpuUsage *
+        PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].cpuUsage * PERCENTAGE_FACTOR >
+        topicStatus[topicType].threshold ? "high for dynamic smt tune" : "low for dynamic smt tune")});
     std::string conclusion;
     std::vector<std::string> suggestionItem;
-    if (cpuUsage * PERCENTAGE_FACTOR < threshold) {
+    if (topicStatus[topicType].cpuUsage * PERCENTAGE_FACTOR < topicStatus[topicType].threshold) {
         conclusion = "For dynamic_smt_tune, the system loads is low. Please enable dynamic_smt_tune";
         suggestionItem.emplace_back("use dynamic smt");
         suggestionItem.emplace_back("oeawarectl -e dynamic_smt_tune");

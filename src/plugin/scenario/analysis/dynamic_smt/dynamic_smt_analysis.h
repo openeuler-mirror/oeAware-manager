@@ -13,9 +13,7 @@
 #define DYNAMIC_SMT_ANALYSIS_H
 #include "oeaware/interface.h"
 #include "analysis.h"
-
-constexpr int PERCENTAGE_FACTOR = 100;
-constexpr int THRESHOLD = 40;
+#include "analysis_utils.h"
 
 namespace oeaware {
 class DynamicSmtAnalysis : public Interface {
@@ -29,16 +27,20 @@ public:
     void Disable() override;
     void Run() override;
 private:
+    struct TopicStatus {
+        bool isOpen = false;
+        bool isPublish = false;
+        int curTime = 0;
+        int time;
+        double threshold = DYNAMIC_SMT_THRESHOLD;
+        double cpuUsage;
+    };
     void PublishData(const Topic &topic);
-    void Analysis();
+    void Analysis(const std::string &topicType);
     std::vector<std::string> topicStrs{"dynamic_smt"};
-    std::unordered_map<std::string, bool> topicStatus;
+    std::unordered_map<std::string, TopicStatus> topicStatus;
     std::vector<Topic> subscribeTopics;
     AnalysisResultItem analysisResultItem;
-    int time = 10;
-    int curTime = 0;
-    double threshold = THRESHOLD;
-    double cpuUsage = 0;
 };
 }
 #endif

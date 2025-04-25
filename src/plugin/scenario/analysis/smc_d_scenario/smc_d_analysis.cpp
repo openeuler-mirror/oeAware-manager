@@ -9,16 +9,14 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include <string>
-#include <iostream>
-#include "oeaware/data/analysis_data.h"
 #include "oeaware/utils.h"
 #include "analysis_utils.h"
 #include "smc_d_analysis.h"
 
-constexpr int BUFFER_SIZE = 128;
-
 namespace oeaware {
+constexpr int BUFFER_SIZE = 128;
+const int MS_PER_SEC = 1000;                // 1000 : ms per sec
+
 SmcDAnalysis::SmcDAnalysis()
 {
     name = OE_SMCD_ANALYSIS;
@@ -37,6 +35,12 @@ Result SmcDAnalysis::OpenTopic(const Topic &topic)
     if (std::find(topicStrs.begin(), topicStrs.end(), topic.topicName) == topicStrs.end()) {
         return Result(FAILED, "topic " + topic.topicName + " not support!");
     }
+    auto paramsMap = GetKeyValueFromString(topic.params);
+    if (paramsMap.count("t")) {
+        analysisTime = atoi(paramsMap["t"].data());
+    }
+    beginTime = std::chrono::high_resolution_clock::now();
+    isPublished = false;
     saveTopic = topic;
     return Result(OK);
 }
@@ -48,15 +52,7 @@ void SmcDAnalysis::CloseTopic(const Topic &topic)
 
 Result SmcDAnalysis::Enable(const std::string &param)
 {
-    try {
-        auto params_map = GetKeyValueFromString(param);
-        if (params_map.count("t")) {
-            analysisTime = atoi(params_map["t"].data());
-        }
-        return Result(OK);
-    } catch (...) {
-        return Result(FAILED);
-    }
+    return Result(OK);
 }
 
 void SmcDAnalysis::Disable()
@@ -118,10 +114,10 @@ void *SmcDAnalysis::GetResult()
 {
     const char metricName[] = "SmcDTcpChangeRate";
     const char suggestionSmcEnabled[] = "use smc-d";
-    const char suggestionSmcDisabled[] = "no use smc-d";
-    const char conclusionSilent[] = "Current scenario detects fewer or no connections.";
+    const char suggestionSmcDisabled[] = "";
+    const char conclusionSilent[] = "Current scenario detects fewer or no connections.Don't use smc-d.";
     const char conclusionLongConn[] = "Current scenario detects long-lived connections.";
-    const char conclusionShortConn[] = "Current scenario detects short-lived connections.";
+    const char conclusionShortConn[] = "Current scenario detects short-lived connections.Don't use smc-d.";
     std::vector<int> type;
     type.emplace_back(DATA_TYPE_NETWORK);
     AnalysisResultItem *result = new AnalysisResultItem;
@@ -129,7 +125,7 @@ void *SmcDAnalysis::GetResult()
     if (prevEstablishedCount != 0) {
         totalEstablishedRate = totalEstablishedDelta / static_cast<double>(prevEstablishedCount);
     }
-    bool isSilence = prevEstablishedCount < 5;
+    bool isSilence = prevEstablishedCount < 50;
     std::vector<std::vector<std::string>> metrics;
     std::string conclusion;
     std::vector<std::string> suggestionItem;
@@ -152,7 +148,7 @@ void *SmcDAnalysis::GetResult()
         suggestionItem.emplace_back(isSmcDUsable ? suggestionSmcEnabled : suggestionSmcDisabled);
         suggestionItem.emplace_back(isSmcDUsable ? "oeawarectl -e smc_tune" : "");
         suggestionItem.emplace_back(isSmcDUsable ? "Reduce latency and increase throughput."
-                                                 : "Enabling it will lead to degradation.");
+                                                 : "");
     }
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, result);
     return result;
@@ -175,10 +171,13 @@ void SmcDAnalysis::PublishData()
 
 void SmcDAnalysis::Run()
 {
+    auto now = std::chrono::system_clock::now();
     DetectTcpConnectionMode();
     curTime++;
-    if (curTime == analysisTime) {
+    int curTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - beginTime).count();
+    if (!isPublished && curTimeMs / MS_PER_SEC >= analysisTime) {
         PublishData();
+        isPublished = true;
         curTime = 0;
     }
 }

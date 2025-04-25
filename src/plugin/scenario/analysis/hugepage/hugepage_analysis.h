@@ -64,8 +64,8 @@ private:
 	struct TopicStatus {
 		bool isOpen = false;
 		bool isPublish = false;
-		int curTime = 0;
 		int time;
+		std::chrono::time_point<std::chrono::high_resolution_clock> beginTime;
 		double threshold1 = THP_THRESHOLD1;
 		double threshold2 = THP_THRESHOLD2;
 		TlbInfo tlbInfo;

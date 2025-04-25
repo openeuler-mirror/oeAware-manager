@@ -23,6 +23,7 @@ const int L1_MISS_THRESHOLD = 200;
 const int L2_MISS_THRESHOLD = 201;
 const int OUT_PATH = 202;
 const int DYNAMIC_SMT_THRESHOLD = 203;
+const int NUMA_THREAD_THRESHOLD = 204;
 
 class Config {
 public:
@@ -56,6 +57,10 @@ public:
     {
         return dynamicSmtThreshold;
     }
+    int GetNumaThreadThreshold() const
+    {
+        return numaThreadThreshold;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
@@ -64,6 +69,7 @@ private:
     double l2MissThreshold = 10;
     double dynamicSmtThreshold = 40;
     std::string  outMarkDownPath = "";
+    int numaThreadThreshold = 100; // defaut 100 threads
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
@@ -74,6 +80,7 @@ private:
         {"l2-miss-threshold", required_argument, nullptr, L2_MISS_THRESHOLD},
         {"dynamic-smt-threshold", required_argument, nullptr, DYNAMIC_SMT_THRESHOLD},
         {"out-path", required_argument, nullptr, OUT_PATH},
+        {"numa-thread-threshold", required_argument, nullptr, NUMA_THREAD_THRESHOLD},
         {nullptr, 0, nullptr, 0}
     };
     bool isShowRealTimeReport = false;
@@ -81,6 +88,7 @@ private:
     bool l1MissThresholdSet = false;
     bool l2MissThresholdSet = false;
     bool dynamicSmtThresholdSet = false;
+    bool numaThreadThresholdSet = false;
     bool ParseTime(const char *arg);
     void PrintHelp();
 };

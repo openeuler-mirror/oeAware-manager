@@ -10,15 +10,34 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <csignal>
+#include <sys/resource.h> 
 #include "plugin_manager.h"
 #include "message_manager.h"
 #include "oeaware/utils.h"
 
+bool SetFileDescriptorLimit()
+{
+    struct rlimit rlim;
+    rlim.rlim_cur = RLIM_INFINITY;
+    rlim.rlim_max = RLIM_INFINITY;
+
+    return setrlimit(RLIMIT_NOFILE, &rlim) == 0;
+}
+
 int main(int argc, char **argv)
 {
+    bool limitSet = SetFileDescriptorLimit();
+
     oeaware::CreateDir(oeaware::DEFAULT_LOG_PATH);
     oeaware::Logger::GetInstance().Register("Main");
     auto logger = oeaware::Logger::GetInstance().Get("Main");
+
+    if (!limitSet) {
+        WARN(logger, "Failed to set file descriptor limit: " << strerror(errno));
+    } else {
+        INFO(logger, "Success to set file descriptor limit");
+    }
+
     if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR) {
         ERROR(logger, "Sig Error!");
         exit(EXIT_FAILURE);

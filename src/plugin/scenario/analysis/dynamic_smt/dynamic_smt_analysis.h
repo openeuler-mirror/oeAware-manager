@@ -30,10 +30,11 @@ private:
     struct TopicStatus {
         bool isOpen = false;
         bool isPublish = false;
-        int curTime = 0;
         int time;
+        std::chrono::time_point<std::chrono::high_resolution_clock> beginTime;
         double threshold = DYNAMIC_SMT_THRESHOLD;
-        double cpuUsage;
+        double cpuSum = 0;
+        double cpuIdle = 0;
     };
     void PublishData(const Topic &topic);
     void Analysis(const std::string &topicType);
@@ -41,6 +42,7 @@ private:
     std::unordered_map<std::string, TopicStatus> topicStatus;
     std::vector<Topic> subscribeTopics;
     AnalysisResultItem analysisResultItem;
+    const int MS_PER_SEC = 1000;
 };
 }
 #endif

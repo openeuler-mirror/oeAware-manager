@@ -48,7 +48,7 @@ Result DynamicSmtAnalysis::OpenTopic(const oeaware::Topic &topic)
     }
     auto topicType = topic.GetType();
     topicStatus[topicType].isOpen = true;
-    topicStatus[topicType].curTime = 0;
+    topicStatus[topicType].beginTime = std::chrono::high_resolution_clock::now();
     auto paramsMap = GetKeyValueFromString(topic.params);
     if (paramsMap.count("t")) {
         topicStatus[topicType].time = atoi(paramsMap["t"].data());
@@ -67,7 +67,8 @@ void DynamicSmtAnalysis::CloseTopic(const oeaware::Topic &topic)
     auto topicType = topic.GetType();
     topicStatus[topicType].isOpen = false;
     topicStatus[topicType].isPublish = false;
-    topicStatus[topicType].curTime = 0;
+    topicStatus[topicType].cpuSum = 0;
+    topicStatus[topicType].cpuIdle = 0;
     topicStatus[topicType].threshold = DYNAMIC_SMT_THRESHOLD;
 }
 
@@ -80,9 +81,11 @@ void DynamicSmtAnalysis::UpdateData(const DataList &dataList)
         const auto &topic = Topic::GetTopicFromType(topicType);
         if (p.second.isOpen) {
             auto cpuUtilData = static_cast<EnvCpuUtilParam*>(dataList.data[0]);
-            auto cpuIdle = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_IDLE];
-            auto cpuSum = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_TIME_SUM];
-            p.second.cpuUsage = static_cast<double>(cpuSum - cpuIdle) / cpuSum;
+            if (cpuUtilData->dataReady != ENV_DATA_READY) {
+                continue;
+            }
+            p.second.cpuIdle = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_IDLE];
+            p.second.cpuSum = cpuUtilData->times[cpuUtilData->cpuNumConfig][CPU_TIME_SUM];
         }
     }
 }
@@ -99,11 +102,12 @@ void DynamicSmtAnalysis::PublishData(const Topic &topic)
 
 void DynamicSmtAnalysis::Run()
 {
+    auto now = std::chrono::system_clock::now();
     for (auto &item : topicStatus) {
         auto &status = item.second;
         if (status.isOpen) {
-            status.curTime++;
-            if (!status.isPublish && status.curTime == status.time) {
+            int curTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - status.beginTime).count();
+            if (!status.isPublish && curTimeMs / MS_PER_SEC >= status.time) {
                 auto topicType = item.first;
                 const auto topic = Topic::GetTopicFromType(topicType);
                 Analysis(topicType);
@@ -119,12 +123,13 @@ void DynamicSmtAnalysis::Analysis(const std::string &topicType)
     std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
     type.emplace_back(DATA_TYPE_CPU);
-    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(topicStatus[topicType].cpuUsage *
-        PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].cpuUsage * PERCENTAGE_FACTOR >
-        topicStatus[topicType].threshold ? "high for dynamic smt tune" : "low for dynamic smt tune")});
+    auto cpuUsage = (topicStatus[topicType].cpuSum - topicStatus[topicType].cpuIdle) / topicStatus[topicType].cpuSum;
+    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage * PERCENTAGE_FACTOR) + "%",
+        (cpuUsage * PERCENTAGE_FACTOR > topicStatus[topicType].threshold ? "high for dynamic smt tune" :
+        "low for dynamic smt tune")});
     std::string conclusion;
     std::vector<std::string> suggestionItem;
-    if (topicStatus[topicType].cpuUsage * PERCENTAGE_FACTOR < topicStatus[topicType].threshold) {
+    if (cpuUsage * PERCENTAGE_FACTOR < topicStatus[topicType].threshold) {
         conclusion = "For dynamic_smt_tune, the system loads is low. Please enable dynamic_smt_tune";
         suggestionItem.emplace_back("use dynamic smt");
         suggestionItem.emplace_back("oeawarectl -e dynamic_smt_tune");

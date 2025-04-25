@@ -77,10 +77,14 @@ void AnalysisReport::Init(Config &config)
     std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
     std::string threshold2 = "threshold2:" + std::to_string(config.GetL2MissThreshold());
     AddAnalysisTopic("hugepage_analysis", "hugepage", {timeParam, threshold1, threshold2});
+
     std::string threshold = "threshold:" + std::to_string(config.GetDynamicSmtThreshold());
     AddAnalysisTopic("dynamic_smt_analysis", "dynamic_smt", {timeParam, threshold});
     AddAnalysisTopic("smc_d_analysis", "smc_d", { timeParam });
     AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
+
+    std::string threadThreshold = "threshold:" + std::to_string(config.GetNumaThreadThreshold());
+    AddAnalysisTopic("numa_analysis", "numa_analysis", {timeParam, threadThreshold});
 
     const int INS_NAME_INDEX = 0;
     const int TOPIC_NAME_INDEX = 1;
@@ -101,10 +105,12 @@ void AnalysisReport::Init(Config &config)
     analysisTemplate.suggestions.Init(DEFAULT_ROW, "suggestion");
     analysisTemplate.suggestions.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     analysisTemplate.suggestions.AddRow({"suggestion", "operation", "result"});
+
     oeaware::Table memoryTable(DEFAULT_ROW, "Memory");
     memoryTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     memoryTable.AddRow({"metric", "value", "note"});
     analysisTemplate.datas["Memory"] = memoryTable;
+
     oeaware::Table cpuTable(DEFAULT_ROW, "CPU");
     cpuTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     cpuTable.AddRow({"metric", "value", "note"});

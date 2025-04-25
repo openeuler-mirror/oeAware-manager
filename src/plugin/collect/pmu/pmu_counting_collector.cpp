@@ -11,6 +11,7 @@
  ******************************************************************************/
 #include "pmu_counting_collector.h"
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <securec.h>
 #include "oeaware/data/pmu_counting_data.h"
@@ -70,7 +71,8 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
 
     int pd = PmuOpen(COUNTING, &attr);
     if (pd == -1) {
-        std::cout << topic.topicName << " open failed" << std::endl;
+        std::cout << topic.topicName << " open failed: ";
+        perror(""); 
     }
     delete[] evtList[0];
     return pd;

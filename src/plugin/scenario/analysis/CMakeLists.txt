@@ -9,6 +9,7 @@ set(analysis_src
     dynamic_smt/dynamic_smt_analysis.cpp
     smc_d_scenario/smc_d_analysis.cpp
     net_hirq/net_hirq_analysis.cpp
+    numa_analysis/numa_analysis.cpp
     common/analysis_utils.cpp
 )
 

@@ -30,6 +30,7 @@ void Config::PrintHelp()
     usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
     usage += "   --out-path                           set the path of the analysis report.\n";
     usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
+    usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
     std::cout << usage;
 }
 
@@ -104,6 +105,15 @@ bool Config::Init(int argc, char **argv)
                 dynamicSmtThreshold = atof(optarg);
                 dynamicSmtThresholdSet = true;
                 break;
+            case NUMA_THREAD_THRESHOLD:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid numa thread threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                numaThreadThreshold = atoi(optarg);
+                numaThreadThresholdSet = true;
+                break;
             default:
                 PrintHelp();
                 return false;
@@ -134,6 +144,13 @@ bool Config::LoadConfig(const std::string& configPath)
             }
             if (hugepage["l2_miss_threshold"] && !l2MissThresholdSet) {
                 const_cast<Config*>(this)->l2MissThreshold = hugepage["l2_miss_threshold"].as<double>();
+            }
+        }
+
+        if (config["numa_analysis"]) {
+            auto numa_analysis = config["numa_analysis"];
+            if (numa_analysis["thread_threshold"] && !numaThreadThresholdSet) {
+                const_cast<Config*>(this)->numaThreadThreshold = numa_analysis["thread_threshold"].as<int>();
             }
         }
 

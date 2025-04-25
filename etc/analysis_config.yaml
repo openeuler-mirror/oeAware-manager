@@ -4,3 +4,6 @@ dynamic_smt:
 hugepage:
   l1_miss_threshold: 5.0
   l2_miss_threshold: 10.0
+
+numa_analysis:
+  thread_threshold: 200  # thread count threshold to use numa native schedule.

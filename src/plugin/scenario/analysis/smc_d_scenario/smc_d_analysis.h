@@ -37,6 +37,8 @@ private:
     std::vector<std::string> topicStrs{"smc_d"};
     int analysisTime = 10;
     int curTime = 0;
+    bool isPublished = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> beginTime;
     Topic saveTopic;
     int prevEstablishedCount = 0; // 上一次的 ESTABLISHED 连接数
     int prevCloseWaitCount = 0; // 上一次的 CLOSE_WAIT 连接数

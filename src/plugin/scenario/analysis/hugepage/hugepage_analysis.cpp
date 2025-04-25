@@ -20,6 +20,8 @@
 #include "hugepage_analysis.h"
 
 namespace oeaware {
+const int MS_PER_SEC = 1000;                // 1000 : ms per sec
+
 HugePageAnalysis::HugePageAnalysis()
 {
 	name = OE_HUGEPAGE_ANALYSIS;
@@ -61,6 +63,7 @@ Result HugePageAnalysis::OpenTopic(const oeaware::Topic &topic)
 	}
 	auto topicType = topic.GetType();
 	topicStatus[topicType].isOpen = true;
+	topicStatus[topicType].beginTime = std::chrono::high_resolution_clock::now();
 	auto paramsMap = GetKeyValueFromString(topic.params);
 	if (paramsMap.count("t")) {
 		topicStatus[topicType].time = atoi(paramsMap["t"].data());
@@ -82,7 +85,6 @@ void HugePageAnalysis::CloseTopic(const oeaware::Topic &topic)
 	auto topicType = topic.GetType();
 	topicStatus[topicType].isOpen = false;
 	topicStatus[topicType].isPublish = false;
-	topicStatus[topicType].curTime = 0;
 	topicStatus[topicType].threshold1 = THP_THRESHOLD1;
 	topicStatus[topicType].threshold2 = THP_THRESHOLD2;
 	memset_s(&topicStatus[topicType].tlbInfo, sizeof(topicStatus[topicType].tlbInfo), 0, sizeof(topicStatus[topicType].tlbInfo));
@@ -133,11 +135,12 @@ void HugePageAnalysis::PublishData(const Topic &topic)
 
 void HugePageAnalysis::Run()
 {
+	auto now = std::chrono::system_clock::now();
 	for (auto &item : topicStatus) {
 		auto &status = item.second;
 		if (status.isOpen) {
-			status.curTime++;
-			if (!status.isPublish && status.curTime == status.time) {
+			int curTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - status.beginTime).count();
+			if (!status.isPublish && curTimeMs / MS_PER_SEC >= status.time) {
 				auto topicType = item.first;
 				const auto &topic = Topic::GetTopicFromType(topicType);
 				Analysis(topicType);

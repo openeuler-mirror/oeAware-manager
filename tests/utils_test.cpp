@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "oeaware/utils.h"
 
 TEST(SplitString, SplitString)

@@ -45,6 +45,8 @@ bool IrqSetSmpAffinity(int preferredCpu, int irqNum);
 bool IsNum(const std::string &s);
 std::string GetNetOperateStr(int state);
 int GetNetOperateTypeByStr(const std::string &state);
+bool GetSysFsNrOpen(long &nrOpen);
+bool SetFileDescriptorLimit(long limit);
 }
 
 #endif

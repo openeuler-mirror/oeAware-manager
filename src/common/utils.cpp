@@ -16,6 +16,7 @@
 #include <securec.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <grp.h>
 #include <iostream>
 #include <cctype>
@@ -375,6 +376,33 @@ int GetNetOperateTypeByStr(const std::string &state)
         }
     }
     return IF_OPER_UNKNOWN;
+}
+
+bool GetSysFsNrOpen(long &nrOpen)
+{
+    std::ifstream file("/proc/sys/fs/nr_open");
+    if (!file.is_open()) {
+        return false;
+    }
+
+    long maxFD;
+    file >> maxFD;
+    if (file.fail()) {
+        return false;
+    }
+    nrOpen = maxFD;
+    return true;
+}
+
+bool SetFileDescriptorLimit(long limit)
+{
+    struct rlimit rlim;
+    rlim.rlim_cur = limit;
+    rlim.rlim_max = limit;
+    if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+        return false;
+    }
+    return true;
 }
 
 }

@@ -6,7 +6,7 @@
 #include "oeaware/data/network_interface_data.h"
 #include "test_inc.h"
 
-using CallbackFunction = std::function<bool()>;
+using CallbackFunction = std::function<bool(int)>;
 
 class CallbackManager {
 public:
@@ -16,11 +16,11 @@ public:
         descriptions[name] = description;
     }
 
-    bool InvokeCallback(const std::string &name)
+    bool InvokeCallback(const std::string &name, int time)
     {
         auto it = callbacks.find(name);
         if (it != callbacks.end()) {
-            return it->second();
+            return it->second(time);
         } else {
             std::cout << "Callback not found: " << name << std::endl;
             return false;
@@ -50,22 +50,26 @@ int main(int argc, char *argv[])
 {
     CallbackManager manager;
     std::string options;
+    int time = 2; // default time is 2s
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::static", TestEnvStaticInfo, "show environment static info");
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::realtime", TestEnvRealTimeInfo, "show environment realtime info");
     manager.RegisterCallback(std::string(OE_ENV_INFO) + "::cpu_util", TestCpuUtilInfo, "show cpu util info");
-    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) +std::string("::")+ std::string(OE_NETWORK_INTERFACE_BASE_TOPIC), TestNetIntfBaseInfo, "show base net intf info");
-    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) +std::string("::")+ std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC), TestNetIntfDirverInfo, "show driver net intf info");
+    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_BASE_TOPIC), TestNetIntfBaseInfo, "show base net intf info");
+    manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC), TestNetIntfDirverInfo, "show driver net intf info");
     if (argc >= 2) {
         options = std::string(argv[1]);
         if (!manager.IsValidOption(options)) {
             manager.ShowCallbackDescriptions();
             return -1;
         }
+        if (argc >= 3) {
+            time = std::stoi(argv[2]);
+        }
     } else {
         manager.ShowCallbackDescriptions();
         return -1;
     }
-    if (!manager.InvokeCallback(options)) {
+    if (!manager.InvokeCallback(options, time)) {
         std::cout << "ST Test failed, Case:" << options << std::endl;
         return -1;
     }

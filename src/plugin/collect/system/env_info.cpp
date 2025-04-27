@@ -23,56 +23,59 @@ using namespace oeaware;
 
 bool EnvInfo::UpdateProcStat()
 {
-    std::string path = "/proc/stat";
-    FILE *file = fopen(path.c_str(), "r");
-    if (!file) {
-        std::cerr << "Failed to open file: " << path << std::endl;
-        return false;
-    }
     int cpuNum = envStaticInfo.cpuNumConfig;
-    if (fscanf_s(file, "%*s %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
-        &cpuTime[cpuNum][CPU_USER],
-        &cpuTime[cpuNum][CPU_NICE],
-        &cpuTime[cpuNum][CPU_SYSTEM],
-        &cpuTime[cpuNum][CPU_IDLE],
-        &cpuTime[cpuNum][CPU_IOWAIT],
-        &cpuTime[cpuNum][CPU_IRQ],
-        &cpuTime[cpuNum][CPU_SOFTIRQ],
-        &cpuTime[cpuNum][CPU_STEAL],
-        &cpuTime[cpuNum][CPU_GUEST],
-        &cpuTime[cpuNum][CPU_GNICE]) != CPU_UTIL_TYPE_MAX - 1) {
-        if (fclose(file) == EOF) {
-            std::cerr << "Failed to close file: " << path << std::endl;
-        }
+    const std::string path = "/proc/stat";
+    std::ifstream file(path);
+    if (!file.is_open()) {
         return false;
     }
 
-    while (cpuNum--) {
-        int readCpu = -1; // adapt offline cpu
-        if (fscanf_s(file, "cpu%d ", &readCpu) != 1) {
-            break; // read finish
-        }
-        if (fscanf_s(file, " %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
-            &cpuTime[readCpu][CPU_USER],
-            &cpuTime[readCpu][CPU_NICE],
-            &cpuTime[readCpu][CPU_SYSTEM],
-            &cpuTime[readCpu][CPU_IDLE],
-            &cpuTime[readCpu][CPU_IOWAIT],
-            &cpuTime[readCpu][CPU_IRQ],
-            &cpuTime[readCpu][CPU_SOFTIRQ],
-            &cpuTime[readCpu][CPU_STEAL],
-            &cpuTime[readCpu][CPU_GUEST],
-            &cpuTime[readCpu][CPU_GNICE]) != CPU_UTIL_TYPE_MAX - 1) {
-            if (fclose(file) == EOF) {
-                std::cerr << "Failed to close file: " << path << std::endl;
-            }
+    // read all file content into memory
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+
+    // solve total cpu data
+    std::istringstream iss(content);
+    std::string line;
+    if (!std::getline(iss, line)) {
+        WARN(logger, "Failed to parse total CPU data.");
+        return false;
+    }
+    
+    std::istringstream totalCpuStream(line);
+    std::string label;
+    totalCpuStream >> label; // read "cpu "
+
+    for (int i = 0; i < CPU_TIME_SUM; ++i) {
+        if (!(totalCpuStream >> cpuTime[cpuNum][i])) {
+            WARN(logger, "Failed to parse total CPU data.");
             return false;
         }
     }
 
-    if (fclose(file) == EOF) {
-        std::cerr << "Failed to close file: " << path << std::endl;
+    const std::string header = "cpu";
+    while (std::getline(iss, line)) {
+        if (line.compare(0, header.length(), header) != 0 || !isdigit(line[header.length()])) {
+            break;
+        }
+
+        std::istringstream cpuStream(line);
+        std::string cpuLabel;
+        int readCpu = -1;
+
+        cpuStream >> cpuLabel;
+        if (sscanf_s(cpuLabel.c_str(), "cpu%d", &readCpu) != 1 || readCpu < 0 || readCpu >= cpuNum) {
+            continue;
+        }
+
+        for (int i = 0; i < CPU_TIME_SUM; ++i) {
+            if (!(cpuStream >> cpuTime[readCpu][i])) {
+                WARN(logger, "Failed to parse CPU " << readCpu << " data.");
+                return false;
+            }
+        }
     }
+
     return true;
 }
 

@@ -12,6 +12,7 @@
 #include "table.h"
 #include <iostream>
 #include <iomanip>
+#include "oeaware/utils.h"
 
 namespace oeaware {
 void Table::Init(int cols, const std::string &tempName)
@@ -159,7 +160,8 @@ std::string Table::GetMarkDownTable()
 
     for (int i = 0; i < data.size(); ++i) {
         for (int j = 0; j < data[i].size(); ++j) {
-            ret += "| " + data[i][j] + " ";
+            std::string md = ReplaceString(data[i][j], "\n", "<br>");
+            ret += "| " + md + " ";
         }
         ret += "|\n";
         if (!i) {

@@ -405,4 +405,15 @@ bool SetFileDescriptorLimit(long limit)
     return true;
 }
 
+std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement)
+{
+    std::string result = input;
+    size_t pos = 0;
+    while ((pos = result.find(target, pos)) != std::string::npos) {
+        result.replace(pos, target.length(), replacement);
+        pos += replacement.length();
+    }
+    return result;
+}
+
 }

@@ -178,7 +178,7 @@ void AnalysisReport::PrintMarkDown(const std::string &path)
         int index = 1;
         for (auto data : analysisTemplate.datas) {
             auto name = data.first;
-            out << index++ << ". " << name << "\n";
+            out << index++ << ". " << name << "\n\n";
             out << data.second.GetMarkDownTable();
         }
         out << "## Conclusion\n";

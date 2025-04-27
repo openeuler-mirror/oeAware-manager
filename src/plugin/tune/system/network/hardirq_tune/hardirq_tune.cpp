@@ -311,6 +311,19 @@ void NetHardIrq::ResetCpuInfo()
     }
 }
 
+void oeaware::NetHardIrq::ResetNetQueue()
+{
+    for (auto &devItem : netQueue) {
+        const std::string &dev = devItem.first;
+        for (auto &queItem : devItem.second) {
+            auto &info = queItem.second;
+            for (auto &rx : info.numaRxTimes) {
+                rx = 0;
+            }
+        }
+    }
+}
+
 std::vector<std::vector<CpuSort>> NetHardIrq::SortNumaCpuUtil()
 {
     std::vector<std::vector<CpuSort>> rst;
@@ -415,6 +428,7 @@ void NetHardIrq::Run()
     MatchThreadAndQueue();
     conf.GetEthQueData(ethQueData, conf.GetQueRegex());
     Tune();
+    ResetNetQueue();
     ResetCpuInfo();
     netDataInterval = 0;
     ethQueData.clear();

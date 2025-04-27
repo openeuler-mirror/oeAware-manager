@@ -174,7 +174,7 @@ oeaware::Result Seep::Enable(const std::string &param)
 
 void Seep::Disable()
 {
-    for (unsigned int i = 0; i < cpuNum; ++i) {
+    for (int i = 0; i < cpuNum; ++i) {
         WriteSeepFile(i, cpuScaling[i]);
     }
     cpuScaling.clear();

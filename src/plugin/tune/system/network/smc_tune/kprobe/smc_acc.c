@@ -380,7 +380,7 @@ static int __kprobes handler_connect_file(struct kprobe *p, struct pt_regs *regs
                 }
                 int ret = tcp_setsockopt(sk, SOL_TCP, TCP_ULP, KERNEL_SOCKPTR("smc"), sizeof("smc"));
                 if (ret) {
-                    printk(KERN_INFO "kprobe: connect failed to set smc failed error id : %ld\n", ret);
+                    printk(KERN_INFO "kprobe: connect failed to set smc failed error id : %d\n", ret);
                 }
             }
         }

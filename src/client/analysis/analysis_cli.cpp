@@ -24,43 +24,6 @@
 #include "config.h"
 #include "analysis_report.h"
 
-static int CallBack(const DataList *dataList)
-{
-	if (dataList && dataList->len && dataList->data) {
-        AnalysisReport *data = static_cast<AnalysisReport *>(dataList->data[0]);
-        AnalysisCli::GetInstance().Update(data);
-    }
-	return 0;
-}
-/*
- * @progress : precentage of the progress, range from 0 to 1
- * @barWidth : width of the progress bar
- */
-static void PrintProgressBar(const std::string &head, float progress, int barWidth = 50)
-{
-    if (progress < 0) {
-        progress = 0;
-    } else if (progress > 1) {
-        progress = 1;
-    }
-    // calculate the position of the progress bar
-    int pos = static_cast<int>(barWidth * progress);
-
-    std::cout << head << " [";
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) {
-            std::cout << "=";
-        } else if (i == pos) {
-            std::cout << ">";
-        } else {
-            std::cout << " ";
-        }
-    }
-    // 3 is used for width, 100.0f is used for percentage conversion
-    std::cout << "] " << std::setw(3) << static_cast<int>(progress * 100.0f) << "%\r";
-    std::cout.flush();
-}
-
 void AnalysisCli::Run()
 {
     auto &analysisReport = oeaware::AnalysisReport::GetInstance();
@@ -120,13 +83,10 @@ void AnalysisCli::PrintReport(bool isSummary)
 void AnalysisCli::Exit()
 {
     runRealTimeAnalysis = false;
-    OeSubscribe(&topicSummaryRpt, CallBack);
     while (!summaryRptFinish) {
         usleep(10); // 10us sleep to avoid busy loop
     }
     PrintReport(true);
-    OeUnsubscribe(&topicSummaryRpt);
-    OeUnsubscribe(&topicRtRpt);
 }
 
 bool AnalysisCli::IsAnalysisMode(int argc, char **argv)

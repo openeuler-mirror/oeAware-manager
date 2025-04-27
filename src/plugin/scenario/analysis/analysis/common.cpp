@@ -15,7 +15,8 @@
 void TraceInfoSummary(const std::vector<TaskInfo> &infos, TaskInfo &summary, int begin, int end)
 {
     for (auto &info : infos) {
-        if (info.loopCnt < begin || info.loopCnt > end) {
+        int loopCnt = info.loopCnt;
+        if (loopCnt < begin || loopCnt > end) {
             continue;
         }
         for (size_t i = 0; i < info.access.size(); i++) {

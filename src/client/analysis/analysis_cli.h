@@ -37,8 +37,6 @@ public:
 private:
     AnalysisCli() {}
     ~AnalysisCli() {}
-    CTopic topicRtRpt = { "analysis_aware", "analysis_report", "" };
-    CTopic topicSummaryRpt = { "analysis_aware", "analysis_report", "quit" };
     int analysisTime = 0;
     int timeout = 3;
     bool isShowRealTimeReport = false;

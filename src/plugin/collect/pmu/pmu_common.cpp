@@ -23,7 +23,7 @@ bool IsSupportPmu()
         return false;
     }
     struct dirent *dent = nullptr;
-    while (dent = readdir(dir)) {
+    while ((dent = readdir(dir))) {
         std::string armPmuPath = DEVICES_PATH + dent->d_name + "/cpus";
         if (oeaware::FileExist(armPmuPath)) {
             closedir(dir);

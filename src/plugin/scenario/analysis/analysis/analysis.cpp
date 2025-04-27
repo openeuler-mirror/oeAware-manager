@@ -405,10 +405,9 @@ std::string Analysis::GetNetInfoReport(const NetworkInfo &netInfo)
 		output << "\n";
     }
     // later add rx packet number in detail mode
-    // output << "remote network receive " << \
-        netInfo.remoteRxSum * NET_RX_RECEIVE_SAMPLE_PERIOD << " packets. ";
+    // output << "remote network receive " << netInfo.remoteRxSum * NET_RX_RECEIVE_SAMPLE_PERIOD << " packets. ";
     std::string result = output.str();
-    return std::move(result);
+    return result;
 }
 
 std::string Analysis::GetSuggestReport(const std::unordered_map<InstanceName, Instance> &tuneInstances)
@@ -436,7 +435,7 @@ std::string Analysis::GetSuggestReport(const std::unordered_map<InstanceName, In
 		output << "\n";
 	}
     std::string result = output.str();
-    return std::move(result);
+    return result;
 }
 
 std::string Analysis::GetSolutionReport(const std::unordered_map<InstanceName, Instance> &tuneInstances)
@@ -459,5 +458,5 @@ std::string Analysis::GetSolutionReport(const std::unordered_map<InstanceName, I
         output << " No solution. \n";
     }
     std::string result = output.str();
-    return std::move(result);
+    return result;
 }

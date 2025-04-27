@@ -34,7 +34,7 @@ unsigned long GetPageMask()
 
 static void InitCpuCycles(std::vector<uint64_t> &maxCycles, uint64_t &sysMaxCycles, uint64_t &maxCpuFreqByDmi)
 {
-    for (int cpu = 0; cpu < maxCycles.size(); cpu++) {
+    for (size_t cpu = 0; cpu < maxCycles.size(); cpu++) {
         maxCycles[cpu] = oeaware::GetCpuCycles(cpu);
         sysMaxCycles += maxCycles[cpu];
     }

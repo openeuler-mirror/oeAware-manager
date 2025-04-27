@@ -52,6 +52,7 @@ void SmcDAnalysis::CloseTopic(const Topic &topic)
 
 Result SmcDAnalysis::Enable(const std::string &param)
 {
+    (void)param;
     return Result(OK);
 }
 

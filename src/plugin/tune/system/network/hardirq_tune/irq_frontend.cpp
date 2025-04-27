@@ -9,11 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "irq_frontend.h"
 #include <regex>
 #include <fstream>
 #include <iostream>
-#include "irq_frontend.h"
+#include "oeaware/utils.h"
 
 void IrqFrontEnd::GetEthQueData(std::unordered_map<std::string, EthQueInfo> &ethQueData, const std::vector<std::string> &queueRegex)
 {
@@ -56,24 +56,13 @@ void IrqFrontEnd::GetIrqWithDesc(std::unordered_map<int, std::string> &irqWithDe
     file.close();
 }
 
-static std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement)
-{
-    std::string result = input;
-    size_t pos = 0;
-    while ((pos = result.find(target, pos)) != std::string::npos) {
-        result.replace(pos, target.length(), replacement);
-        pos += replacement.length();
-    }
-    return result;
-}
-
 // make sure net interface info init complete before use this function
 void EthQueInfo::AddRegex(const std::vector<std::string> &regexSrc)
 {
     for (const auto &str : regexSrc) {
-        std::string regexTmp = ReplaceString(str, "VAR_BUSINFO", busInfo);
-        regexTmp = ReplaceString(regexTmp, "VAR_ETH", dev);
-        regexTmp = ReplaceString(regexTmp, "VAR_QUEUE", "(\\d+)");
+        std::string regexTmp = oeaware::ReplaceString(str, "VAR_BUSINFO", busInfo);
+        regexTmp = oeaware::ReplaceString(regexTmp, "VAR_ETH", dev);
+        regexTmp = oeaware::ReplaceString(regexTmp, "VAR_QUEUE", "(\\d+)");
         /* todo
         * 1. replace special symbols in VAR_XXX to avoid regex error
         * 2. use VAR_ETH_BEGIN-eth0-VAR_ETH_END to support special eth name

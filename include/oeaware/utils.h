@@ -47,6 +47,7 @@ std::string GetNetOperateStr(int state);
 int GetNetOperateTypeByStr(const std::string &state);
 bool GetSysFsNrOpen(long &nrOpen);
 bool SetFileDescriptorLimit(long limit);
+std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement);
 }
 
 #endif

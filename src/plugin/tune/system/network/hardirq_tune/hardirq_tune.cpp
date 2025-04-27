@@ -135,10 +135,11 @@ void NetHardIrq::UpdateCpuInfo(const EnvCpuUtilParam *data)
     if (data->dataReady == ENV_DATA_NOT_READY) {
         return;
     }
-    if (cpuTimeDiff.size() < data->cpuNumConfig + 1) {
-        cpuTimeDiff.resize(data->cpuNumConfig + 1);
-        cpuUtil.resize(data->cpuNumConfig + 1);
-        for (int i = 0; i < cpuTimeDiff.size(); i++) {
+    size_t cpuNumConfig = data->cpuNumConfig + 1;
+    if (cpuTimeDiff.size() < cpuNumConfig) {
+        cpuTimeDiff.resize(cpuNumConfig);
+        cpuUtil.resize(cpuNumConfig);
+        for (size_t i = 0; i < cpuTimeDiff.size(); i++) {
             cpuTimeDiff[i].resize(CPU_UTIL_TYPE_MAX, 0);
             cpuUtil[i].resize(CPU_UTIL_TYPE_MAX, 0);
         }
@@ -200,7 +201,8 @@ void NetHardIrq::UpdateThreadAndQueueInfo(const RecNetQueue &queData, const RecN
     int core = thrData.core;
     int node = cpu2Numa[core];
     QueueInfo &info = netQueue[queData.dev][queueId];
-    if (info.numaRxTimes.size() < numaNum) {
+    int size = info.numaRxTimes.size();
+    if (size < numaNum) {
         info.numaRxTimes.resize(numaNum, 0);
     }
     info.numaRxTimes[node]++;
@@ -228,7 +230,7 @@ void NetHardIrq::ClearInvalidQueueInfo()
 
 void NetHardIrq::CalCpuUtil()
 {
-    for (int cpu = 0; cpu < cpuUtil.size(); ++cpu) {
+    for (size_t cpu = 0; cpu < cpuUtil.size(); ++cpu) {
         for (int type = 0; type < CPU_UTIL_TYPE_MAX; ++type) {
             cpuUtil[cpu][type] = cpuTimeDiff[cpu][CPU_TIME_SUM] == 0 ?
                 0.0 : cpuTimeDiff[cpu][type] * 100.0 / cpuTimeDiff[cpu][CPU_TIME_SUM];
@@ -375,6 +377,7 @@ void NetHardIrq::UpdateData(const DataList &dataList)
 
 oeaware::Result NetHardIrq::Enable(const std::string &param)
 {
+    (void)param;
     bool isActive;
     irqbalanceStatus = false;
     if (!conf.InitConf("/lib64/oeAware-plugin/hardirq_tune.conf")) {

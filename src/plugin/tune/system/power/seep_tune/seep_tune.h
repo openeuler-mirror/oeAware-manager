@@ -29,7 +29,7 @@ namespace oeaware
         void Run() override;
 
     private:
-        unsigned int cpuNum = 0;
+        int cpuNum = 0;
         std::vector<std::string> cpuScaling;
         bool WriteFile(const std::string &filePath, const std::string &value);
         bool Init();

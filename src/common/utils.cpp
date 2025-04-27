@@ -360,7 +360,8 @@ std::string GetNetOperateStr(int state)
 {
     std::vector<std::string> stateMap = { "unknown",
         "notpresent", "down", "lowerlayerdown", "testing", "dormant", "up" };
-    if (state < 0 || state >= stateMap.size()) {
+    int size = stateMap.size();
+    if (state < 0 || state >= size) {
         return "unknown";
     }
     return stateMap[state];
@@ -370,7 +371,8 @@ int GetNetOperateTypeByStr(const std::string &state)
 {
     std::vector<std::string> stateMap = { "unknown",
         "notpresent", "down", "lowerlayerdown", "testing", "dormant", "up" };
-    for (int i = 0; i < stateMap.size(); i++) {
+    int size = stateMap.size();
+    for (int i = 0; i < size; i++) {
         if (stateMap[i] == state) {
             return i;
         }

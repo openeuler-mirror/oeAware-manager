@@ -24,7 +24,8 @@ void Table::Init(int cols, const std::string &tempName)
 }
 bool Table::AddRow(const std::vector<std::string> &row)
 {
-    if (row.size() != columns) {
+    int size = row.size();
+    if (size != columns) {
         return false;
     }
     data.emplace_back(row);
@@ -33,7 +34,8 @@ bool Table::AddRow(const std::vector<std::string> &row)
 
 bool Table::RemoveRow(int rowIndex)
 {
-    if (rowIndex < 0 || rowIndex >= data.size()) {
+    int size = data.size();
+    if (rowIndex < 0 || rowIndex >= size) {
         return false;
     }
     data.erase(data.begin() + rowIndex);
@@ -52,10 +54,12 @@ std::string Table::GetTableName() const
 
 std::string Table::GetContent(int i, int j) const
 {
-    if (i < 0 || i >= data.size()) {
+    int size = data.size();
+    if (i < 0 || i >= size) {
         return "";
     }
-    if (j < 0 || j >= data[i].size()) {
+    size = data[i].size();
+    if (j < 0 || j >= size) {
         return "";
     }
     return data[i][j];
@@ -158,14 +162,14 @@ std::string Table::GetMarkDownTable()
 {
     std::string ret = "";
 
-    for (int i = 0; i < data.size(); ++i) {
-        for (int j = 0; j < data[i].size(); ++j) {
+    for (size_t i = 0; i < data.size(); ++i) {
+        for (size_t j = 0; j < data[i].size(); ++j) {
             std::string md = ReplaceString(data[i][j], "\n", "<br>");
             ret += "| " + md + " ";
         }
         ret += "|\n";
         if (!i) {
-            for (int j = 0; j < data[i].size(); ++j) {
+            for (size_t j = 0; j < data[i].size(); ++j) {
                 ret += "| --- ";
             }
             ret += "|\n";

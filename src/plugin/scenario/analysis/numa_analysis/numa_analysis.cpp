@@ -77,7 +77,7 @@ Result NumaAnalysis::OpenTopic(const oeaware::Topic &topic)
     if (params_map.count("threshold")) {
         threadThreshold = atoi(params_map["threshold"].data());
     }
-    return Result(OK);
+    oeaware::ReadSchedFeatures(schedFeaturePath, schedFeatues);
     return Result(OK);
 }
 
@@ -176,34 +176,39 @@ void NumaAnalysis::Analysis()
     type.emplace_back(DATA_TYPE_CPU);
     metrics.emplace_back(std::vector<std::string>{
         "uncore_ops_num_per_second", std::to_string(opsNumPerSecond),
-        (opsNumPerSecond > NUMA_OPS_THRESHOLD_PER_SEC ? "high mem access" : "low mem access")});
+            (opsNumPerSecond > NUMA_OPS_THRESHOLD_PER_SEC ? "high mem access" : "low mem access")});
     if (isNumaBottleneck) {
         type.emplace_back(DATA_TYPE_CPU);
         metrics.emplace_back(std::vector<std::string>{
             "remote_access_ratio", std::to_string(remoteAccessRatio) + "%",
-            (remoteAccessRatio > NUMA_REMOTE_ACCESS_RATIO_THRESHOLD ? "high remote mem access" : "low remote mem access")});
+                (remoteAccessRatio > NUMA_REMOTE_ACCESS_RATIO_THRESHOLD ? "high remote mem access" : "low remote mem access")});
     }
 
     // thread creation
     type.emplace_back(DATA_TYPE_CPU);
     metrics.emplace_back(std::vector<std::string>{
         "thread_created_per_second", std::to_string(threadCreatedPerSecond),
-        (threadCreatedPerSecond > threadThreshold ? "high thread creation"
-                                                  : "low thread creation")});
+            (threadCreatedPerSecond > threadThreshold ? "high thread creation"
+                : "low thread creation")});
 
     std::string conclusion;
     std::vector<std::string> suggestionItem;
 
     // 使用归一化后的每秒线程创建数进行判断
     if (isNumaBottleneck && threadCreatedPerSecond > threadThreshold) {
-        conclusion =
-            "NUMA access bottleneck with high thread creation detected. Enable NUMA native "
-            "scheduling recommended.";
-        suggestionItem.emplace_back("Enable NUMA native scheduling");
-        suggestionItem.emplace_back("echo SCHED_PARAL > /sys/kernel/debug/sched_features");
-        suggestionItem.emplace_back(
-            "Reduces cross-NUMA access for applications with frequent thread creation");
-    } else if (isNumaBottleneck && threadCreatedPerSecond <= threadThreshold) {
+        conclusion = "NUMA access bottleneck with high thread creation detected.";
+        if (IsSupportNumaSchedParal()) {
+            conclusion += " SCHED_PARAL recommended.";
+            suggestionItem.emplace_back("Enable NUMA native scheduling");
+            suggestionItem.emplace_back("echo SCHED_PARAL > " + schedFeaturePath);
+            suggestionItem.emplace_back(
+                "Reduces cross-NUMA access for applications with frequent thread creation");
+        } else {
+            conclusion += "SCHED_PARAL not supported.";
+        }
+    }
+
+    if (isNumaBottleneck && (threadCreatedPerSecond <= threadThreshold || !IsSupportNumaSchedParal())) {
         conclusion = "NUMA access bottleneck detected. Enable NUMA Fast scheduling recommended.";
         suggestionItem.emplace_back("Use numafast");
         suggestionItem.emplace_back(
@@ -281,6 +286,16 @@ void NumaAnalysis::LoadConfig()
     } catch (const std::exception& e) {
         // 配置文件加载失败，使用默认值或已有值
     }
+}
+
+bool NumaAnalysis::IsSupportNumaSchedParal()
+{
+    for (const auto &feature : schedFeatues) {
+        if (feature == "SCHED_PARAL" || feature == "NO_SCHED_PARAL") {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace oeaware

@@ -416,4 +416,38 @@ std::string ReplaceString(const std::string &input, const std::string &target, c
     return result;
 }
 
+bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &features)
+{
+    const std::vector<std::string> possiblePaths = {
+        "/sys/kernel/debug/sched_features",
+        "/sys/kernel/debug/sched/features"
+    };
+    std::string existPath = "unknown";
+    for (const auto &path : possiblePaths) {
+        if (FileExist(path)) {
+            existPath = path;
+            break;
+        }
+    }
+    if (existPath == "unknown") {
+        return false;
+    }
+
+    std::ifstream file(existPath);
+
+    if (!file.is_open()) {
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string feature;
+        while (iss >> feature) {
+            features.emplace_back(feature);
+        }
+    }
+    return true;
+}
+
 }

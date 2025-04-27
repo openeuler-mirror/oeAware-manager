@@ -20,7 +20,7 @@
 namespace oeaware {
 const int MS_PER_SEC = 1000;                // 1000 : ms per sec
 const int SHOW_DEV_MAX_NUM = 3;             // 3 : show dev max num
-const int HIRQ_TUNE_PEAK_THRESHOLD = 100;   // 100 queue data per second
+const int HIRQ_TUNE_PEAK_THRESHOLD = 1000;  // 1000 queue data per second
 
 static std::string FloatToString(float value)
 {

@@ -98,6 +98,7 @@ private:
     void TunePreprocessing();
     void MigrateHardIrq();
     void ResetCpuInfo();
+    void ResetNetQueue();
     std::vector<std::vector<CpuSort>> SortNumaCpuUtil();
     void Tune();
 

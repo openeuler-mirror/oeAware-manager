@@ -42,6 +42,7 @@ private:
     void Reset();
     bool CheckNumaBottleneck();
     void LoadConfig();
+    bool IsSupportNumaSchedParal();
 
     std::vector<Topic> subscribeTopics;
     std::vector<Topic> subTopics;
@@ -49,6 +50,8 @@ private:
     std::vector<std::string> topicStrs{"numa_analysis"};
     std::vector<std::string> analysisData;
     std::unordered_map<std::string, TopicStatus> topicStatus;
+    std::vector<std::string> schedFeatues;
+    std::string schedFeaturePath;
 
     int time = 10;
     std::chrono::time_point<std::chrono::high_resolution_clock> beginTime;

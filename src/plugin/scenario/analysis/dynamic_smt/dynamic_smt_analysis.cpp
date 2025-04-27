@@ -124,19 +124,35 @@ void DynamicSmtAnalysis::Analysis(const std::string &topicType)
     std::vector<std::vector<std::string>> metrics;
     type.emplace_back(DATA_TYPE_CPU);
     auto cpuUsage = (topicStatus[topicType].cpuSum - topicStatus[topicType].cpuIdle) / topicStatus[topicType].cpuSum;
-    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage * PERCENTAGE_FACTOR) + "%",
-        (cpuUsage * PERCENTAGE_FACTOR > topicStatus[topicType].threshold ? "high for dynamic smt tune" :
-        "low for dynamic smt tune")});
+    metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage *PERCENTAGE_FACTOR) + "%",
+        (cpuUsage *PERCENTAGE_FACTOR > topicStatus[topicType].threshold ? "high for dynamic smt tune" :
+            "low for dynamic smt tune")});
     std::string conclusion;
     std::vector<std::string> suggestionItem;
     if (cpuUsage * PERCENTAGE_FACTOR < topicStatus[topicType].threshold) {
-        conclusion = "For dynamic_smt_tune, the system loads is low. Please enable dynamic_smt_tune";
-        suggestionItem.emplace_back("use dynamic smt");
-        suggestionItem.emplace_back("oeawarectl -e dynamic_smt_tune");
-        suggestionItem.emplace_back("activate idle physical cores during low system loads to improveperformance");
+        if (IsTuneSupport()) {
+            conclusion = "For dynamic_smt_tune, the system loads is low. Please enable dynamic_smt_tune";
+            suggestionItem.emplace_back("use dynamic smt");
+            suggestionItem.emplace_back("oeawarectl -e dynamic_smt_tune");
+            suggestionItem.emplace_back("activate idle physical cores during low system loads to improve performance");
+        } else {
+            conclusion = "Dynamic_smt_tune is not supported.";
+        }
     } else {
         conclusion = "For dynamic_smt_tune, donot need to enable dynamic smt.";
     }
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
+}
+bool DynamicSmtAnalysis::IsTuneSupport()
+{
+    std::vector<std::string> features;
+    std::string path;
+    oeaware::ReadSchedFeatures(path, features);
+    for (const auto &feature : features) {
+        if (feature == "KEEP_ON_CORE" || feature == "NO_KEEP_ON_CORE") {
+            return true;
+        }
+    }
+    return false;
 }
 }

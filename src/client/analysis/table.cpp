@@ -27,8 +27,13 @@ bool Table::AddRow(const std::vector<std::string> &row)
     if (row.size() != columns) {
         return false;
     }
-    data.emplace_back(row);
-    return true;
+    for (const auto &str : row) {
+        if (str != "") {  // only add non-empty row to table
+            data.emplace_back(row);
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Table::RemoveRow(int rowIndex)

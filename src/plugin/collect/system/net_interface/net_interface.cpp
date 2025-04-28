@@ -11,6 +11,31 @@
  ******************************************************************************/
 #include "net_interface.h"
 #include <iostream>
+#include <arpa/inet.h>
+#include <bpf/libbpf.h>
+#include <bpf/libbpf_common.h>
+#include <net/if.h>
+#include <sys/resource.h>
+#include "ebpf/net_flow.skel.h"
+
+struct SockKey {
+    uint32_t localIp;
+    uint32_t remoteIp;
+    uint16_t localPort;
+    uint16_t remotePort;
+};
+
+struct ThreadData {
+    uint32_t pid;
+    uint32_t tid;
+    char comm[16];
+};
+
+struct SockInfo {
+    struct ThreadData client;
+    struct ThreadData server;
+    uint64_t flow;
+};
 
 /* use this function to filter publish data */
 bool IfTopicParamsData(const std::string &params, const NetIntfBaseInfo &info)
@@ -187,4 +212,72 @@ void NetInterface::PublishDriverInfo(const std::string &params)
     data->count = cnt;
     dataList.data[0] = data;
     Publish(dataList);
+}
+
+oeaware::Result NetInterface::OpenNetFlow() {
+    int err;
+    struct net_flow_kernel *obj = net_flow_kernel__open_and_load();
+    if (!obj) {
+        ERROR(logger, "Failed to open BPF object");
+        return oeaware::Result(FAILED);
+    }
+
+    do {
+        err = net_flow_kernel__attach(obj);
+        if (err) {
+            ERROR(logger, "Failed to attach BPF programs: " << err);
+            break;
+        }
+        DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook,.ifindex = if_nametoindex("lo"),
+        .attach_point = BPF_TC_INGRESS);
+        DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,.handle = 1, .priority = 1);
+        err = bpf_tc_hook_create(&tc_hook);
+        if (err && err != -EEXIST) {
+            ERROR(logger, "Failed to bpf_tc_hook_create: " << err);
+            break;
+        }
+        tc_opts.prog_fd = bpf_program__fd(obj->progs.tc_ingress);
+        err = bpf_tc_attach(&tc_hook, &tc_opts);
+        if (err) {
+            ERROR(logger, "Failed to attach TC:  " << err);
+            break;
+        }
+        skel = obj;
+        return oeaware::Result(OK);
+    } while (0);
+
+    net_flow_kernel__destroy(obj);
+    return oeaware::Result(FAILED);
+}
+
+void NetInterface::ReadFlow() {
+    struct net_flow_kernel *obj = (struct net_flow_kernel *) skel;
+    struct SockKey key, nextKey;
+    struct SockInfo value;
+    int err;
+    struct bpf_map *map = obj->maps.flowStats;
+
+    err = bpf_map__get_next_key(map, NULL, &key, sizeof(SockKey));
+    while (!err) {
+        if (bpf_map__lookup_elem(map, &key, bpf_map__key_size(map),   &value, bpf_map__value_size(map), 0)) {
+            break;
+        }
+        // add relationship analysis
+
+        err = bpf_map__get_next_key(map, &key, &nextKey, sizeof(SockKey));
+        key = nextKey;
+    }
+}
+
+void NetInterface::CloseNetFlow() {
+    struct net_flow_kernel *obj = (struct net_flow_kernel *)skel;
+    DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook,.ifindex = if_nametoindex("lo"),
+    .attach_point = BPF_TC_INGRESS);
+    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,.handle = 1, .priority = 1);
+
+    int ret = bpf_tc_detach(&tc_hook, &tc_opts);
+    ret = bpf_tc_hook_destroy(&tc_hook);
+    net_flow_kernel__detach((struct net_flow_kernel *) skel);
+    net_flow_kernel__destroy((struct net_flow_kernel *) skel);
+    skel = nullptr;
 }

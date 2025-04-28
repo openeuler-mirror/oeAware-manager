@@ -38,7 +38,7 @@ static int ShowNetIntfDriverInfo(const DataList *dataList)
     return 0;
 }
 
-bool TestNetIntfBaseInfo()
+bool TestNetIntfBaseInfo(int time)
 {
     CTopic topic1 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_all" };
     CTopic topic2 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_up" };
@@ -50,14 +50,14 @@ bool TestNetIntfBaseInfo()
 
     OeSubscribe(&topic1, ShowNetIntfBaseInfo);
     OeSubscribe(&topic2, ShowNetIntfBaseInfo);
-    sleep(10);
+    sleep(time);
     OeUnsubscribe(&topic1);
     OeUnsubscribe(&topic2);
     OeClose();
     return true;
 }
 
-bool TestNetIntfDirverInfo()
+bool TestNetIntfDirverInfo(int time)
 {
     CTopic topic1 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_DRIVER_TOPIC, "operstate_all" };
     CTopic topic2 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_DRIVER_TOPIC, "operstate_up" };
@@ -69,7 +69,7 @@ bool TestNetIntfDirverInfo()
 
     OeSubscribe(&topic1, ShowNetIntfDriverInfo);
     OeSubscribe(&topic2, ShowNetIntfDriverInfo);
-    sleep(10);
+    sleep(time);
     OeUnsubscribe(&topic1);
     OeUnsubscribe(&topic2);
     OeClose();

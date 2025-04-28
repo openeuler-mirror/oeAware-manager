@@ -66,7 +66,7 @@ static int ShowCpuUtilInfo(const DataList *dataList)
     return 0;
 }
 
-bool TestEnvStaticInfo()
+bool TestEnvStaticInfo(int time)
 {
     CTopic staticEnvInfo = { OE_ENV_INFO, "static", "" };
     int ret = OeInit();
@@ -76,13 +76,13 @@ bool TestEnvStaticInfo()
     }
 
     OeSubscribe(&staticEnvInfo, ShowEnvStaticInfo);
-    sleep(2);
+    sleep(time);
     OeUnsubscribe(&staticEnvInfo);
     OeClose();
     return true;
 }
 
-bool TestEnvRealTimeInfo()
+bool TestEnvRealTimeInfo(int time)
 {
     CTopic realTimeEnvInfo = { OE_ENV_INFO, "realtime", "" };
     int ret = OeInit();
@@ -92,13 +92,13 @@ bool TestEnvRealTimeInfo()
     }
 
     OeSubscribe(&realTimeEnvInfo, ShowEnvRealTimeInfo);
-    sleep(2);
+    sleep(time);
     OeUnsubscribe(&realTimeEnvInfo);
     OeClose();
     return true;
 }
 
-bool TestCpuUtilInfo()
+bool TestCpuUtilInfo(int time)
 {
     CTopic topic = { OE_ENV_INFO, "cpu_util", "" };
     int ret = OeInit();
@@ -108,7 +108,7 @@ bool TestCpuUtilInfo()
     }
 
     OeSubscribe(&topic, ShowCpuUtilInfo);
-    sleep(3);
+    sleep(time);
     OeUnsubscribe(&topic);
     OeClose();
     return true;

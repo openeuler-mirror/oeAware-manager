@@ -35,24 +35,50 @@ void IrqFrontEnd::GetIrqWithDesc(std::unordered_map<int, std::string> &irqWithDe
     }
 
     std::string line;
-    std::regex pattern(R"(^\s*(\d+):.*?\s+([a-zA-Z].*)$)");
-    getline(file, line);
-    while (std::getline(file, line)) {
-        std::smatch match;
-        if (std::regex_match(line, match, pattern)) {
-            std::string irqNum = match[1].str();
-            std::string desc = match[2].str();
-            int value;
-            try {
-                value = std::stoi(irqNum);
-            }
-            catch (...) {
-                continue;
-            }
-            irqWithDesc[value] = desc;
-        }
+    // read the first line (cpu header)
+    if (!std::getline(file, line)) {
+        std::cerr << "Empty file or failed to read the first line." << std::endl;
+        file.close();
+        return;
     }
 
+    // calculate the width of the middle part (cpu irq)
+    size_t descStart = line.find_last_not_of(' ');
+    if (descStart == std::string::npos) {
+        std::cerr << "Invalid format in the first line." << std::endl;
+        file.close();
+        return;
+    }
+    descStart++;
+
+    while (std::getline(file, line)) {
+        if (line.empty()) {
+            break;
+        }
+        size_t colonPos = line.find(':');
+        if (colonPos == std::string::npos) {
+            continue;
+        }
+
+        int irqNum = 0;
+        try {
+            irqNum = std::stoi(line.substr(0, colonPos));
+        } catch (...) {
+            continue;
+        }
+
+        if (descStart >= line.size()) {
+            continue; // not have desc
+        }
+        // delete space and middle cpu hirq
+        std::string desc = line.substr(descStart);
+        size_t firstNonSpace = desc.find_first_not_of(" \t");
+        size_t lastNonSpace = desc.find_last_not_of(" \t");
+        if (firstNonSpace != std::string::npos && lastNonSpace != std::string::npos) {
+            desc = desc.substr(firstNonSpace, lastNonSpace - firstNonSpace + 1);
+        }
+        irqWithDesc[irqNum] = desc;
+    }
     file.close();
 }
 

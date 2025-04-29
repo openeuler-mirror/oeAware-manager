@@ -9,12 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
+#include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_endian.h>
-#include "vmlinux.h"
 
 #define ETH_P_IP   0x0800  // IPv4以太网协议类型
 #define TC_ACT_OK  0       // TC放行动作
@@ -157,3 +156,4 @@ int tc_ingress(struct __sk_buff *skb) {
 }
 
 char _license[] SEC("license") = "GPL";
+

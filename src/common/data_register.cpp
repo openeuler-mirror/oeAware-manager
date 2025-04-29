@@ -1084,6 +1084,7 @@ void Register::InitRegisterData()
     RegisterData("xcall_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData(OE_NET_HIRQ_ANALYSIS, RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
     RegisterData("numa_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
+	RegisterData("microarch_tidnocmp_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

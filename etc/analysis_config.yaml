@@ -11,3 +11,9 @@ numa_analysis:
 smc_d_analysis:
   change_rate: 0.1
   lo_net_flow: 100 # MB/S
+
+microarch_tidnocmp:
+  service_list:
+    - mysqld # Supported service. The default value is mysqld.
+  cpu_part:
+    - 0xd02

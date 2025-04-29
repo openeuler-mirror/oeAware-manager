@@ -16,9 +16,6 @@ void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metri
     const std::vector<std::string> &suggestionItem, const std::vector<int> type, AnalysisResultItem *analysisResultItem)
 {
     auto len = metrics.size();
-    if (len == 0) {
-        return;
-    }
     analysisResultItem->dataItemLen = len;
     analysisResultItem->dataItem = new DataItem[len];
     const int METRIC_INDEX = 0;

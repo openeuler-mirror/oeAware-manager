@@ -256,6 +256,33 @@ uint64_t GetCpuFreqByDmi()
     return std::stoull(buffer) * 1000000; // 1000000: MHz to Hz
 }
 
+std::string GetCpuPartId()
+{
+    FILE *pipe = popen("grep -m1 'CPU part' /proc/cpuinfo | awk -F': ' '{print $2}'", "r");
+    if (!pipe) {
+        std::cout << "failed to read /proc/cpuinfo" << std::endl;
+        return "";
+    }
+
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) == nullptr) {
+        std::cout << "failed to get cpu part from /proc/cpuinfo" << std::endl;
+        pclose(pipe);
+        return "";
+    }
+    pclose(pipe);
+
+    std::string cpuPart(buffer);
+    cpuPart.erase(cpuPart.find_last_not_of(" \t\n\r") + 1);
+
+    if (cpuPart.empty()) {
+        std::cout << "get cpu part id failed." << std::endl;
+        return "";
+    }
+
+    return cpuPart;
+}
+
 // exec command and get output, not use blocking cmd(eg top)
 bool ExecCommand(const std::string &command, std::string &result)
 {

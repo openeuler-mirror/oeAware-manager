@@ -24,13 +24,13 @@ TEST(AnalysisReport, Report)
     memoryTable.AddRow({"l1dtlb_miss", "10%", "high"});
     memoryTable.AddRow({"l1itlb_miss", "1%", "low"});
     memoryTable.AddRow({"l2dtlb_miss", "2%", "low"});
-    analysisTemplate.datas.emplace_back(memoryTable);
+    analysisTemplate.datas["Memory"] = memoryTable;
 
     oeaware::Table cpuTable(3, "Cpu");
     cpuTable.SetColumnWidth(20);
     cpuTable.AddRow({"metric", "value", "note"});
     cpuTable.AddRow({"CPU usage", "70%", "high"});
-    analysisTemplate.datas.emplace_back(cpuTable);
+    analysisTemplate.datas["CPU"] = cpuTable;
 
     oeaware::Table c1(1, "c");
     c1.SetBorder(false);

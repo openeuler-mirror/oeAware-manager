@@ -80,6 +80,9 @@ void AnalysisReport::Init(Config &config)
 
     std::string threshold = "threshold:" + std::to_string(config.GetDynamicSmtThreshold());
     AddAnalysisTopic("dynamic_smt_analysis", "dynamic_smt", {timeParam, threshold});
+    AddAnalysisTopic("smc_d_analysis", "smc_d", {timeParam});
+    std::string pid = "pid:" + std::to_string(config.GetPid());
+    AddAnalysisTopic(OE_XCALL_ANALYSIS, "xcall", {timeParam, pid});
     AddAnalysisTopic("smc_d_analysis", "smc_d", { timeParam });
     AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
 

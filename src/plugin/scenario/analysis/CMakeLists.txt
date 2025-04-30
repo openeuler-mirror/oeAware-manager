@@ -1,6 +1,7 @@
 project(analysis)
 message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")
 message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
+
 set(analysis_src
     analysis/analysis.cpp
     analysis/common.cpp
@@ -23,9 +24,10 @@ target_include_directories(analysis_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${LIB_KPERF_INCPATH}
     ../../../common
+    /usr/include/libnl3
 )
 
-target_link_libraries(analysis_lib numa boundscheck)
+target_link_libraries(analysis_lib numa boundscheck nl-3 nl-genl-3)
 
 add_library(analysis_oeaware SHARED ${oeaware_src})
 

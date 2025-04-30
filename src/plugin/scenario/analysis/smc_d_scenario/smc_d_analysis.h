@@ -14,6 +14,13 @@
 #include "oeaware/interface.h"
 #include "analysis.h"
 
+#include <netlink/socket.h>
+#include <netlink/msg.h>
+#include <netlink/genl/ctrl.h>
+#include <netlink/genl/genl.h>
+#include <linux/rtnetlink.h>
+#include <linux/netlink.h>
+
 namespace oeaware {
 class SmcDAnalysis : public Interface {
 public:
@@ -27,7 +34,9 @@ public:
 	void Run() override;
 
 private:
+    bool GenNlOpen();
     std::string ExecuteCommand(const std::string &cmd);
+    void GetLoNetworkFlow();
     int GetConnectionCount(const std::string &state);
     void DetectTcpConnectionMode();
     void* GetResult();
@@ -37,6 +46,9 @@ private:
     std::vector<std::string> topicStrs{"smc_d"};
     int analysisTime = 10;
     int curTime = 0;
+    int netFlow = 0;
+    double changeRateThreshold = 0.1;
+    int netFlowThreshold = 100;
     bool isPublished = false;
     std::chrono::time_point<std::chrono::high_resolution_clock> beginTime;
     Topic saveTopic;

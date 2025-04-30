@@ -25,6 +25,8 @@ const int OUT_PATH = 202;
 const int DYNAMIC_SMT_THRESHOLD = 203;
 const int NUMA_THREAD_THRESHOLD = 204;
 const int PID = 205;
+const int SMC_CHANGE_RATE = 206 ;
+const int SMC_LONET_FLOW = 207;
 
 class Config {
 public:
@@ -66,6 +68,14 @@ public:
     {
         return numaThreadThreshold;
     }
+    double GetSmcChangeRate() const
+    {
+        return smcChangeRate;
+    }
+    int GetSmcLoNetFlow() const
+    {
+        return smcLoNetFlow;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
@@ -76,6 +86,9 @@ private:
     double dynamicSmtThreshold = 40;
     std::string  outMarkDownPath = "";
     int numaThreadThreshold = 100; // defaut 100 threads
+    double smcChangeRate = 0.1;
+    int smcLoNetFlow = 100; // default 100MB/S
+
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
@@ -88,6 +101,8 @@ private:
         {"out-path", required_argument, nullptr, OUT_PATH},
         {"pid", required_argument, nullptr, PID},
         {"numa-thread-threshold", required_argument, nullptr, NUMA_THREAD_THRESHOLD},
+        {"smc-change-rate", required_argument, nullptr, SMC_CHANGE_RATE},
+        {"smc-lonet-flow", required_argument, nullptr, SMC_LONET_FLOW},
         {nullptr, 0, nullptr, 0}
     };
     bool isShowRealTimeReport = false;
@@ -96,6 +111,8 @@ private:
     bool l2MissThresholdSet = false;
     bool dynamicSmtThresholdSet = false;
     bool numaThreadThresholdSet = false;
+    bool smcChangeRateSet = false;
+    bool smcLoNetFlowSet = false;
     bool ParseTime(const char *arg);
     void PrintHelp();
 };

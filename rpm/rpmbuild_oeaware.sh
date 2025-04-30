@@ -13,4 +13,4 @@ rsync  -r --exclude={'rpm','build','docs'} ../* ./${name}-${version}
 tar cf ${name}-${version}.tar.gz ${name}-${version}/
 rm -rf /root/rpmbuild/SOURCES/${name}-${version}.tar.gz
 rsync ${name}-${version}.tar.gz /root/rpmbuild/SOURCES/${name}-${version}.tar.gz
-rpmbuild --define "commit_id $commit_id" -ba $spec_file
+QA_SKIP_RPATHS=1 rpmbuild --define "commit_id $commit_id" -ba $spec_file

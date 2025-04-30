@@ -64,7 +64,10 @@ int XcallTune::ReadConfig(const std::string &path)
             for (auto p : item) {
                 std::string xcallName = p.first.as<std::string>();
                 std::string xcallEvent = p.second.as<std::string>();
-                xcallTune[threadName].emplace_back(std::make_pair(xcallName, xcallEvent));
+                auto events = oeaware::SplitString(xcallEvent, ",");
+                for (auto &event: events) {
+                    xcallTune[threadName].emplace_back(std::make_pair(xcallName, event));
+                }
             }
         }
     }
@@ -76,9 +79,16 @@ oeaware::Result XcallTune::Enable(const std::string &param)
 {
     (void)param;
     if (!oeaware::FileExist("/proc/1/xcall")) {
-        return oeaware::Result(FAILED, "xcall does not support.");
+        return oeaware::Result(FAILED, "xcall does not open. If the system supports xcall, \
+                please add 'xcall' to cmdline.");
     }
-    int ret = ReadConfig("/usr/lib64/oeAware-plugin/xcall.yaml");
+    auto params = oeaware::GetKeyValueFromString(param);
+    if (params.count("c")) {
+        configPath = params["c"];
+    } else {
+        configPath = "/usr/lib64/oeAware-plugin/xcall.yaml";
+    }
+    int ret = ReadConfig(configPath);
     Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
     return oeaware::Result(ret);
 }
@@ -94,6 +104,7 @@ void XcallTune::Disable()
             WriteSysParam(p.first, "!"+value);
         }
     }
+    enable = false;
 }
 
 int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
@@ -115,18 +126,22 @@ int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
 
 void XcallTune::Run()
 {
-    for (auto &item : threadId) {
-        for (auto &pid : item.second) {
-            std::string path = "/proc/" + std::to_string(pid) + "/xcall";
-            for (auto v : xcallTune[item.first]) {
-                if (v.first != "xcall_1" || openedXcall.count(path)) {
-                    continue;
-                }
-                if (WriteSysParam(path, v.second) == 0) {
-                    openedXcall[path].emplace_back(v.second);
-                    INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second << "}.");
-                } else {
-                    WARN(logger, "xcall applied failed, path: " << path << ".");
+    if (!enable) {
+        enable = true;
+        for (auto &item : threadId) {
+            for (auto &pid : item.second) {
+                std::string path = "/proc/" + std::to_string(pid) + "/xcall";
+                for (auto v : xcallTune[item.first]) {
+                    if (v.first != "xcall_1" || openedXcall.count(path)) {
+                        continue;
+                    }
+                    if (WriteSysParam(path, v.second) == 0) {
+                        openedXcall[path].emplace_back(v.second);
+                        INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second <<
+                                "}.");
+                    } else {
+                        WARN(logger, "xcall applied failed, path: " << path << ".");
+                    }
                 }
             }
         }

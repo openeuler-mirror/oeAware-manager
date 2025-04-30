@@ -30,6 +30,7 @@ void Config::PrintHelp()
     usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
     usage += "   --out-path                           set the path of the analysis report.\n";
     usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
+    usage += "   --pid                      set the pid to be analyzed.\n";
     usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
     std::cout << usage;
 }
@@ -105,6 +106,13 @@ bool Config::Init(int argc, char **argv)
                 dynamicSmtThreshold = atof(optarg);
                 dynamicSmtThresholdSet = true;
                 break;
+            case PID:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid pid: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                pid = atoi(optarg);
             case NUMA_THREAD_THRESHOLD:
                 if (!oeaware::IsNum(optarg)) {
                     std::cerr << "Error: Invalid numa thread threshold: '" << optarg << "'\n";

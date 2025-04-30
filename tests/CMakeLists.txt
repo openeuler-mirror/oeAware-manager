@@ -40,6 +40,7 @@ add_executable(table_test
 
 add_executable(analysis_report_test
     analysis_report_test.cpp
+    ${SRC_DIR}/client/analysis/config.cpp
     ${SRC_DIR}/client/analysis/analysis_report.cpp
     ${SRC_DIR}/client/analysis/table.cpp
 )
@@ -70,3 +71,4 @@ set_target_properties(table_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BI
 set_target_properties(analysis_report_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output/tests")
 
 add_subdirectory(ST/sdk)
+add_subdirectory(ST/xcall)

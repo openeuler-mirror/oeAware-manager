@@ -24,6 +24,7 @@ const int L2_MISS_THRESHOLD = 201;
 const int OUT_PATH = 202;
 const int DYNAMIC_SMT_THRESHOLD = 203;
 const int NUMA_THREAD_THRESHOLD = 204;
+const int PID = 205;
 
 class Config {
 public:
@@ -57,6 +58,10 @@ public:
     {
         return dynamicSmtThreshold;
     }
+    int GetPid() const
+    {
+        return pid;
+    }
     int GetNumaThreadThreshold() const
     {
         return numaThreadThreshold;
@@ -65,6 +70,7 @@ private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
+    int pid;
     double l1MissThreshold = 5;
     double l2MissThreshold = 10;
     double dynamicSmtThreshold = 40;
@@ -80,6 +86,7 @@ private:
         {"l2-miss-threshold", required_argument, nullptr, L2_MISS_THRESHOLD},
         {"dynamic-smt-threshold", required_argument, nullptr, DYNAMIC_SMT_THRESHOLD},
         {"out-path", required_argument, nullptr, OUT_PATH},
+        {"pid", required_argument, nullptr, PID},
         {"numa-thread-threshold", required_argument, nullptr, NUMA_THREAD_THRESHOLD},
         {nullptr, 0, nullptr, 0}
     };

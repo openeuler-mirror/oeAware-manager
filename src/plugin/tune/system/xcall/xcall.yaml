@@ -1,4 +1,4 @@
-redis:
+redis-server:
     - xcall_1: 1
 mysql:
     - xcall_1: 1

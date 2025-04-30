@@ -25,4 +25,4 @@ cp ./etc/hardirq_tune.conf /lib64/oeAware-plugin/
 chmod 400 build/output/plugin/ko/*.ko
 mkdir -p /usr/lib/smc/
 cp build/output/plugin/ko/smc_acc.ko /usr/lib/smc/
-insmod /usr/lib/smc/smc_acc.ko
+chcon -t modules_object_t /usr/lib/smc/smc_acc.ko >/dev/null 2>&1

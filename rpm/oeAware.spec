@@ -9,9 +9,9 @@ Source0:    %{name}-%{version}.tar.gz
 Prefix:     %{_prefix}
 BuildRequires: cmake make gcc-c++
 BuildRequires: curl-devel yaml-cpp-devel log4cplus-devel gtest-devel gmock-devel
-BuildRequires: libboundscheck numactl-devel git
+BuildRequires: libboundscheck numactl-devel git libnl3 libnl3-devel kernel-devel
 
-Requires: yaml-cpp curl log4cplus systemd libboundscheck acl patchelf
+Requires: yaml-cpp curl log4cplus systemd libboundscheck acl patchelf libnl3 sysstat
 Obsoletes:  oeAware-collector < v2.0.0
 Obsoletes:  oeAware-scenario < v2.0.0
 Obsoletes:  oeAware-tune < v2.0.0
@@ -37,6 +37,7 @@ bash build.sh
 install -D -m 0750 build/output/bin/oeaware    %{buildroot}%{_bindir}/oeaware
 install -D -m 0750 build/output/bin/oeawarectl %{buildroot}%{_bindir}/oeawarectl
 install -D -m 0640 config.yaml                 %{buildroot}%{_sysconfdir}/oeAware/config.yaml
+install -D -m 0640 info_cmd.yaml                 %{buildroot}%{_sysconfdir}/oeAware/info_cmd.yaml
 install -D -p -m 0644 oeaware.service          %{buildroot}%{_unitdir}/oeaware.service
 
 #install plugin
@@ -80,6 +81,7 @@ fi
 %attr(0750, root, root) %{_bindir}/oeaware
 %attr(0750, root, root) %{_bindir}/oeawarectl
 %attr(0640, root, root) %{_sysconfdir}/oeAware/config.yaml
+%attr(0640, root, root) %{_sysconfdir}/oeAware/info_cmd.yaml
 %attr(0640, root, root) %{_sysconfdir}/oeAware/preload.yaml
 %attr(0640, root, root) %{_sysconfdir}/oeAware/analysis_config.yaml
 %attr(0644, root, root) %{_unitdir}/oeaware.service

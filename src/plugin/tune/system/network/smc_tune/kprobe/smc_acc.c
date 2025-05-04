@@ -64,7 +64,15 @@ static struct kprobe kp_tcp_fin = {
 #define REGS_PARM4(x) ((x)->regs[3])
 #define REGS_PARM5(x) ((x)->regs[4])
 #define REGS_PARM6(x) ((x)->regs[5])
+#elif defined(__riscv) || defined(__riscv__)
+#define REGS_PARM1(x) ((x)->a0)
+#define REGS_PARM2(x) ((x)->a1)
+#define REGS_PARM3(x) ((x)->a2)
+#define REGS_PARM4(x) ((x)->a3)
+#define REGS_PARM5(x) ((x)->a4)
+#define REGS_PARM6(x) ((x)->a5)
 #endif
+
 
 #define SMCPROTO_SMC 0  /* SMC protocol, IPv4 */
 #define SMCPROTO_SMC6 1 /* SMC protocol, IPv6 */

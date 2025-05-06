@@ -4,7 +4,7 @@
 script_dir=$(cd $(dirname $0);pwd)
 cd $script_dir/
 os_arch=$(uname -m)
-libkperf_version="v1.2.1" # only for build_kperf_by_src=ON
+libkperf_version="v1.3.0" # only for build_kperf_by_src=ON
 build_kperf_by_src="ON"
 with_test="OFF"
 with_debug="OFF"

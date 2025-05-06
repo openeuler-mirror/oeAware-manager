@@ -30,10 +30,8 @@ private:
     int pmuId;
     std::string topicStr = "uncore";
     std::vector<std::string> eventStr;
-    std::vector<std::string> hhaDir;
     std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     const std::string uncorePath = "/sys/bus/event_source/devices/hisi_sccl1_hha2";
-    void InitUncoreAttr(struct PmuAttr &attr);
     int OpenUncore();
 };
 

@@ -55,7 +55,7 @@ void PmuCountingCollector::InitCountingAttr(struct PmuAttr &attr)
 
 int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
 {
-    struct PmuAttr attr;
+    struct PmuAttr attr = {};
     InitCountingAttr(attr);
 
     char *evtList[1];

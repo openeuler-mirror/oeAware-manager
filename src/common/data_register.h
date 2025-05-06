@@ -50,7 +50,7 @@ private:
 
     std::unordered_map<std::string, RegisterEntry> registerEntry;
 };
-void DataListFree(DataList *dataList);
+void DataListFree(DataList *dataList, bool flag = true);
 int DataListSerialize(const DataList *dataList, OutStream &out);
 int DataListDeserialize(DataList *dataList, InStream &in);
 int ResultDeserialize(void *data, InStream &in);

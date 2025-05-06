@@ -91,11 +91,12 @@ protected:
         recvQueue->Push(msg);
         return Result(OK);
     }
-    void Publish(DataList &dataList)
+    void Publish(DataList &dataList, bool isFree = true)
     {
         Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
         auto msg = std::make_shared<InstanceRunMessage>(RunType::PUBLISH_DATA,
             std::vector<std::string>{topic.GetType()});
+        msg->isFree = isFree;
         msg->dataList.data = dataList.data;
         msg->dataList.len = dataList.len;
         msg->dataList.topic.instanceName = dataList.topic.instanceName;

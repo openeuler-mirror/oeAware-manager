@@ -54,7 +54,7 @@ public:
         finish = true;
         cond.notify_one();
     }
-
+    bool isFree = true;
     std::vector<std::string> payload;
     Result result;
     DataList dataList;

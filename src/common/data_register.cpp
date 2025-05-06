@@ -63,19 +63,22 @@ int TopicDeserialize(CTopic *topic, InStream &in)
    return 0;
 }
 
-void DataListFree(DataList *dataList)
+void DataListFree(DataList *dataList, bool flag)
 {
     if (dataList == nullptr) {
         return;
     }
-    auto &reg = Register::GetInstance();
-    DataFreeFunc free = reg.GetDataFreeFunc(Concat({dataList->topic.instanceName, dataList->topic.topicName}, "::"));
-    if (free == nullptr) {
-        free = reg.GetDataFreeFunc(dataList->topic.instanceName);
-    }
-    if (free != nullptr) {
-        for (uint64_t i = 0; i < dataList->len; ++i) {
-            free(dataList->data[i]);
+    if (flag) {
+        auto &reg = Register::GetInstance();
+        DataFreeFunc free = reg.GetDataFreeFunc(Concat({dataList->topic.instanceName, dataList->topic.topicName},
+            "::"));
+        if (free == nullptr) {
+            free = reg.GetDataFreeFunc(dataList->topic.instanceName);
+        }
+        if (free != nullptr) {
+            for (uint64_t i = 0; i < dataList->len; ++i) {
+                free(dataList->data[i]);
+            }
         }
     }
     TopicFree(&dataList->topic);

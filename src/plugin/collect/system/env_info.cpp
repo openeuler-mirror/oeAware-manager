@@ -265,7 +265,7 @@ void EnvInfo::Run()
         } else {
             continue;
         }
-        Publish(dataList);
+        Publish(dataList, false);
     }
 }
 

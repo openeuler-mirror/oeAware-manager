@@ -124,7 +124,7 @@ void DockerAdapt::Run()
         dataList.data[i++] = &it.second;
     }
     dataList.len = i;
-    Publish(dataList);
+    Publish(dataList, false);
 }
 
 void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directories)

@@ -60,6 +60,18 @@ typedef struct {
     struct NetworkInterfaceDriverData *driver;
 } NetIntfDriverDataList;
 
+#define OE_LOCAL_NET_AFFINITY "local_net_affinity"
+struct ProcessNetAffinityData {
+    uint32_t pid1;
+    uint32_t pid2;
+    uint64_t level;
+};
+
+typedef struct {
+    int count;
+    struct ProcessNetAffinityData *affinity;
+} ProcessNetAffinityDataList;
+
 #ifdef __cplusplus
 }
 #endif

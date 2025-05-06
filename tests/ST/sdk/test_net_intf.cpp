@@ -38,6 +38,20 @@ static int ShowNetIntfDriverInfo(const DataList *dataList)
     return 0;
 }
 
+static int ShowNetLocalAffiInfo(const DataList *dataList)
+{
+    if (dataList && dataList->len && dataList->data) {
+        std::string topicParams = std::string(dataList->topic.params);
+        ProcessNetAffinityDataList *data = static_cast<ProcessNetAffinityDataList *>(dataList->data[0]);
+        std::cout << topicParams << " data->count: " << data->count << std::endl;
+        for (int n = 0; n < data->count; n++) {
+            std::cout << "pid1 " << data->affinity[n].pid1 << ", pid2 " << data->affinity[n].pid2
+                << ", level " << data->affinity[n].level << std::endl;
+        }
+    }
+    return 0;
+}
+
 bool TestNetIntfBaseInfo(int time)
 {
     CTopic topic1 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_all" };
@@ -72,6 +86,22 @@ bool TestNetIntfDirverInfo(int time)
     sleep(time);
     OeUnsubscribe(&topic1);
     OeUnsubscribe(&topic2);
+    OeClose();
+    return true;
+}
+
+bool TestNetLocalAffiInfo(int time)
+{
+    CTopic topic1 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, "process_affinity" };
+    int ret = OeInit();
+    if (ret != 0) {
+        std::cout << " SDK(Analysis) Init failed , result " << ret << std::endl;
+        return false;
+    }
+
+    OeSubscribe(&topic1, ShowNetLocalAffiInfo);
+    sleep(time);
+    OeUnsubscribe(&topic1);
     OeClose();
     return true;
 }

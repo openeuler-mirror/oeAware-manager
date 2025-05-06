@@ -131,7 +131,6 @@ int tc_ingress(struct __sk_buff *skb) {
     // 解析传输层头
     __u16 hdr_len = ip->ihl * 4;
     struct tcphdr *tcp = (void *)ip + hdr_len;
-    struct udphdr *udp = (void *)ip + hdr_len;
     __u16 sport, dport;
 
     if (ip->protocol == IPPROTO_TCP) {

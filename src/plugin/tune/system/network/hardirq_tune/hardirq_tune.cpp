@@ -318,7 +318,6 @@ void NetHardIrq::ResetCpuInfo()
 void oeaware::NetHardIrq::ResetNetQueue()
 {
     for (auto &devItem : netQueue) {
-        const std::string &dev = devItem.first;
         for (auto &queItem : devItem.second) {
             auto &info = queItem.second;
             for (auto &rx : info.numaRxTimes) {

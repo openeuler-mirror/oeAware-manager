@@ -424,18 +424,18 @@ bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &feature
         "/sys/kernel/debug/sched_features",
         "/sys/kernel/debug/sched/features"
     };
-    std::string existPath = "unknown";
+    schedPath = "unknown";
     for (const auto &path : possiblePaths) {
         if (FileExist(path)) {
-            existPath = path;
+            schedPath = path;
             break;
         }
     }
-    if (existPath == "unknown") {
+    if (schedPath == "unknown") {
         return false;
     }
 
-    std::ifstream file(existPath);
+    std::ifstream file(schedPath);
 
     if (!file.is_open()) {
         return false;

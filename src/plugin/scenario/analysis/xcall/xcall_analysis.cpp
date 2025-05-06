@@ -24,7 +24,7 @@ void XcallAnalysis::InitSyscallTable()
         return;
     }
     std::string line;
-    static int sysCnt = 5;
+    const std::string sysCntStr = "__NR_";
     while (std::getline(file, line)) {
         std::stringstream ss(line);
         std::string word;
@@ -33,10 +33,10 @@ void XcallAnalysis::InitSyscallTable()
             continue;
         }
         ss >> word;
-        if (word.size() > sysCnt && word.substr(0, sysCnt) == "__NR_") {
+        if (word.size() > sysCntStr.length() && word.substr(0, sysCntStr.length()) == sysCntStr) {
             int num;
             ss >> num;
-            syscallTable[word.substr(sysCnt)] = num;
+            syscallTable[word.substr(sysCntStr.length())] = num;
         }
     }
 }
@@ -58,6 +58,7 @@ XcallAnalysis::XcallAnalysis()
 
 Result XcallAnalysis::Enable(const std::string &param)
 {
+    (void)param;
     if (!oeaware::FileExist("/proc/1/xcall")) {
         return oeaware::Result(FAILED, "xcall does not open. If the system supports xcall, "
                 "please add 'xcall' to cmdline.");
@@ -113,7 +114,7 @@ void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
     });
     file << pName << ":\n";
     file << "- xcall1: ";
-    for (int i = 0; i < threshold && i < vec.size(); ++i) {
+    for (size_t i = 0; i < threshold && i < vec.size(); ++i) {
         if (i) file << ",";
         file << syscallTable[vec[i].callName];
     }

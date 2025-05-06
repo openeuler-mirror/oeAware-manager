@@ -115,6 +115,7 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 pid = atoi(optarg);
+                break;
             case NUMA_THREAD_THRESHOLD:
                 if (!oeaware::IsNum(optarg)) {
                     std::cerr << "Error: Invalid numa thread threshold: '" << optarg << "'\n";

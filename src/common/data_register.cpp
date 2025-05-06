@@ -1013,6 +1013,50 @@ void NetIntfDriverFree(void *data)
     netData = nullptr;
 }
 
+int NetLocalAffiSerialize(const void *data, OutStream &out)
+{
+    auto netData = static_cast<const ProcessNetAffinityDataList *>(data);
+    out << netData->count;
+    for (int n = 0; n < netData->count; ++n) {
+        out << netData->affinity[n].pid1;
+        out << netData->affinity[n].pid2;
+        out << netData->affinity[n].level;
+    }
+    return 0;
+}
+
+int NetLocalAffiDeserialize(void **data, InStream &in)
+{
+    *data = new ProcessNetAffinityDataList();
+    auto netData = static_cast<ProcessNetAffinityDataList *>(*data);
+    in >> netData->count;
+    if (netData->count <= 0) {
+        return 0;
+    }
+    netData->affinity = new ProcessNetAffinityData[netData->count];
+    for (int n = 0; n < netData->count; ++n) {
+        in >> netData->affinity[n].pid1;
+        in >> netData->affinity[n].pid2;
+        in >> netData->affinity[n].level;
+    }
+    return 0;
+}
+
+void NetLocalAffiFree(void *data)
+{
+    auto netData = static_cast<ProcessNetAffinityDataList*>(data);
+    if (netData == nullptr) {
+        return;
+    }
+    if (netData->affinity != nullptr) {
+        delete[] netData->affinity;
+        netData->affinity = nullptr;
+    }
+    netData->count = 0;
+    delete netData;
+    netData = nullptr;
+}
+
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
     registerEntry[name] = entry;
@@ -1049,6 +1093,8 @@ void Register::InitRegisterData()
     RegisterData(name, RegisterEntry(NetIntfBaseSerialize, NetIntfBaseDeserialize, NetIntfBaseFree));
     name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC);
     RegisterData(name, RegisterEntry(NetIntfDriverSerialize, NetIntfDriverDeserialize, NetIntfDriverFree));
+    name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_LOCAL_NET_AFFINITY);
+    RegisterData(name, RegisterEntry(NetLocalAffiSerialize, NetLocalAffiDeserialize, NetLocalAffiFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

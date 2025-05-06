@@ -8,4 +8,5 @@ bool TestCpuUtilInfo(int time);
 // net interface test
 bool TestNetIntfBaseInfo(int time);
 bool TestNetIntfDirverInfo(int time);
+bool TestNetLocalAffiInfo(int time);
 #endif

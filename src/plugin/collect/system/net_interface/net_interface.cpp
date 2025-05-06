@@ -18,12 +18,8 @@
 #include <sys/resource.h>
 #include "ebpf/net_flow.skel.h"
 
-struct SockKey {
-    uint32_t localIp;
-    uint32_t remoteIp;
-    uint16_t localPort;
-    uint16_t remotePort;
-};
+constexpr int UINT32_BIT_LEN = 32;
+constexpr uint64_t UINT32_MASK = 0xFFFFFFFFULL;
 
 struct ThreadData {
     uint32_t pid;
@@ -77,6 +73,11 @@ oeaware::Result NetInterface::OpenTopic(const oeaware::Topic &topic)
     if (netTopicInfo[topic.topicName].openedParams.count(topic.params) != 0) {
         return oeaware::Result(FAILED, "topic already opened");
     }
+
+    if (topic.topicName == OE_LOCAL_NET_AFFINITY && !OpenNetFlow()) {
+        return oeaware::Result(FAILED, "open net flow failed");
+    }
+
     netTopicInfo[topic.topicName].openedParams.insert(topic.params);
     return oeaware::Result(OK);
 }
@@ -92,6 +93,9 @@ void NetInterface::CloseTopic(const oeaware::Topic &topic)
     }
     if (netTopicInfo[topic.topicName].openedParams.count(topic.params) == 0) {
         return;
+    }
+    if (topic.topicName == OE_LOCAL_NET_AFFINITY) {
+        CloseNetFlow();
     }
     netTopicInfo[topic.topicName].openedParams.erase(topic.params);
 }
@@ -125,6 +129,8 @@ void NetInterface::Run()
                 PublishBaseInfo(param);
             } else if (topic == OE_NETWORK_INTERFACE_DRIVER_TOPIC) {
                 PublishDriverInfo(param);
+            } else if (topic == OE_LOCAL_NET_AFFINITY) {
+                PublishLocalNetAffiInfo(param);
             }
         }
     }
@@ -132,10 +138,12 @@ void NetInterface::Run()
 
 void NetInterface::InitTopicInfo(const std::string &name)
 {
+    netTopicInfo[name].topicName = name;
     // different topic can have different params
     if (name == OE_NETWORK_INTERFACE_BASE_TOPIC || name == OE_NETWORK_INTERFACE_DRIVER_TOPIC) {
-        netTopicInfo[name].topicName = name;
         netTopicInfo[name].supportParams = { "operstate_up", "operstate_all" };
+    } else if (name == OE_LOCAL_NET_AFFINITY) {
+        netTopicInfo[name].supportParams = { "process_affinity" };
     }
 }
 
@@ -214,12 +222,43 @@ void NetInterface::PublishDriverInfo(const std::string &params)
     Publish(dataList);
 }
 
-oeaware::Result NetInterface::OpenNetFlow() {
+void NetInterface::PublishLocalNetAffiInfo(const std::string &params)
+{
+    if (params != "process_affinity") {
+        return;
+    }
+    std::unordered_map<uint64_t, uint64_t> flowData;
+    ReadFlow(flowData);
+    if (flowData.empty()) {
+        return;
+    }
+    DataList dataList;
+    oeaware::SetDataListTopic(&dataList, OE_NET_INTF_INFO, OE_LOCAL_NET_AFFINITY, params);
+    dataList.len = 1;
+    dataList.data = new void *[1];
+    ProcessNetAffinityDataList *data = new ProcessNetAffinityDataList;
+
+    data->count = flowData.size();
+    data->affinity = new ProcessNetAffinityData[data->count];
+    int cnt = 0;
+    for (auto it = flowData.begin(); it != flowData.end(); ++it) {
+        uint64_t pidPair = it->first;
+        data->affinity[cnt].pid1 = static_cast<uint32_t>(pidPair >> UINT32_BIT_LEN);
+        data->affinity[cnt].pid2 = static_cast<uint32_t>(pidPair & UINT32_MASK);
+        data->affinity[cnt].level = it->second;
+        cnt++;
+    }
+    dataList.data[0] = data;
+    Publish(dataList);
+}
+
+bool NetInterface::OpenNetFlow()
+{
     int err;
     struct net_flow_kernel *obj = net_flow_kernel__open_and_load();
     if (!obj) {
         ERROR(logger, "Failed to open BPF object");
-        return oeaware::Result(FAILED);
+        return false;
     }
 
     do {
@@ -228,9 +267,9 @@ oeaware::Result NetInterface::OpenNetFlow() {
             ERROR(logger, "Failed to attach BPF programs: " << err);
             break;
         }
-        DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook,.ifindex = if_nametoindex("lo"),
-        .attach_point = BPF_TC_INGRESS);
-        DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,.handle = 1, .priority = 1);
+        DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook, .ifindex = if_nametoindex("lo"),
+            .attach_point = BPF_TC_INGRESS);
+        DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = 1, .priority = 1);
         err = bpf_tc_hook_create(&tc_hook);
         if (err && err != -EEXIST) {
             ERROR(logger, "Failed to bpf_tc_hook_create: " << err);
@@ -243,15 +282,16 @@ oeaware::Result NetInterface::OpenNetFlow() {
             break;
         }
         skel = obj;
-        return oeaware::Result(OK);
+        return true;
     } while (0);
 
     net_flow_kernel__destroy(obj);
-    return oeaware::Result(FAILED);
+    return false;
 }
 
-void NetInterface::ReadFlow() {
-    struct net_flow_kernel *obj = (struct net_flow_kernel *) skel;
+void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
+{
+    struct net_flow_kernel *obj = (struct net_flow_kernel *)skel;
     struct SockKey key, nextKey;
     struct SockInfo value;
     int err;
@@ -259,25 +299,37 @@ void NetInterface::ReadFlow() {
 
     err = bpf_map__get_next_key(map, NULL, &key, sizeof(SockKey));
     while (!err) {
-        if (bpf_map__lookup_elem(map, &key, bpf_map__key_size(map),   &value, bpf_map__value_size(map), 0)) {
+        if (bpf_map__lookup_elem(map, &key, bpf_map__key_size(map), &value, bpf_map__value_size(map), 0)) {
             break;
         }
-        // add relationship analysis
-
+        if (value.flow == 0) {
+            continue;
+        }
+        uint64_t lastFlow = lastSockFlow[key];
+        // a new sock flow which has same 4 ntuple, the value.flow may small than lastFlow
+        uint64_t diffFlow = value.flow > lastFlow ? value.flow - lastFlow : value.flow;
+        lastSockFlow[key] = value.flow;
+        // two pid as a unique key
+        uint32_t pid1 = value.server.pid;
+        uint32_t pid2 = value.client.pid;
+        uint64_t pidPair = pid1 < pid2 ? static_cast<uint64_t>(pid1) << UINT32_BIT_LEN | static_cast<uint64_t>(pid2)
+            : static_cast<uint64_t>(pid2) << UINT32_BIT_LEN | static_cast<uint64_t>(pid1);
+        flowData[pidPair] += diffFlow;
         err = bpf_map__get_next_key(map, &key, &nextKey, sizeof(SockKey));
         key = nextKey;
     }
 }
 
-void NetInterface::CloseNetFlow() {
+void NetInterface::CloseNetFlow()
+{
     struct net_flow_kernel *obj = (struct net_flow_kernel *)skel;
-    DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook,.ifindex = if_nametoindex("lo"),
-    .attach_point = BPF_TC_INGRESS);
-    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,.handle = 1, .priority = 1);
+    DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook, .ifindex = if_nametoindex("lo"),
+        .attach_point = BPF_TC_INGRESS);
+    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = 1, .priority = 1);
 
     int ret = bpf_tc_detach(&tc_hook, &tc_opts);
     ret = bpf_tc_hook_destroy(&tc_hook);
-    net_flow_kernel__detach((struct net_flow_kernel *) skel);
-    net_flow_kernel__destroy((struct net_flow_kernel *) skel);
+    net_flow_kernel__detach((struct net_flow_kernel *)skel);
+    net_flow_kernel__destroy((struct net_flow_kernel *)skel);
     skel = nullptr;
 }

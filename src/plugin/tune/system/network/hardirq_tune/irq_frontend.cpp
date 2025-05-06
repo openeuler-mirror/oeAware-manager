@@ -23,6 +23,7 @@ void IrqFrontEnd::GetEthQueData(std::unordered_map<std::string, EthQueInfo> &eth
         EthQueInfo &info = item.second;
         info.AddRegex(queueRegex);
         info.UpdateQue2Irq(irqWithDesc);
+        info.ProcSpecialEth();
     }
 }
 
@@ -88,6 +89,7 @@ void EthQueInfo::AddRegex(const std::vector<std::string> &regexSrc)
     for (const auto &str : regexSrc) {
         std::string regexTmp = oeaware::ReplaceString(str, "VAR_BUSINFO", busInfo);
         regexTmp = oeaware::ReplaceString(regexTmp, "VAR_ETH", dev);
+        regexTmp = oeaware::ReplaceString(regexTmp, "VAR_DRIVER", driver);
         regexTmp = oeaware::ReplaceString(regexTmp, "VAR_QUEUE", "(\\d+)");
         /* todo
         * 1. replace special symbols in VAR_XXX to avoid regex error
@@ -126,6 +128,21 @@ void EthQueInfo::UpdateQue2Irq(std::unordered_map<int, std::string> &irqWithDesc
             it = regex.erase(it);
         }
         ++it;
+    }
+}
+void EthQueInfo::ProcSpecialEth()
+{
+    /*
+     * drivers\net\ethernet\hisilicon\hns3\hns3_enet.c
+     * ref func : hns3_nic_init_irq
+     */
+    if (driver == "hns3") {
+        std::unordered_map<int, int> que2IrqNew;
+        for (auto &item : que2Irq) {
+            // 2 : description is twice the actual queue number
+            que2IrqNew[item.first / 2] = item.second;
+        }
+        que2Irq = que2IrqNew;
     }
 }
 bool IrqFrontEnd::InitConf(const std::string &path)

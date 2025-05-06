@@ -108,6 +108,7 @@ void UpdateNetDriverInfo(std::unordered_map<std::string, EthQueInfo> &ethQueData
         const std::string dev = std::string(data[i].name);
         ethQueData[dev].dev = dev;
         ethQueData[dev].busInfo = std::string(data[i].busInfo);
+        ethQueData[dev].driver = std::string(data[i].driver);
     }
 }
 
@@ -190,6 +191,7 @@ void NetHardIrq::AddIrqToQueueInfo()
                 continue;
             }
             queInfo.irqId = ethQueData[dev].que2Irq[queueId];
+            queInfo.queueId = queueId;
         }
     }
 }

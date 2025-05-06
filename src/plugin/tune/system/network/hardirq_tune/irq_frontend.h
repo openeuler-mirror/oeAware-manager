@@ -21,10 +21,12 @@ struct EthQueInfo {
     std::string dev;
     int operstate;
     std::string busInfo;
+    std::string driver;
     std::vector<std::string> regex; /* create by dev/operstate/busInfo ... */
     std::unordered_map<int, int> que2Irq;  /* use regex to match irqWithDesc */
     void AddRegex(const std::vector<std::string> &regexSrc);
     void UpdateQue2Irq(std::unordered_map<int, std::string> &irqWithDesc);
+    void ProcSpecialEth();
 };
 
 /* this class is used to resolve the config and get the que2irq with rule */

@@ -119,5 +119,6 @@ int AnalysisCli::Proc(int argc, char **argv)
         return -1;
     }
     cli.Run();
+    OeClose();
     return 0;
 }

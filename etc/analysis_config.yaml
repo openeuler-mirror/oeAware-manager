@@ -7,3 +7,7 @@ hugepage:
 
 numa_analysis:
   thread_threshold: 200  # thread count threshold to use numa native schedule.
+
+smc_d_analysis:
+  change_rate: 0.1
+  lo_net_flow: 100 # MB/S

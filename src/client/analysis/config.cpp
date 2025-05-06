@@ -32,6 +32,8 @@ void Config::PrintHelp()
     usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
     usage += "   --pid                      set the pid to be analyzed.\n";
     usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
+    usage += "   --smc-change-rate              set smc connections change rate threshold.\n";
+    usage += "   --smc-lonet-flow              set smc local net flow threshold.\n";
     std::cout << usage;
 }
 
@@ -122,6 +124,24 @@ bool Config::Init(int argc, char **argv)
                 numaThreadThreshold = atoi(optarg);
                 numaThreadThresholdSet = true;
                 break;
+            case SMC_CHANGE_RATE:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid smc change rate: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                smcChangeRate = atof(optarg);
+                smcChangeRateSet = true;
+                break;
+            case SMC_LONET_FLOW:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid smc local net flow: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                smcLoNetFlow = atoi(optarg);
+                smcLoNetFlowSet = true;
+                break;
             default:
                 PrintHelp();
                 return false;
@@ -159,6 +179,16 @@ bool Config::LoadConfig(const std::string& configPath)
             auto numa_analysis = config["numa_analysis"];
             if (numa_analysis["thread_threshold"] && !numaThreadThresholdSet) {
                 const_cast<Config*>(this)->numaThreadThreshold = numa_analysis["thread_threshold"].as<int>();
+            }
+        }
+
+        if (config["smc_d_analysis"]) {
+            auto smc_d_analysis = config["smc_d_analysis"];
+            if (smc_d_analysis["change_rate"] && !smcChangeRateSet) {
+                const_cast<Config*>(this)->smcChangeRate = smc_d_analysis["change_rate"].as<double>();
+            }
+            if (smc_d_analysis["lo_net_flow"] && !smcLoNetFlowSet) {
+                const_cast<Config*>(this)->smcLoNetFlow = smc_d_analysis["lo_net_flow"].as<int>();
             }
         }
 

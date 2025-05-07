@@ -35,39 +35,9 @@ PmuUncoreCollector::PmuUncoreCollector(): oeaware::Interface()
     supportTopics.push_back(topic);
 }
 
-void PmuUncoreCollector::InitUncoreAttr(struct PmuAttr &attr)
-{
-    attr.pidList = nullptr;
-    attr.numPid = 0;
-    attr.cpuList = nullptr;
-    attr.numCpu = 0;
-    attr.evtAttr = nullptr;
-    attr.period = 10;
-    attr.useFreq = 0;
-    attr.excludeUser = 0;
-    attr.excludeKernel = 0;
-    attr.symbolMode = NO_SYMBOL_RESOLVE;
-    attr.callStack = 0;
-    attr.dataFilter = SPE_FILTER_NONE;
-    attr.evFilter = SPE_EVENT_NONE;
-    attr.minLatency = 0;
-    attr.includeNewFork = 0;
-
-    DIR *dir = opendir("/sys/devices");
-    if (dir != nullptr) {
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != nullptr) {
-            if (entry->d_type == DT_DIR && std::string(entry->d_name).find("hha") != std::string::npos) {
-                hhaDir.push_back(std::string(entry->d_name) + "/");
-            }
-        }
-        closedir(dir);
-    }
-}
-
 int PmuUncoreCollector::OpenUncore()
 {
-    struct PmuAttr attr;
+    struct PmuAttr attr = {};
     struct UncoreConfig *rxOuter;
     struct UncoreConfig *rxSccl;
     struct UncoreConfig *rxOpsNum;

@@ -52,7 +52,7 @@ void PmuSamplingCollector::InitSamplingAttr(struct PmuAttr &attr)
 
 int PmuSamplingCollector::OpenSampling(const oeaware::Topic &topic)
 {
-    struct PmuAttr attr;
+    struct PmuAttr attr = {};
     InitSamplingAttr(attr);
 
     char *evtList[1];

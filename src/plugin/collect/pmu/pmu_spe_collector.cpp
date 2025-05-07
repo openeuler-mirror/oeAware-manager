@@ -53,7 +53,7 @@ void PmuSpeCollector::InitSpeAttr(struct PmuAttr &attr)
 
 int PmuSpeCollector::OpenSpe()
 {
-    struct PmuAttr attr;
+    struct PmuAttr attr = {};
     InitSpeAttr(attr);
     int pd = PmuOpen(SPE_SAMPLING, &attr);
     if (pd == -1) {

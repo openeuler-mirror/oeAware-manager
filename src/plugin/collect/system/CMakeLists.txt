@@ -1,5 +1,6 @@
 project(system_collector)
 include_directories(command)
+
 add_custom_target(ebpf_build
         COMMAND ${CMAKE_MAKE_PROGRAM} -C ${CMAKE_CURRENT_SOURCE_DIR}/net_interface/ebpf
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/net_interface/ebpf
@@ -7,7 +8,6 @@ add_custom_target(ebpf_build
         SOURCES net_interface/ebpf/Makefile net_interface/ebpf/Makefile.arch net_interface/ebpf/net_flow_kernel.c  # 声明依赖文件
         )
 add_library(system_collector SHARED
-            thread_collector.cpp
             system_collector.cpp
             kernel_config.cpp
             kernel_data.cpp
@@ -17,6 +17,7 @@ add_library(system_collector SHARED
             # net intf
             ./net_interface/net_interface.cpp
             ./net_interface/net_intf_comm.cpp
+            ./thread/thread_collector.cpp
             )
 target_include_directories(system_collector PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(system_collector PRIVATE ${CMAKE_SOURCE_DIR}/src/common)
@@ -28,6 +29,23 @@ target_include_directories(system_collector PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/net_interface/ebpf   # 假设Makefile生成头文件在此目录
         ${CMAKE_CURRENT_BINARY_DIR}/net_interface/ebpf   # 如果生成文件在构建目录
         )
+
+# 考虑4.19内核版本上BTF支持不完善，会由兼容性问题，所以加了编译选项控制
+if (ENABLE_EBPF)
+    message(STATUS "enable eBPF")
+    target_compile_definitions(system_collector PRIVATE ENABLE_EBPF)
+    add_custom_target(thread_collect_ebpf
+            COMMAND ${CMAKE_MAKE_PROGRAM} -C ${CMAKE_CURRENT_SOURCE_DIR}/thread/ebpf
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/thread/ebpf
+            COMMENT "Building thread collect eBPF programs using existing Makefile"
+            SOURCES thread/ebpf/Makefile thread/ebpf/thread_collector.bpf.c  # 声明依赖文件
+            )
+    add_dependencies(system_collector thread_collect_ebpf)
+    target_include_directories(system_collector PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/thread/ebpf   # 假设Makefile生成头文件在此目录
+            ${CMAKE_CURRENT_BINARY_DIR}/thread/ebpf   # 如果生成文件在构建目录
+            )
+endif()
 
 if (WITH_ASAN)
     enable_asan(system_collector)

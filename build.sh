@@ -10,7 +10,8 @@ with_test="OFF"
 with_debug="OFF"
 with_asan="OFF"
 with_optimization="OFF"
-params="kperfrpm,help,test,with_asan,with_optimization,debug,release"
+enable_ebpf="ON"
+params="kperfrpm,help,test,with_asan,with_optimization,debug,release,disable_ebpf"
 function usage() {
     echo ""
     echo "usage: build.sh [OPTIONS] [ARGS]"
@@ -20,6 +21,7 @@ function usage() {
     echo "  -t |--test                   build tests case"
     echo "  --with_asan                  open AddressSanitizer compilation option"
     echo "  --with_optimization          open optimization compilation option"
+    echo "  --disable_ebpf               disable eBPF"
     echo "  --debug                      compile the debug version"
     echo "  --release                    compile the release version"
     echo "  -h |--help                   show usage"
@@ -53,6 +55,10 @@ while true; do
             ;;
         --with_optimization)
             with_optimization="ON"
+            shift
+            ;;
+        --disable_ebpf)
+            enable_ebpf="OFF"
             shift
             ;;
         -h|--help)
@@ -95,5 +101,5 @@ fi
 
 cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
          -DWITH_TEST=${with_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
-         -DWITH_OPTIMIZATION=${with_optimization}
+         -DWITH_OPTIMIZATION=${with_optimization} -DENABLE_EBPF=${enable_ebpf}
 make -j$(nproc)

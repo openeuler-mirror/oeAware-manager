@@ -22,6 +22,10 @@
 #include <securec.h>
 #include "data_register.h"
 
+#if ENABLE_EBPF
+std::vector<struct thread_event*> ThreadCollector::threadEvents;
+#endif
+
 ThreadCollector::ThreadCollector()
 {
     name = OE_THREAD_COLLECTOR;
@@ -57,6 +61,12 @@ void ThreadCollector::UpdateData(const DataList &dataList)
 oeaware::Result ThreadCollector::Enable(const std::string &param)
 {
     (void)param;
+#if ENABLE_EBPF
+    // 先初始化一次所有的线程信息，然后打开ebpf追踪线程变化情况
+    INFO(logger, "enable ebpf thread collector");
+    GetAllThreads();
+    OpenThreadTrace();
+#endif
     return oeaware::Result(OK);
 }
 
@@ -68,12 +78,22 @@ void ThreadCollector::Disable()
     }
     threads.clear();
     taskTime.clear();
+#if ENABLE_EBPF
+    CloseThreadTrace();
+    threadEvents.clear();
+#endif
 }
 
 void ThreadCollector::Run()
 {
     if (!openStatus) return;
+#if ENABLE_EBPF
+    ReadThreadTrace();
+    ParseThreadEvent();
+    threadEvents.clear();
+#else
     GetAllThreads();
+#endif
     DataList dataList;
     dataList.topic.instanceName = new char[name.size() + 1];
     strcpy_s(dataList.topic.instanceName, name.size() + 1, name.data());
@@ -90,10 +110,79 @@ void ThreadCollector::Run()
         info->name = new char[strlen(it.second->name) + 1];
         strcpy_s(info->name, strlen(it.second->name) + 1, it.second->name);
         dataList.data[i++] = info;
+        DEBUG(logger, "thread info: pid=" << info->pid << ", tid=" << info->tid << ", name=" << info->name);
     }
     dataList.len = i;
     Publish(dataList);
 }
+
+#if ENABLE_EBPF
+oeaware::Result ThreadCollector::OpenThreadTrace()
+{
+    skel = thread_collector_bpf__open_and_load();
+    if (!skel) {
+        ERROR(logger, "Failed to open and load bpf program");
+        return oeaware::Result(FAILED);
+    }
+
+    int err = thread_collector_bpf__attach(skel);
+    if (err) {
+        ERROR(logger, "Failed to attach bpf program, " << err);
+        thread_collector_bpf__destroy(skel);
+        skel = nullptr;
+        return oeaware::Result(FAILED);
+    }
+
+    rb = ring_buffer__new(bpf_map__fd(skel->maps.thread_events), handle_event, NULL, NULL);
+    if (!rb) {
+        ERROR(logger, "Failed to create ring buffer, " << -errno);
+        thread_collector_bpf__destroy(skel);
+        skel = nullptr;
+        return oeaware::Result(FAILED);
+    }
+
+    return oeaware::Result(OK);
+}
+
+oeaware::Result ThreadCollector::ReadThreadTrace()
+{
+    int err = 0;
+
+    while (true) {
+        err = ring_buffer__poll(rb, 1000);
+        if (err == 0) {
+            break;
+        }
+        if (err < 0) {
+            ERROR(logger, "Failed to poll ring buffer, " << err);
+            return oeaware::Result(FAILED);
+        }
+    }
+
+    return oeaware::Result(OK);
+}
+
+void ThreadCollector::ParseThreadEvent()
+{
+    for (auto &event : threadEvents) {
+        if (event->is_create) {
+            auto info = RecordThreadInfo(event->pid, event->tid, event->comm);
+            if (info != nullptr) {
+                threads[event->tid] = info;
+            }
+        } else {
+            threads.erase(event->tid);
+        }
+    }
+}
+
+void ThreadCollector::CloseThreadTrace()
+{
+    ring_buffer__free(rb);
+    thread_collector_bpf__destroy(skel);
+    skel = nullptr;
+}
+#endif
 
 void ThreadCollector::GetAllThreads()
 {
@@ -113,6 +202,7 @@ void ThreadCollector::GetAllThreads()
         if (task_dir == nullptr) {
             continue;
         }
+#if !ENABLE_EBPF
         struct stat task_stat;
         /* Continue if the process does not change */
         if (IsNotChange(&task_stat, task_path, pid)) {
@@ -121,6 +211,7 @@ void ThreadCollector::GetAllThreads()
         }
         /* Update last modification time of the process. */
         taskTime[pid] = task_stat.st_mtime;
+#endif
         /* Update threads info */
         CollectThreads(pid, task_dir);
         closedir(task_dir);
@@ -149,6 +240,16 @@ void ThreadCollector::CollectThreads(int pid, DIR *taskDir)
         }
         threads[tid] = info;
     }
+}
+
+ThreadInfo* ThreadCollector::RecordThreadInfo(int pid, int tid, char comm[])
+{
+    auto threadInfo = new ThreadInfo();
+    threadInfo->pid = pid;
+    threadInfo->tid = tid;
+    threadInfo->name = new char[strlen(comm) + 1];
+    strcpy_s(threadInfo->name, strlen(comm) + 1, comm);
+    return threadInfo;
 }
 
 ThreadInfo* ThreadCollector::GetThreadInfo(int pid, int tid)

@@ -780,6 +780,30 @@ int EnvStaticDataDeserialize(void **data, InStream &in)
     return 0;
 }
 
+void EnvStaticDataFree(void *data)
+{
+    auto envData = static_cast<EnvStaticInfo*>(data);
+    if (envData == nullptr) {
+        return;
+    }
+    if (envData->cpu2Node != nullptr) {
+        delete[] envData->cpu2Node;
+        envData->cpu2Node = nullptr;
+    }
+    if (envData->numaDistance != nullptr) {
+        for (int i = 0; i < envData->numaNum; ++i) {
+            if (envData->numaDistance[i] != nullptr) {
+                delete[] envData->numaDistance[i];
+                envData->numaDistance[i] = nullptr;
+            }
+        }
+        delete[] envData->numaDistance;
+        envData->numaDistance = nullptr;
+    }
+    delete envData;
+    envData = nullptr;
+}
+
 int EnvRealTimeDataSerialize(const void *data, OutStream &out)
 {
     auto envData = static_cast<const EnvRealTimeInfo *>(data);
@@ -804,6 +828,20 @@ int EnvRealTimeDataDeserialize(void **data, InStream &in)
         in >> envData->cpuOnLine[i];
     }
     return 0;
+}
+
+void EnvRealTimeDataFree(void *data)
+{
+    auto envData = static_cast<EnvRealTimeInfo*>(data);
+    if (envData == nullptr) {
+        return;
+    }
+    if (envData->cpuOnLine != nullptr) {
+        delete[] envData->cpuOnLine;
+        envData->cpuOnLine = nullptr;
+    }
+    delete envData;
+    envData = nullptr;
 }
 
 int EnvCpuUtilSerialize(const void *data, OutStream &out)
@@ -834,6 +872,27 @@ int EnvCpuUtilDeserialize(void **data, InStream &in)
         }
     }
     return 0;
+}
+
+void EnvCpuUtilFree(void *data)
+{
+    auto cpuData = static_cast<EnvCpuUtilParam*>(data);
+    if (cpuData == nullptr) {
+        return;
+    }
+    if (cpuData->times != nullptr) {
+        for (int cpu = 0; cpu < cpuData->cpuNumConfig + 1; ++cpu) {
+            if (cpuData->times[cpu] == nullptr) {
+                continue;
+            }
+            delete[] cpuData->times[cpu];
+            cpuData->times[cpu] = nullptr;
+        }
+        delete[] cpuData->times;
+        cpuData->times = nullptr;
+    }
+    delete cpuData;
+    cpuData = nullptr;
 }
 
 static int DataItemDeserialize(DataItem *dataItem, int len, InStream &in)
@@ -898,11 +957,6 @@ int AnalysisResultItemDeserialize(void **data, InStream &in)
     strcpy_s(analysisResultItem->conclusion, conclusion.size() + 1, conclusion.data());
     SuggestionItemDeserialize(&analysisResultItem->suggestionItem, in);
     return 0;
-}
-
-void EnvCpuUtilFree(void *data)
-{
-    // to do
 }
 
 int NetIntfBaseSerialize(const void *data, OutStream &out)
@@ -1090,8 +1144,8 @@ void Register::InitRegisterData()
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));
     RegisterData("thread_scenario", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("command_collector", RegisterEntry(CommandDataSerialize, CommandDataDeserialize, CommandDataFree));
-    RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize));
-    RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize));
+    RegisterData("env_info_collector::static", RegisterEntry(EnvStaticDataSerialize, EnvStaticDataDeserialize, EnvStaticDataFree));
+    RegisterData("env_info_collector::realtime", RegisterEntry(EnvRealTimeDataSerialize, EnvRealTimeDataDeserialize, EnvRealTimeDataFree));
     RegisterData("env_info_collector::cpu_util", RegisterEntry(EnvCpuUtilSerialize, EnvCpuUtilDeserialize, EnvCpuUtilFree));
     std::string name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_BASE_TOPIC);
     RegisterData(name, RegisterEntry(NetIntfBaseSerialize, NetIntfBaseDeserialize, NetIntfBaseFree));

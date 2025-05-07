@@ -137,6 +137,7 @@ int Impl::HandleRequest(const Opt &opt, const std::vector<std::string> &payload)
     if (!resultQueue->WaitTimeAndPop(result)) {
         return -1;
     }
+    delete[] result.payload;
     return result.code;
 }
 

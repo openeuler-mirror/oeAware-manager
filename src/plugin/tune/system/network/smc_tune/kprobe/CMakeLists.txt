@@ -16,7 +16,7 @@ function(compile_module obj)
     set(TARGET_NAME "${obj}")
     add_custom_target(${TARGET_NAME} ALL cp -f ${CMAKE_CURRENT_SOURCE_DIR}/*.c ${CMAKE_CURRENT_BINARY_DIR}/
         COMMAND cp -f ${CMAKE_CURRENT_SOURCE_DIR}/*.c ${CMAKE_CURRENT_BINARY_DIR}/
-        COMMAND echo "compiling module ${obj}.ko..."
+        COMMENT "compiling module ${obj}.ko..."
         )
     add_custom_command(TARGET ${TARGET_NAME}
         POST_BUILD

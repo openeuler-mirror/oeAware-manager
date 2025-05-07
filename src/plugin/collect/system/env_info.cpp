@@ -206,7 +206,6 @@ void EnvInfo::CloseTopic(const oeaware::Topic &topic)
         WARN(logger, "CloseTopic failed, " + topic.GetType() + " not open.");
         return;
     }
-    std::cout << "CloseTopic " << topic.GetType() << std::endl;
     topicParams[topic.topicName].open = false;
     if (topic.topicName == "realtime") {
         ResetEnvRealTimeInfo(envRealTimeInfo);

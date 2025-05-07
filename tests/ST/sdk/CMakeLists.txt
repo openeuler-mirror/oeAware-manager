@@ -9,8 +9,11 @@ add_executable(test_sdk
     ${test_sdk_src}
 )
 
-target_link_libraries(test_sdk PUBLIC oeaware-sdk)
-target_include_directories(test_sdk PUBLIC
+if (WITH_ASAN)
+    enable_asan(test_sdk)
+endif()
+target_link_libraries(test_sdk oeaware-sdk)
+target_include_directories(test_sdk PRIVATE
     ${SDK_INC_PATH}
 )
 

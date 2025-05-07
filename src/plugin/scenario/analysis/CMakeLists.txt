@@ -12,6 +12,7 @@ set(analysis_src
     xcall/xcall_analysis.cpp
     net_hirq/net_hirq_analysis.cpp
     numa_analysis/numa_analysis.cpp
+    microarch_tidnocmp/microarch_tidnocmp_analysis.cpp
     common/analysis_utils.cpp
 )
 

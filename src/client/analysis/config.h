@@ -76,6 +76,10 @@ public:
     {
         return smcLoNetFlow;
     }
+    std::string GetMicroArchTidNoCmpConfigStream() const
+    {
+        return microArchTidNoCmpConfigStream;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
@@ -89,6 +93,7 @@ private:
     double smcChangeRate = 0.1;
     int smcLoNetFlow = 100; // default 100MB/S
 
+    std::string microArchTidNoCmpConfigStream = "";
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
@@ -113,8 +118,11 @@ private:
     bool numaThreadThresholdSet = false;
     bool smcChangeRateSet = false;
     bool smcLoNetFlowSet = false;
+    bool supporCpuPartIdSet = false;
+    bool keyServiceListSet = false;
     bool ParseTime(const char *arg);
     void PrintHelp();
+    void LoadMicroArchTidNoCmpConfig(const YAML::Node config);
 };
 
 #endif

@@ -13,6 +13,7 @@
 #include <regex>
 #include <oeaware/utils.h>
 #include <fstream>
+#include <sstream>
 #include "config.h"
 
 void Config::PrintHelp()
@@ -154,6 +155,20 @@ bool Config::Init(int argc, char **argv)
     return true;
 }
 
+void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
+{
+    if (!config["microarch_tidnocmp"]) {
+        return ;
+    }
+
+    auto microArchTidNoCmpConfig = config["microarch_tidnocmp"];
+
+    std::stringstream yamlStream;
+    yamlStream << config["microarch_tidnocmp"];  // Output node content to stream, then parsed by the plugin
+    microArchTidNoCmpConfigStream = yamlStream.str();
+    return ;
+}
+
 bool Config::LoadConfig(const std::string& configPath)
 {
     try {
@@ -192,6 +207,7 @@ bool Config::LoadConfig(const std::string& configPath)
             }
         }
 
+        LoadMicroArchTidNoCmpConfig(config);
         return true;
     } catch (const YAML::Exception& e) {
         std::cerr << "Error loading config file: " << e.what() << std::endl;

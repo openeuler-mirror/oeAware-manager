@@ -351,7 +351,6 @@ static int __kprobes handler_connect_file(struct kprobe *p, struct pt_regs *regs
         return 0;
     }
     struct socket *sock;
-    int tmperr;
     u16 dst_port;
     struct file *file = REGS_PARM1(regs);
     if (file == NULL) {
@@ -364,6 +363,7 @@ static int __kprobes handler_connect_file(struct kprobe *p, struct pt_regs *regs
     }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
+    int tmperr;
     sock = sock_from_file(file, &tmperr);
 #else
     sock = sock_from_file(file);

@@ -159,11 +159,8 @@ void NumaAnalysis::Analysis()
 
     // 计算每秒创建的线程数
     double threadCreatedPerSecond = 0.0;
-    double threadDestroyedPerSecond = 0.0;
     if (timeWindowMs > 0) {
         threadCreatedPerSecond = static_cast<double>(threadCreatedCount) * 1000.0 / timeWindowMs;
-        threadDestroyedPerSecond =
-            static_cast<double>(threadDestroyedCount) * 1000.0 / timeWindowMs;
     }
 
     // 计算每秒的操作数

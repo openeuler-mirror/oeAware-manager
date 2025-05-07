@@ -322,7 +322,6 @@ void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
 
 void NetInterface::CloseNetFlow()
 {
-    struct net_flow_kernel *obj = (struct net_flow_kernel *)skel;
     DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook, .ifindex = if_nametoindex("lo"),
         .attach_point = BPF_TC_INGRESS);
     DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = 1, .priority = 1);

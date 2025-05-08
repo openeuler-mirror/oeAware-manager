@@ -23,10 +23,9 @@ EventResult UnsubscribeHandler::Handle(const Event &event)
         INFO(logger, "sdk " << event.payload[0] << " disconnected and has been unsubscribed related topics.");
         return eventResult;
     }
-    CTopic cTopic;
     InStream in(event.payload[0]);
-    TopicDeserialize(&cTopic, in);
-    Topic topic{cTopic.instanceName, cTopic.topicName, cTopic.params};
+    Topic topic;
+    topic.Deserialize(in);
     auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE,
         std::vector<std::string>{topic.GetType(), event.payload[1]});
     instanceRunHandler->RecvQueuePush(msg);

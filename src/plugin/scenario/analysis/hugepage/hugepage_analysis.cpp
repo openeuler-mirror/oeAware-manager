@@ -1,5 +1,3 @@
-#include "hugepage_analysis.h"
-#include "hugepage_analysis.h"
 /******************************************************************************
  * Copyright (c) 2024 Huawei Technologies Co., Ltd. All rights reserved.
  * oeAware is licensed under Mulan PSL v2.
@@ -11,14 +9,13 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-
-#include "oeaware/utils.h"
+#include "hugepage_analysis.h"
+#include <oeaware/utils.h>
 #include "oeaware/data/pmu_plugin.h"
 #include "oeaware/data/pmu_counting_data.h"
 #include "oeaware/data/pmu_sampling_data.h"
 #include "oeaware/data/pmu_spe_data.h"
-#include "hugepage_analysis.h"
-
+#include "analysis_utils.h"
 namespace oeaware {
 const int MS_PER_SEC = 1000;                // 1000 : ms per sec
 
@@ -50,6 +47,7 @@ Result HugePageAnalysis::Enable(const std::string &param)
 
 void HugePageAnalysis::Disable()
 {
+	AnalysisResultItemFree(&analysisResultItem);
 	topicStatus.clear();
 }
 
@@ -130,7 +128,7 @@ void HugePageAnalysis::PublishData(const Topic &topic)
 	dataList.len = 1;
 	dataList.data = new void *[dataList.len];
 	dataList.data[0] = &analysisResultItem;
-	Publish(dataList);
+	Publish(dataList, false);
 }
 
 void HugePageAnalysis::Run()

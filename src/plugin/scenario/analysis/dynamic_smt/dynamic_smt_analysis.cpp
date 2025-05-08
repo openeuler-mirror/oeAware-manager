@@ -9,9 +9,10 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#include "dynamic_smt_analysis.h"
 #include "oeaware/utils.h"
 #include "env_data.h"
-#include "dynamic_smt_analysis.h"
+#include "analysis_utils.h"
 
 namespace oeaware {
 DynamicSmtAnalysis::DynamicSmtAnalysis()
@@ -35,6 +36,7 @@ Result DynamicSmtAnalysis::Enable(const std::string &param)
 
 void DynamicSmtAnalysis::Disable()
 {
+    AnalysisResultItemFree(&analysisResultItem);
     topicStatus.clear();
 }
 
@@ -97,7 +99,7 @@ void DynamicSmtAnalysis::PublishData(const Topic &topic)
     dataList.len = 1;
     dataList.data = new void *[dataList.len];
     dataList.data[0] = &analysisResultItem;
-    Publish(dataList);
+    Publish(dataList, false);
 }
 
 void DynamicSmtAnalysis::Run()

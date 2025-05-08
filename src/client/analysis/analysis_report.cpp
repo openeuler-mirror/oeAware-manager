@@ -86,7 +86,9 @@ void AnalysisReport::Init(Config &config)
     AddAnalysisTopic("smc_d_analysis", "smc_d", {timeParam, smcthreshold1, smcthreshold2});
 
     std::string pid = "pid:" + std::to_string(config.GetPid());
-    AddAnalysisTopic(OE_XCALL_ANALYSIS, "xcall", {timeParam, pid});
+    std::string xcallThreshold = "threshold:" + std::to_string(config.GetXcallThreshold());
+    std::string xcallTopNum = "num:" + std::to_string(config.GetXcallTopNum());
+    AddAnalysisTopic(OE_XCALL_ANALYSIS, "xcall", {timeParam, pid, xcallThreshold, xcallTopNum});
 
     AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
 

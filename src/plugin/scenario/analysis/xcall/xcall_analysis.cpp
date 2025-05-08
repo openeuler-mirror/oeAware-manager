@@ -48,7 +48,6 @@ XcallAnalysis::XcallAnalysis()
     priority = 1;
     type = SCENARIO;
     version = "1.0.0";
-    InitSyscallTable();
     subscribeTopics.emplace_back(Topic{OE_ENV_INFO, "cpu_util", ""});
     subscribeTopics.emplace_back(Topic{OE_THREAD_COLLECTOR, OE_THREAD_COLLECTOR, ""});
     for (auto &topic : topicStrs) {
@@ -59,6 +58,9 @@ XcallAnalysis::XcallAnalysis()
 Result XcallAnalysis::Enable(const std::string &param)
 {
     (void)param;
+    if (syscallTable.empty()) {
+        InitSyscallTable();
+    }
     if (!oeaware::FileExist("/proc/1/xcall")) {
         return oeaware::Result(FAILED, "xcall does not open. If the system supports xcall, "
                 "please add 'xcall' to cmdline.");
@@ -85,15 +87,13 @@ void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
     }
     std::ifstream straceFile("/tmp/strace.txt");
     std::string line;
-    int skipLine = 4;
+    int skipLine = 2;
     std::vector<XcallInfo> vec;
     while (getline(straceFile, line)) {
+        // Skip the first two lines.
         if (skipLine > 0) {
             skipLine--;
             continue;
-        }
-        if (line[0] == '-') {
-            break;
         }
         double time;
         double sec;
@@ -109,12 +109,16 @@ void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
         }
         vec.emplace_back(XcallInfo{calls, time, callName});
     }
+    // Skip the last two lines.
+    vec.pop_back();
+    vec.pop_back();
     sort(vec.begin(), vec.end(), [](const XcallInfo &x1, const XcallInfo &x2) {
         return x1.time > x2.time;
     });
     file << pName << ":\n";
-    file << "- xcall1: ";
-    for (size_t i = 0; i < threshold && i < vec.size(); ++i) {
+    file << "- xcall_1: ";
+    int num = topNum;
+    for (size_t i = 0; num > 0 && i < vec.size(); ++i, --num) {
         if (i) file << ",";
         file << syscallTable[vec[i].callName];
     }
@@ -164,6 +168,12 @@ Result XcallAnalysis::OpenTopic(const oeaware::Topic &topic)
     }
     if (paramsMap.count("pid")) {
         pid = atoi(paramsMap["pid"].data());
+    }
+    if (paramsMap.count("threshold")) {
+        threshold = atof(paramsMap["threshold"].data());
+    }
+    if (paramsMap.count("num")) {
+        topNum = atoi(paramsMap["num"].data());
     }
     auto topicType = topic.GetType();
     topicStatus[topicType].open = true;

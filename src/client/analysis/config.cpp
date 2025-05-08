@@ -207,7 +207,16 @@ bool Config::LoadConfig(const std::string& configPath)
                 const_cast<Config*>(this)->smcLoNetFlow = smc_d_analysis["lo_net_flow"].as<int>();
             }
         }
-
+        
+        if (config["xcall_analysis"]) {
+            auto xcallAnalysis = config["xcall_analysis"];
+            if (xcallAnalysis["threshold"]) {
+                xcallThreshold = xcallAnalysis["threshold"].as<double>();
+            }
+            if (xcallAnalysis["num"]) {
+                xcallTopNum = xcallAnalysis["num"].as<int>();
+            }
+        }
         LoadMicroArchTidNoCmpConfig(config);
         return true;
     } catch (const YAML::Exception& e) {

@@ -80,11 +80,19 @@ public:
     {
         return microArchTidNoCmpConfigStream;
     }
+    double GetXcallThreshold() const
+    {
+        return xcallThreshold;
+    }
+    int GetXcallTopNum() const
+    {
+        return xcallTopNum;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
-    int pid;
+    int pid = -1;
     double l1MissThreshold = 5;
     double l2MissThreshold = 10;
     double dynamicSmtThreshold = 40;
@@ -92,7 +100,8 @@ private:
     int numaThreadThreshold = 100; // defaut 100 threads
     double smcChangeRate = 0.1;
     int smcLoNetFlow = 100; // default 100MB/S
-
+    double xcallThreshold = 5;
+    int xcallTopNum = 5;
     std::string microArchTidNoCmpConfigStream = "";
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {

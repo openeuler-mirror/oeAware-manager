@@ -104,7 +104,6 @@ void XcallTune::Disable()
             WriteSysParam(p.first, "!"+value);
         }
     }
-    enable = false;
 }
 
 int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
@@ -126,22 +125,22 @@ int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
 
 void XcallTune::Run()
 {
-    if (!enable) {
-        enable = true;
-        for (auto &item : threadId) {
-            for (auto &pid : item.second) {
-                std::string path = "/proc/" + std::to_string(pid) + "/xcall";
-                for (auto v : xcallTune[item.first]) {
-                    if (v.first != "xcall_1" || openedXcall.count(path)) {
-                        continue;
-                    }
-                    if (WriteSysParam(path, v.second) == 0) {
-                        openedXcall[path].emplace_back(v.second);
-                        INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second <<
-                                "}.");
-                    } else {
-                        WARN(logger, "xcall applied failed, path: " << path << ".");
-                    }
+    for (auto &item : threadId) {
+        for (auto &pid : item.second) {
+            std::string path = "/proc/" + std::to_string(pid) + "/xcall";
+            if (openedXcall.count(path)) {
+                continue;
+            }
+            for (auto v : xcallTune[item.first]) {
+                if (v.first != "xcall_1") {
+                    continue;
+                }
+                if (WriteSysParam(path, v.second) == 0) {
+                    openedXcall[path].emplace_back(v.second);
+                    INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second <<
+                            "}.");
+                } else {
+                    WARN(logger, "xcall applied failed, path: " << path << ".");
                 }
             }
         }

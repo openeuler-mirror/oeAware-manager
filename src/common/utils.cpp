@@ -16,7 +16,6 @@
 #include <securec.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
-#include <sys/resource.h>
 #include <grp.h>
 #include <iostream>
 #include <cctype>
@@ -432,6 +431,15 @@ bool SetFileDescriptorLimit(long limit)
         return false;
     }
     return true;
+}
+
+bool SetMemLockRlimt(rlim_t limit)
+{
+    struct rlimit rlim = {
+        .rlim_cur = limit,
+        .rlim_max = limit
+    };
+    return setrlimit(RLIMIT_MEMLOCK, &rlim) == 0;
 }
 
 std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement)

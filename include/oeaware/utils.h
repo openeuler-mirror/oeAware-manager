@@ -15,6 +15,7 @@
 #include <vector>
 #include <unordered_map>
 #include <oeaware/data_list.h>
+#include <sys/resource.h>
 
 namespace oeaware {
 bool Download(const std::string &url, const std::string &path);
@@ -48,6 +49,7 @@ std::string GetNetOperateStr(int state);
 int GetNetOperateTypeByStr(const std::string &state);
 bool GetSysFsNrOpen(long &nrOpen);
 bool SetFileDescriptorLimit(long limit);
+bool SetMemLockRlimt(rlim_t limit);
 std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement);
 bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &features);
 }

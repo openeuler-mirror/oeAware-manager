@@ -30,6 +30,11 @@ int main(int argc, char **argv)
     } else {
         WARN(logger, "Failed to get file descriptor limit: " << strerror(errno));
     }
+    if (oeaware::SetMemLockRlimt(RLIM_INFINITY)) { // for load ebpf program
+        INFO(logger, "Success to set mem lock limit to infinity");
+    } else {
+        WARN(logger, "Failed to set mem lock limit to infinity: " << strerror(errno));
+    }
     if (signal(SIGINT, oeaware::SignalHandler) == SIG_ERR || signal(SIGTERM, oeaware::SignalHandler) == SIG_ERR) {
         ERROR(logger, "Sig Error!");
         exit(EXIT_FAILURE);

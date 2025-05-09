@@ -9,9 +9,9 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
+#include "smc_d_analysis.h"
 #include "oeaware/utils.h"
 #include "analysis_utils.h"
-#include "smc_d_analysis.h"
 
 namespace oeaware {
 const int MS_PER_SEC = 1000;

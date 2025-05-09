@@ -82,6 +82,7 @@ Result MicroarchTidNoCmpAnalysis::Enable(const std::string &param)
 
 void MicroarchTidNoCmpAnalysis::Disable()
 {
+    AnalysisResultItemFree(&analysisResultItem);
     topicStatus.clear();
 }
 
@@ -151,7 +152,7 @@ void MicroarchTidNoCmpAnalysis::PublishData(const Topic &topic)
     dataList.len = 1;
     dataList.data = new void *[dataList.len];
     dataList.data[0] = &analysisResultItem;
-    Publish(dataList);
+    Publish(dataList, false);
 }
 
 std::string MicroarchTidNoCmpAnalysis::JoinThreadList(const std::set<std::string> &list) const

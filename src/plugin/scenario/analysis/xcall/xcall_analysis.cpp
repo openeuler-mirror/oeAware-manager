@@ -71,6 +71,7 @@ Result XcallAnalysis::Enable(const std::string &param)
 
 void XcallAnalysis::Disable()
 {
+    AnalysisResultItemFree(&analysisResultItem);
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
@@ -213,7 +214,7 @@ void XcallAnalysis::PublishData(const Topic &topic)
     dataList.len = 1;
     dataList.data = new void *[dataList.len];
     dataList.data[0] = &analysisResultItem;
-    Publish(dataList);
+    Publish(dataList, false);
 }
 
 void XcallAnalysis::Run()

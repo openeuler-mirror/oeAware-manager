@@ -487,4 +487,46 @@ bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &feature
     return true;
 }
 
+void AnalysisResultItemFree(AnalysisResultItem *analysisResultItem)
+{
+    if (analysisResultItem == nullptr) {
+        return;
+    }
+    if (analysisResultItem->dataItem != nullptr) {
+        for (int i = 0; i < analysisResultItem->dataItemLen; ++i) {
+            if (analysisResultItem->dataItem[i].metric != nullptr) {
+                delete[] analysisResultItem->dataItem[i].metric;
+                analysisResultItem->dataItem[i].metric = nullptr;
+            }
+            if (analysisResultItem->dataItem[i].value != nullptr) {
+                delete[] analysisResultItem->dataItem[i].value;
+                analysisResultItem->dataItem[i].value = nullptr;
+            }
+            if (analysisResultItem->dataItem[i].extra != nullptr) {
+                delete[] analysisResultItem->dataItem[i].extra;
+                analysisResultItem->dataItem[i].extra = nullptr;
+            }
+        }
+        delete[] analysisResultItem->dataItem;
+        analysisResultItem->dataItem = nullptr;
+    }
+    if (analysisResultItem->conclusion != nullptr) {
+        delete[] analysisResultItem->conclusion;
+        analysisResultItem->conclusion = nullptr;
+    }
+
+    if (analysisResultItem->suggestionItem.suggestion != nullptr) {
+        delete[] analysisResultItem->suggestionItem.suggestion;
+        analysisResultItem->suggestionItem.suggestion = nullptr;
+    }
+    if (analysisResultItem->suggestionItem.opt != nullptr) {
+        delete[] analysisResultItem->suggestionItem.opt;
+        analysisResultItem->suggestionItem.opt = nullptr;
+    }
+    if (analysisResultItem->suggestionItem.extra != nullptr) {
+        delete[] analysisResultItem->suggestionItem.extra;
+        analysisResultItem->suggestionItem.extra = nullptr;
+    }
+}
+
 }

@@ -174,6 +174,7 @@ Result NetHirqAnalysis::Enable(const std::string &param)
 
 void NetHirqAnalysis::Disable()
 {
+    AnalysisResultItemFree(&analysisResultItem);
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
@@ -203,7 +204,7 @@ void NetHirqAnalysis::Run()
             dataList.len = 1;
             dataList.data = new void *[dataList.len];
             dataList.data[0] = &analysisResultItem;
-            Publish(dataList);
+            Publish(dataList, false);
             info.hasPublished = true;
         }
     }

@@ -51,6 +51,7 @@ Result NumaAnalysis::Enable(const std::string &param)
 
 void NumaAnalysis::Disable()
 {
+    AnalysisResultItemFree(&analysisResultItem);
 }
 
 Result NumaAnalysis::OpenTopic(const oeaware::Topic &topic)
@@ -233,7 +234,7 @@ void NumaAnalysis::PublishData(const Topic &topic)
     dataList.len = 1;
     dataList.data = new void*[dataList.len];
     dataList.data[0] = GetResult();
-    Publish(dataList);
+    Publish(dataList, false);
 }
 
 void NumaAnalysis::Reset()

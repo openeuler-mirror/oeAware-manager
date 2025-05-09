@@ -959,6 +959,17 @@ int AnalysisResultItemDeserialize(void **data, InStream &in)
     return 0;
 }
 
+void AnalysisResultItemFree(void *data)
+{
+    if (data == nullptr) {
+        return;
+    }
+    auto analysisResultItem = static_cast<AnalysisResultItem*>(data);
+    AnalysisResultItemFree(analysisResultItem);
+    delete analysisResultItem;
+    data = nullptr;
+}
+
 int NetIntfBaseSerialize(const void *data, OutStream &out)
 {
     auto netData = static_cast<const NetIntfBaseDataList *>(data);
@@ -1132,13 +1143,20 @@ void Register::InitRegisterData()
 
     RegisterData("pmu_uncore_collector", RegisterEntry(PmuUncoreDataSerialize, PmuUncoreDataDeserialize,
         PmuBaseDataFree));
-    RegisterData("smc_d_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-    RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-    RegisterData("dynamic_smt_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-    RegisterData("xcall_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-    RegisterData(OE_NET_HIRQ_ANALYSIS, RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-    RegisterData("numa_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
-	RegisterData("microarch_tidnocmp_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize));
+    RegisterData("smc_d_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+    RegisterData("hugepage_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+    RegisterData("dynamic_smt_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+    RegisterData("xcall_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+    RegisterData(OE_NET_HIRQ_ANALYSIS, RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+    RegisterData("numa_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+	RegisterData("microarch_tidnocmp_analysis", RegisterEntry(AnalysisResultItemSerialize,
+        AnalysisResultItemDeserialize, AnalysisResultItemFree));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

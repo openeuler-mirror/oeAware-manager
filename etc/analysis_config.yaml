@@ -17,3 +17,6 @@ microarch_tidnocmp:
     - mysqld # Supported service. The default value is mysqld.
   cpu_part:
     - 0xd02
+xcall_analysis:
+  threshold: 5 # Kernel cpu usage
+  num: 5 # top num syscall

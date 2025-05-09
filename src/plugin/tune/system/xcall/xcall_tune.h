@@ -31,7 +31,6 @@ private:
     int WriteSysParam(const std::string &path, const std::string &value);
     const int defaultPeriod = 1000;
     const int defaultPriority = 2;
-    bool enable = false;
     std::string configPath;
     std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> xcallTune;
     std::unordered_map<std::string, std::unordered_set<int>> threadId;

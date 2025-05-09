@@ -56,6 +56,7 @@ private:
     int curTime = 0;
     double threshold = 5;
     double cpuSystemUsage = 0;
+    int topNum = 5;
 };
 }
 #endif

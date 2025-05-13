@@ -32,6 +32,7 @@ public:
 private:
     void DockerUpdate(const std::unordered_set<std::string> &sub_dir);
     void DockerCollect();
+    void GetSamplingTimestamp(Container &container);
     bool openStatus = false;
     std::unordered_map<std::string, Container> containers;
 };

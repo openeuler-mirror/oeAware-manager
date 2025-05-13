@@ -1157,6 +1157,8 @@ void Register::InitRegisterData()
         AnalysisResultItemFree));
 	RegisterData("microarch_tidnocmp_analysis", RegisterEntry(AnalysisResultItemSerialize,
         AnalysisResultItemDeserialize, AnalysisResultItemFree));
+    RegisterData("docker_coordination_burst_analysis", RegisterEntry(AnalysisResultItemSerialize,
+        AnalysisResultItemDeserialize, AnalysisResultItemFree));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

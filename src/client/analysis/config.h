@@ -27,6 +27,11 @@ const int NUMA_THREAD_THRESHOLD = 204;
 const int PID = 205;
 const int SMC_CHANGE_RATE = 206 ;
 const int SMC_LONET_FLOW = 207;
+const int HOST_CPU_USAGE_THRESHOLD = 208;
+const int DOCKER_CPU_USAGE_THRESHOLD = 209;
+
+constexpr double HOST_CPU_USAGE_THRESHOLD_DEFAULT = 45.0;
+constexpr double DOCKER_CPU_USAGE_THRESHOLD_DEFAULT = 95.0;
 
 class Config {
 public:
@@ -76,6 +81,14 @@ public:
     {
         return smcLoNetFlow;
     }
+    double GetDockerCoordinationBurstHostCpuUsageThreshold() const
+    {
+        return hostCpuUsageThreshold;
+    }
+    double GetDockerCoordinationBurstDockerCpuUsageThreshold() const
+    {
+        return dockerCpuUsageThreshold;
+    }
     std::string GetMicroArchTidNoCmpConfigStream() const
     {
         return microArchTidNoCmpConfigStream;
@@ -102,6 +115,8 @@ private:
     int smcLoNetFlow = 100; // default 100MB/S
     double xcallThreshold = 5;
     int xcallTopNum = 5;
+    double hostCpuUsageThreshold = HOST_CPU_USAGE_THRESHOLD_DEFAULT;
+    double dockerCpuUsageThreshold = DOCKER_CPU_USAGE_THRESHOLD_DEFAULT;
     std::string microArchTidNoCmpConfigStream = "";
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
@@ -117,6 +132,8 @@ private:
         {"numa-thread-threshold", required_argument, nullptr, NUMA_THREAD_THRESHOLD},
         {"smc-change-rate", required_argument, nullptr, SMC_CHANGE_RATE},
         {"smc-lonet-flow", required_argument, nullptr, SMC_LONET_FLOW},
+        {"host-cpu-usage-threshold", required_argument, nullptr, HOST_CPU_USAGE_THRESHOLD},
+        {"docker-cpu-usage-threshold", required_argument, nullptr, DOCKER_CPU_USAGE_THRESHOLD},
         {nullptr, 0, nullptr, 0}
     };
     bool isShowRealTimeReport = false;
@@ -127,10 +144,13 @@ private:
     bool numaThreadThresholdSet = false;
     bool smcChangeRateSet = false;
     bool smcLoNetFlowSet = false;
+    bool hostCpuUsageThresholdSet = false;
+    bool dockerCpuUsageThresholdSet = false;
     bool supporCpuPartIdSet = false;
     bool keyServiceListSet = false;
     bool ParseTime(const char *arg);
     void PrintHelp();
+    void DockerCoordinationBurstConfig(const YAML::Node config);
     void LoadMicroArchTidNoCmpConfig(const YAML::Node config);
 };
 

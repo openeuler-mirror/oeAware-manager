@@ -9,7 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "thread_collector.h"
+#include "thread/thread_collector.h"
 #include "kernel_config.h"
 #include "command/command_collector.h"
 #include "env_info.h"

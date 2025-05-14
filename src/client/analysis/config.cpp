@@ -35,6 +35,8 @@ void Config::PrintHelp()
     usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
     usage += "   --smc-change-rate              set smc connections change rate threshold.\n";
     usage += "   --smc-lonet-flow              set smc local net flow threshold.\n";
+    usage += "   --host-cpu-usage-threshold                  set host cpu usage threshold.\n";
+    usage += "   --docker-cpu-usage-threshold                  set docker cpu usage threshold.\n";
     std::cout << usage;
 }
 
@@ -144,6 +146,24 @@ bool Config::Init(int argc, char **argv)
                 smcLoNetFlow = atoi(optarg);
                 smcLoNetFlowSet = true;
                 break;
+            case HOST_CPU_USAGE_THRESHOLD:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid host-cpu-usage-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                hostCpuUsageThreshold = atof(optarg);
+                hostCpuUsageThresholdSet = true;
+                break;
+            case DOCKER_CPU_USAGE_THRESHOLD:
+                if (!oeaware::IsNum(optarg)) {
+                    std::cerr << "Error: Invalid docker-cpu-usage-threshold: '" << optarg << "'\n";
+                    PrintHelp();
+                    return false;
+                }
+                dockerCpuUsageThreshold = atof(optarg);
+                dockerCpuUsageThresholdSet = true;
+                break;
             default:
                 PrintHelp();
                 return false;
@@ -154,6 +174,24 @@ bool Config::Init(int argc, char **argv)
         return false;
     }
     return true;
+}
+
+void Config::DockerCoordinationBurstConfig(const YAML::Node config)
+{
+    if (!config["docker_coordination_burst"]) {
+        return;
+    }
+
+    auto dockerCoordinationBurstConfig = config["docker_coordination_burst"];
+
+    if (dockerCoordinationBurstConfig["host_cpu_usage_threshold"] && !hostCpuUsageThresholdSet) {
+        hostCpuUsageThreshold = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<double>();
+    }
+
+    if (dockerCoordinationBurstConfig["docker_cpu_usage_threshold"] && !dockerCpuUsageThresholdSet) {
+        dockerCpuUsageThreshold = dockerCoordinationBurstConfig["docker_cpu_usage_threshold"].as<double>();
+    }
+    return ;
 }
 
 void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
@@ -217,6 +255,7 @@ bool Config::LoadConfig(const std::string& configPath)
                 xcallTopNum = xcallAnalysis["num"].as<int>();
             }
         }
+        DockerCoordinationBurstConfig(config);
         LoadMicroArchTidNoCmpConfig(config);
         return true;
     } catch (const YAML::Exception& e) {

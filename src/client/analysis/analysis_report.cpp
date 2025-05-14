@@ -94,6 +94,12 @@ void AnalysisReport::Init(Config &config)
 
     std::string threadThreshold = "threshold:" + std::to_string(config.GetNumaThreadThreshold());
     AddAnalysisTopic("numa_analysis", "numa_analysis", {timeParam, threadThreshold});
+    std::string hostCpuUsage = "hostCpuUsageThreshold:" +
+                std::to_string(config.GetDockerCoordinationBurstHostCpuUsageThreshold());
+    std::string dockerCpuUsage = "dockerCpuUsageThreshold:" +
+                std::to_string(config.GetDockerCoordinationBurstDockerCpuUsageThreshold());
+    AddAnalysisTopic("docker_coordination_burst_analysis", "docker_coordination_burst",
+                     {timeParam, hostCpuUsage, dockerCpuUsage});
 
     std::string microarchTidNoCmpConfigStream = "micro_arch_tidnocmp_config_stream:" +
                                                  config.GetMicroArchTidNoCmpConfigStream();

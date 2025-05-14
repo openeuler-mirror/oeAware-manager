@@ -15,6 +15,7 @@
 #include "xcall/xcall_analysis.h"
 #include "net_hirq/net_hirq_analysis.h"
 #include "numa_analysis/numa_analysis.h"
+#include "docker_coordination_burst/docker_coordination_burst_analysis.h"
 #include "microarch_tidnocmp/microarch_tidnocmp_analysis.h"
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
@@ -25,5 +26,6 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<oeaware::XcallAnalysis>());
     interface.emplace_back(std::make_shared<oeaware::NetHirqAnalysis>());
     interface.emplace_back(std::make_shared<oeaware::NumaAnalysis>());
+    interface.emplace_back(std::make_shared<oeaware::DockerCoordinationBurstAnalysis>());
     interface.emplace_back(std::make_shared<oeaware::MicroarchTidNoCmpAnalysis>());
 }

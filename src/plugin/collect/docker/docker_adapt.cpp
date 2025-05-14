@@ -12,11 +12,12 @@
 #include "docker_adapt.h"
 #include <iostream>
 #include <securec.h>
+#include <chrono>
 
-constexpr int PERIOD = 1000;
+constexpr int PERIOD = 500;
 constexpr int PRIORITY = 0;
 
-static bool GetContainerTasks(const std::string& containerId, std::vector<int32_t>& tasks) 
+static bool GetContainerTasks(const std::string& containerId, std::vector<int32_t>& tasks)
 {
     std::string fileName = "/sys/fs/cgroup/cpu/docker/" + containerId + "/tasks";
     std::ifstream file(fileName);
@@ -33,9 +34,9 @@ static bool GetContainerTasks(const std::string& containerId, std::vector<int32_
     return true;
 }
 
-static bool GetContainersInfo(int64_t &val, const std::string &containerId, const std::string &element)
+static bool GetContainersCpuInfo(int64_t &val, const std::string &containerId, const std::string &element)
 {
-    std::string fileName = "/sys/fs/cgroup/cpu/docker/" + containerId +"/" + element;
+    std::string fileName = "/sys/fs/cgroup/cpu/docker/" + containerId + "/" + element;
     std::ifstream file(fileName);
     if (!file.is_open()) {
         return false;
@@ -47,9 +48,9 @@ static bool GetContainersInfo(int64_t &val, const std::string &containerId, cons
     return true;
 }
 
-static bool GetContainersInfo(std::string &val, const std::string &containerId, const std::string &element)
+static bool GetContainersCpusetInfo(std::string &val, const std::string &containerId, const std::string &element)
 {
-    std::string fileName = "/sys/fs/cgroup/cpuset/docker/" + containerId +"/" + element;
+    std::string fileName = "/sys/fs/cgroup/cpuset/docker/" + containerId + "/" + element;
     std::ifstream file(fileName);
     if (!file.is_open()) {
         return false;
@@ -127,6 +128,13 @@ void DockerAdapt::Run()
     Publish(dataList, false);
 }
 
+void DockerAdapt::GetSamplingTimestamp(Container &container)
+{
+    using namespace std::chrono;
+    const auto curTs = duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+    container.sampling_timestamp = curTs;
+}
+
 void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directories)
 {
     // delete non-existent container
@@ -142,11 +150,13 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
         Container container;
         container.id = dir;
         bool ret = true;
-        ret &= GetContainersInfo(container.cfs_period_us, dir, "cpu.cfs_period_us");
-        ret &= GetContainersInfo(container.cfs_quota_us, dir, "cpu.cfs_quota_us");
-        ret &= GetContainersInfo(container.cfs_burst_us, dir, "cpu.cfs_burst_us");
-        ret &= GetContainersInfo(container.cpus, dir, "cpuset.cpus");
+        ret &= GetContainersCpuInfo(container.cfs_period_us, dir, "cpu.cfs_period_us");
+        ret &= GetContainersCpuInfo(container.cfs_quota_us, dir, "cpu.cfs_quota_us");
+        ret &= GetContainersCpuInfo(container.cfs_burst_us, dir, "cpu.cfs_burst_us");
+        ret &= GetContainersCpusetInfo(container.cpus, dir, "cpuset.cpus");
         ret &= GetContainerTasks(dir, container.tasks);
+        ret &= GetContainersCpuInfo(container.cpu_usage, dir, "cpuacct.usage");
+        GetSamplingTimestamp(container);
         if (ret) {
             containers[dir] = container;
         }

@@ -59,6 +59,11 @@ static __always_inline void ReadIpAndPort(struct sock *sk, struct SockKey *key)
     BPF_CORE_READ_INTO(&(key->remoteIp), sk, __sk_common.skc_daddr);
     BPF_CORE_READ_INTO(&(key->localPort), sk, __sk_common.skc_num);
     BPF_CORE_READ_INTO(&(key->remotePort), sk, __sk_common.skc_dport);
+    /*
+    * accept/connect by socket, src port is host byte order, not need to convert
+    * dport is network byte order, need to convert
+    */
+    key->remotePort = bpf_ntohs(key->remotePort);
 }
 
 SEC("kprobe/tcp_connect")
@@ -66,8 +71,6 @@ int BPF_KPROBE(tcp_connect, struct sock *sk)
 {
     struct SockKey key;
     ReadIpAndPort(sk, &key);
-    key.localPort = bpf_ntohs(key.localPort);
-    key.remotePort = bpf_ntohs(key.remotePort);
     // check loopback
     struct SockInfo info = {};
     UpdateThreadData(&info.client);
@@ -99,8 +102,6 @@ int BPF_KPROBE(tcp_close, struct sock *sk)
 {
     struct SockKey key;
     ReadIpAndPort(sk,  &key);
-    key.localPort = bpf_ntohs(key.localPort);
-    key.remotePort = bpf_ntohs(key.remotePort);
     bpf_map_delete_elem(&flowStats, &key);
     return 0;
 }
@@ -136,7 +137,8 @@ int tc_ingress(struct __sk_buff *skb) {
     if (ip->protocol == IPPROTO_TCP) {
         if ((void *)tcp + sizeof(*tcp) > dataEnd)
             return TC_ACT_OK;
-        sport = tcp->source;
+        // read from network packet, sport and dport are network byte order, need to convert
+        sport = bpf_ntohs(tcp->source);
         dport = bpf_ntohs(tcp->dest);
     } else {
         return TC_ACT_OK;

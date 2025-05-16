@@ -16,6 +16,8 @@
 #include <unordered_set>
 #include <string>
 #include <functional>
+#include <bpf/libbpf.h>
+#include <bpf/libbpf_common.h>
 #include "net_intf_comm.h"
 #include "oeaware/interface.h"
 #include "oeaware/data/network_interface_data.h"
@@ -55,6 +57,11 @@ public:
     oeaware::Result Enable(const std::string &param = "") override;
     void Disable() override;
     void Run() override;
+    struct NetDevHook {
+        bpf_tc_hook tcHook;
+        bpf_tc_opts tcOpts;
+        int ifindex;
+    };
 private:
     struct NetIntTopic {
         std::string topicName;
@@ -70,11 +77,17 @@ private:
     void PublishBaseInfo(const std::string &params);
     void PublishDriverInfo(const std::string &params);
     void PublishLocalNetAffiInfo(const std::string &params);
+    bool AttachTcProgram(struct net_flow_kernel *obj, std::string name, int ifindex);
     bool OpenNetFlow();
     void CloseNetFlow();
     void ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData);
 
-    void *skel = nullptr;
+    struct LocalNetAffiCtl {
+        void *skel = nullptr;
+        std::unordered_map<std::string, NetDevHook> netDevHooks;
+        bool debugUser = false;
+        bool debugKernel = false;
+    } localNetAffiCtl;
 };
 
 #endif // OEAWARE_NET_INTERFACE_H

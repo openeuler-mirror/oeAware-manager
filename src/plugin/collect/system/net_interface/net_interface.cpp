@@ -74,8 +74,14 @@ oeaware::Result NetInterface::OpenTopic(const oeaware::Topic &topic)
         return oeaware::Result(FAILED, "topic already opened");
     }
 
-    if (topic.topicName == OE_LOCAL_NET_AFFINITY && !OpenNetFlow()) {
-        return oeaware::Result(FAILED, "open net flow failed");
+    if (topic.topicName == OE_LOCAL_NET_AFFINITY) {
+        if (topic.params == OE_PARA_PROCESS_AFFINITY && !OpenNetFlow()) {
+            return oeaware::Result(FAILED, "open net flow failed");
+        } else if (topic.params == OE_PARA_LOC_NET_AFFI_USER_DEBUG) {
+            localNetAffiCtl.debugUser = true;
+        } else if (topic.params == OE_PARA_LOC_NET_AFFI_KERN_DEBUG) {
+            localNetAffiCtl.debugKernel = true;
+        }
     }
 
     netTopicInfo[topic.topicName].openedParams.insert(topic.params);
@@ -95,7 +101,13 @@ void NetInterface::CloseTopic(const oeaware::Topic &topic)
         return;
     }
     if (topic.topicName == OE_LOCAL_NET_AFFINITY) {
-        CloseNetFlow();
+        if (topic.params == OE_PARA_PROCESS_AFFINITY) {
+            CloseNetFlow();
+        } else if (topic.params == OE_PARA_LOC_NET_AFFI_USER_DEBUG) {
+            localNetAffiCtl.debugUser = false;
+        } else if (topic.params == OE_PARA_LOC_NET_AFFI_KERN_DEBUG) {
+            localNetAffiCtl.debugKernel = false;
+        }
     }
     netTopicInfo[topic.topicName].openedParams.erase(topic.params);
 }
@@ -105,13 +117,18 @@ void NetInterface::UpdateData(const DataList &dataList)
     (void)dataList;
 }
 
+static void UpdateNetIntfBaseInfo(std::unordered_map<std::string, NetIntfBaseInfo> &info)
+{
+    std::unordered_set<std::string> netIntf = GetNetInterface();
+    for (auto &name : netIntf) {
+        GetNetIntfBaseInfo(name, info[name]);
+    }
+}
+
 oeaware::Result NetInterface::Enable(const std::string &param)
 {
     (void)param;
-    std::unordered_set<std::string> netIntf = GetNetInterface();
-    for (auto &name : netIntf) {
-        GetNetIntfBaseInfo(name, netIntfBaseInfo[name]);
-    }
+    UpdateNetIntfBaseInfo(netIntfBaseInfo);
     return oeaware::Result(OK);
 }
 
@@ -134,6 +151,8 @@ void NetInterface::Run()
             }
         }
     }
+    netIntfBaseInfo.clear();
+    UpdateNetIntfBaseInfo(netIntfBaseInfo);
 }
 
 void NetInterface::InitTopicInfo(const std::string &name)
@@ -143,7 +162,8 @@ void NetInterface::InitTopicInfo(const std::string &name)
     if (name == OE_NETWORK_INTERFACE_BASE_TOPIC || name == OE_NETWORK_INTERFACE_DRIVER_TOPIC) {
         netTopicInfo[name].supportParams = { "operstate_up", "operstate_all" };
     } else if (name == OE_LOCAL_NET_AFFINITY) {
-        netTopicInfo[name].supportParams = { "process_affinity" };
+        netTopicInfo[name].supportParams = { OE_PARA_PROCESS_AFFINITY,
+            OE_PARA_LOC_NET_AFFI_USER_DEBUG, OE_PARA_LOC_NET_AFFI_KERN_DEBUG };
     }
 }
 
@@ -174,6 +194,7 @@ void NetInterface::PublishBaseInfo(const std::string &params)
         std::copy(name.begin(), name.begin() + length, data->base[cnt].name);
         data->base[cnt].name[length] = '\0';
         data->base[cnt].operstate = item.second.operstate;
+        data->base[cnt].ifindex = item.second.ifindex;
         cnt++;
     }
     data->count = cnt;
@@ -224,8 +245,14 @@ void NetInterface::PublishDriverInfo(const std::string &params)
 
 void NetInterface::PublishLocalNetAffiInfo(const std::string &params)
 {
-    if (params != "process_affinity") {
+    if (params != OE_PARA_PROCESS_AFFINITY) {
         return;
+    }
+    for (auto &item : netIntfBaseInfo) {
+        // incremental update net dev hook
+        if (!AttachTcProgram((struct net_flow_kernel*)localNetAffiCtl.skel, item.second.name, item.second.ifindex)) {
+            ERROR(logger, "Failed to attach TC program to " << item.second.name);
+        }
     }
     std::unordered_map<uint64_t, uint64_t> flowData;
     ReadFlow(flowData);
@@ -252,59 +279,92 @@ void NetInterface::PublishLocalNetAffiInfo(const std::string &params)
     Publish(dataList);
 }
 
+bool NetInterface::AttachTcProgram(struct net_flow_kernel *obj, std::string name, int ifindex)
+{
+    if (localNetAffiCtl.netDevHooks.count(name) != 0) {
+        return true;
+    }
+    // add attach filter
+    if (netIntfBaseInfo[name].operstate == IF_OPER_DOWN) {
+        return true;
+    }
+
+    DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook,
+        .ifindex = ifindex,
+        .attach_point = BPF_TC_INGRESS);
+
+    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,
+        .handle = 1,
+        .priority = 1);
+
+    int err = bpf_tc_hook_create(&tc_hook);
+    if (err && err != -EEXIST) {
+        ERROR(logger, "Failed to create TC hook for " << name << ": " << err);
+        return false;
+    }
+    tc_opts.prog_fd = bpf_program__fd(obj->progs.tc_ingress);
+    err = bpf_tc_attach(&tc_hook, &tc_opts);
+    if (err) {
+        ERROR(logger, "Failed to attach TC program to " << name << ": " << err << ": " << ifindex);
+        return false;
+    }
+    NetDevHook hook = { .tcHook = tc_hook, .tcOpts = tc_opts, .ifindex = ifindex };
+    localNetAffiCtl.netDevHooks.emplace(name, hook);
+    if (localNetAffiCtl.debugUser) {
+        INFO(logger, "NetInterface::AttachTcProgram Attach TC program to " << name << ": " << ifindex);
+    }
+    return true;
+}
+
 bool NetInterface::OpenNetFlow()
 {
     int err;
     struct net_flow_kernel *obj = net_flow_kernel__open_and_load();
     if (!obj) {
-        ERROR(logger, "Failed to open BPF object");
+        ERROR(logger, "Failed to open net_flow BPF object");
         return false;
     }
-
-    do {
-        err = net_flow_kernel__attach(obj);
-        if (err) {
-            ERROR(logger, "Failed to attach BPF programs: " << err);
-            break;
+    err = net_flow_kernel__attach(obj);
+    if (err) {
+        ERROR(logger, "Failed to attach BPF programs: " << err);
+        return false;
+    }
+    for (auto &item : netIntfBaseInfo) {
+        if (!AttachTcProgram(obj, item.second.name, item.second.ifindex)) {
+            ERROR(logger, "Failed to attach TC program to " << item.second.name);
         }
-        DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook, .ifindex = if_nametoindex("lo"),
-            .attach_point = BPF_TC_INGRESS);
-        DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = 1, .priority = 1);
-        err = bpf_tc_hook_create(&tc_hook);
-        if (err && err != -EEXIST) {
-            ERROR(logger, "Failed to bpf_tc_hook_create: " << err);
-            break;
-        }
-        tc_opts.prog_fd = bpf_program__fd(obj->progs.tc_ingress);
-        err = bpf_tc_attach(&tc_hook, &tc_opts);
-        if (err) {
-            ERROR(logger, "Failed to attach TC:  " << err);
-            break;
-        }
-        skel = obj;
-        return true;
-    } while (0);
-
-    net_flow_kernel__destroy(obj);
-    return false;
+    }
+    if (localNetAffiCtl.netDevHooks.empty()) {
+        net_flow_kernel__destroy(obj);
+        return false;
+    }
+    localNetAffiCtl.skel = obj;
+    return true;
 }
 
 void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
 {
-    struct net_flow_kernel *obj = (struct net_flow_kernel *)skel;
+    struct net_flow_kernel *obj = (struct net_flow_kernel *)localNetAffiCtl.skel;
     struct SockKey key, nextKey;
     struct SockInfo value;
     int err;
     struct bpf_map *map = obj->maps.flowStats;
-
+    int allkeyNum = 0;
+    int validKeyNum = 0;
+    
     err = bpf_map__get_next_key(map, NULL, &key, sizeof(SockKey));
     while (!err) {
+        allkeyNum++;
         if (bpf_map__lookup_elem(map, &key, bpf_map__key_size(map), &value, bpf_map__value_size(map), 0)) {
             break;
+        }
+        if (localNetAffiCtl.debugUser) {
+            INFO(logger, "ReadFlow key: " << key.localIp <<  ":" << key.localPort << " > " << key.remoteIp << ":" << key.remotePort);
         }
         if (value.flow == 0) {
             continue;
         }
+        validKeyNum++;
         uint64_t lastFlow = lastSockFlow[key];
         // a new sock flow which has same 4 ntuple, the value.flow may small than lastFlow
         uint64_t diffFlow = value.flow > lastFlow ? value.flow - lastFlow : value.flow;
@@ -318,17 +378,37 @@ void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
         err = bpf_map__get_next_key(map, &key, &nextKey, sizeof(SockKey));
         key = nextKey;
     }
+    if (localNetAffiCtl.debugUser) {
+        INFO(logger, "ReadFlow allkeyNum: " << allkeyNum << ", validKeyNum: " << validKeyNum << ", flowData size: " << flowData.size());
+    }
 }
 
 void NetInterface::CloseNetFlow()
 {
-    DECLARE_LIBBPF_OPTS(bpf_tc_hook, tc_hook, .ifindex = if_nametoindex("lo"),
-        .attach_point = BPF_TC_INGRESS);
-    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = 1, .priority = 1);
+    struct net_flow_kernel *obj = (struct net_flow_kernel *)localNetAffiCtl.skel;
 
-    int ret = bpf_tc_detach(&tc_hook, &tc_opts);
-    ret = bpf_tc_hook_destroy(&tc_hook);
-    net_flow_kernel__detach((struct net_flow_kernel *)skel);
-    net_flow_kernel__destroy((struct net_flow_kernel *)skel);
-    skel = nullptr;
+    for (auto &it : localNetAffiCtl.netDevHooks) {
+        auto &hook = it.second;
+        DECLARE_LIBBPF_OPTS(bpf_tc_opts, opts,
+            .handle = hook.tcOpts.handle,
+            .priority = hook.tcOpts.priority);
+
+        int ret = bpf_tc_detach(&hook.tcHook, &opts);
+        if (ret) {
+            ERROR(logger, "Failed to detach TC from " << hook.tcHook.ifindex << ", ret: " << ret);
+        }
+
+        ret = bpf_tc_hook_destroy(&hook.tcHook);
+        if (ret) {
+            ERROR(logger, "Failed to destroy TC hook on " << hook.tcHook.ifindex << ", ret: " << ret);
+        }
+    }
+
+    localNetAffiCtl.netDevHooks.clear();
+
+    if (obj) {
+        net_flow_kernel__detach(obj);
+        net_flow_kernel__destroy(obj);
+        localNetAffiCtl.skel = nullptr;
+    }
 }

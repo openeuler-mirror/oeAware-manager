@@ -977,6 +977,7 @@ int NetIntfBaseSerialize(const void *data, OutStream &out)
     for (int n = 0; n < netData->count; ++n) {
         out << std::string(netData->base[n].name);
         out << netData->base[n].operstate;
+        out << netData->base[n].ifindex;
     }
     return 0;
 }
@@ -997,6 +998,7 @@ int NetIntfBaseDeserialize(void **data, InStream &in)
         std::copy(name.begin(), name.begin() + length, netData->base[n].name);
         netData->base[n].name[length] = '\0';
         in >> netData->base[n].operstate;
+        in >> netData->base[n].ifindex;
     }
     return 0;
 }

@@ -33,6 +33,7 @@ struct NetworkInterfaceData {
 	* IF_OPER_UP,
     */
     int operstate;                                    // interface state
+    int ifindex;                                      // interface index
 };
 
 typedef struct {
@@ -60,7 +61,12 @@ typedef struct {
     struct NetworkInterfaceDriverData *driver;
 } NetIntfDriverDataList;
 
+// topic
 #define OE_LOCAL_NET_AFFINITY "local_net_affinity"
+// params of local_net_affinity
+#define OE_PARA_LOC_NET_AFFI_USER_DEBUG "local_net_affinity_usr_debug"
+#define OE_PARA_LOC_NET_AFFI_KERN_DEBUG "local_net_affinity_kern_debug"
+#define OE_PARA_PROCESS_AFFINITY "process_affinity"
 struct ProcessNetAffinityData {
     uint32_t pid1;
     uint32_t pid2;

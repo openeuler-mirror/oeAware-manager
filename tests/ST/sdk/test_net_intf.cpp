@@ -7,7 +7,6 @@
 #include "oeaware/data_list.h"
 #include "oe_client.h"
 #include "oeaware/utils.h"
-
 static int ShowNetIntfBaseInfo(const DataList *dataList)
 {
     if (dataList && dataList->len && dataList->data) {
@@ -15,7 +14,9 @@ static int ShowNetIntfBaseInfo(const DataList *dataList)
         NetIntfBaseDataList *data = static_cast<NetIntfBaseDataList *>(dataList->data[0]);
         std::cout << topicParams << " data->count: " << data->count << std::endl;
         for (int n = 0; n < data->count; n++) {
-            std::cout << std::string(data->base[n].name) << " " << oeaware::GetNetOperateStr(data->base[n].operstate) << std::endl;
+            std::cout << std::string(data->base[n].name) << " "
+                << oeaware::GetNetOperateStr(data->base[n].operstate)
+                << ", ifindex" << data->base[n].ifindex << std::endl;
         }
     }
     return 0;
@@ -92,7 +93,9 @@ bool TestNetIntfDirverInfo(int time)
 
 bool TestNetLocalAffiInfo(int time)
 {
-    CTopic topic1 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, "process_affinity" };
+    CTopic topic1 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, OE_PARA_LOC_NET_AFFI_USER_DEBUG };
+    CTopic topic2 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, OE_PARA_PROCESS_AFFINITY };
+    
     int ret = OeInit();
     if (ret != 0) {
         std::cout << " SDK(Analysis) Init failed , result " << ret << std::endl;
@@ -100,8 +103,10 @@ bool TestNetLocalAffiInfo(int time)
     }
 
     OeSubscribe(&topic1, ShowNetLocalAffiInfo);
+    OeSubscribe(&topic2, ShowNetLocalAffiInfo);
     sleep(time);
     OeUnsubscribe(&topic1);
+    OeUnsubscribe(&topic2);
     OeClose();
     return true;
 }

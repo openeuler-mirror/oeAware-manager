@@ -359,9 +359,17 @@ void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
             break;
         }
         if (localNetAffiCtl.debugUser) {
-            INFO(logger, "ReadFlow key: " << key.localIp <<  ":" << key.localPort << " > " << key.remoteIp << ":" << key.remotePort);
+            INFO(logger, "NetInterface::ReadFlow: ("
+                << inet_ntoa(*reinterpret_cast<struct in_addr *>(&key.localIp)) << ") "
+                << key.localIp << ":" << key.localPort << " <-> ("
+                << inet_ntoa(*reinterpret_cast<struct in_addr *>(&key.remoteIp)) << ") "
+                << key.remoteIp << ":" << key.remotePort << " value: " << value.flow << ", "
+                << value.client.comm << " " << value.client.pid << " <-> "
+                << value.server.comm << " " << value.server.pid);
         }
         if (value.flow == 0) {
+            err = bpf_map__get_next_key(map, &key, &nextKey, sizeof(SockKey));
+            key = nextKey;
             continue;
         }
         validKeyNum++;

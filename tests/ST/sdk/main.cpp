@@ -2,6 +2,7 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <iomanip>
 #include "oeaware/data_list.h"
 #include "oeaware/data/network_interface_data.h"
 #include "test_inc.h"
@@ -37,7 +38,8 @@ public:
         std::cout << "usage: test_sdk [options] time.." << std::endl;
         std::cout << "options:" << std::endl;
         for (const auto &entry : descriptions) {
-            std::cout << "       " << entry.first << "             " << entry.second << std::endl;
+            std::cout << "       " << std::left << std::setw(40) <<
+                entry.first << "             " << entry.second << std::endl;
         }
     }
 

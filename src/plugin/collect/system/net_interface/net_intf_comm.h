@@ -27,6 +27,7 @@
 struct NetIntfBaseInfo {
     std::string name = "";
     int operstate = IF_OPER_UNKNOWN;
+    int ifindex = 0;
 };
 
 std::unordered_set<std::string> GetNetInterface();

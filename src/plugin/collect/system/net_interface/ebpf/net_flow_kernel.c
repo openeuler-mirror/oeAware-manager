@@ -53,7 +53,7 @@ static __always_inline void UpdateThreadData(struct ThreadData *td)
     bpf_get_current_comm(&td->comm, sizeof(td->comm));
 }
 
-static __always_inline void ReadIpAndPort(struct sock *sk, struct SockKey *key)
+static __always_inline void ReadIpAndPort(struct sock *sk, struct SockKey *key, struct SockKey *keyReversed)
 {
     BPF_CORE_READ_INTO(&(key->localIp), sk, __sk_common.skc_rcv_saddr);
     BPF_CORE_READ_INTO(&(key->remoteIp), sk, __sk_common.skc_daddr);
@@ -64,13 +64,19 @@ static __always_inline void ReadIpAndPort(struct sock *sk, struct SockKey *key)
     * dport is network byte order, need to convert
     */
     key->remotePort = bpf_ntohs(key->remotePort);
+    if (keyReversed) {
+        keyReversed->localIp = key->remoteIp;
+        keyReversed->remoteIp = key->localIp;
+        keyReversed->localPort = key->remotePort;
+        keyReversed->remotePort = key->localPort;
+    }
 }
 
 SEC("kprobe/tcp_connect")
 int BPF_KPROBE(tcp_connect, struct sock *sk)
 {
     struct SockKey key;
-    ReadIpAndPort(sk, &key);
+    ReadIpAndPort(sk, &key, NULL);
     // check loopback
     struct SockInfo info = {};
     UpdateThreadData(&info.client);
@@ -81,16 +87,9 @@ int BPF_KPROBE(tcp_connect, struct sock *sk)
 SEC("kretprobe/inet_csk_accept")
 int BPF_KRETPROBE(inet_csk_accept_exit, struct sock *sk)
 {
-    struct SockKey tmp;
-    ReadIpAndPort(sk, &tmp);
-    // check loopback
-    struct SockKey key = {
-            .localIp = tmp.remoteIp,
-            .remoteIp = tmp.localIp,
-            .localPort = tmp.remotePort,
-            .remotePort = tmp.localPort
-    };
-    struct SockInfo *info = bpf_map_lookup_elem(&flowStats, &key);
+    struct SockKey key, keyReversed;
+    ReadIpAndPort(sk, &key, &keyReversed);
+    struct SockInfo *info = bpf_map_lookup_elem(&flowStats, &keyReversed);
     if (info) {
         UpdateThreadData(&info->server);
     }
@@ -100,9 +99,37 @@ int BPF_KRETPROBE(inet_csk_accept_exit, struct sock *sk)
 SEC("kprobe/tcp_close")
 int BPF_KPROBE(tcp_close, struct sock *sk)
 {
-    struct SockKey key;
-    ReadIpAndPort(sk,  &key);
+    struct SockKey key, keyReversed;
+    ReadIpAndPort(sk, &key, &keyReversed);
     bpf_map_delete_elem(&flowStats, &key);
+    bpf_map_delete_elem(&flowStats, &keyReversed);
+    return 0;
+}
+
+SEC("kprobe/tcp_set_state")
+int BPF_KPROBE(tcp_set_state, struct sock *sk, int state)
+{
+    struct SockKey key, keyReversed;
+    ReadIpAndPort(sk, &key, &keyReversed);
+    uint8_t oldState = 0;
+    int newState = state;
+    BPF_CORE_READ_INTO(&oldState, sk, __sk_common.skc_state);
+    struct ThreadData td;
+    UpdateThreadData(&td);
+
+    if (oldState == TCP_SYN_SENT && newState == TCP_ESTABLISHED) {
+        struct SockInfo info = {};
+        UpdateThreadData(&info.client);
+        bpf_map_update_elem(&flowStats, &key, &info, BPF_ANY);
+    } else if (oldState == TCP_SYN_RECV && newState == TCP_ESTABLISHED) {
+        // This is a soft interrupt that is likely to occur on the client thread and requires IP reversal
+        struct SockInfo info = {};
+        UpdateThreadData(&info.client);
+        bpf_map_update_elem(&flowStats, &keyReversed, &info, BPF_ANY);
+    } else if ((oldState == TCP_ESTABLISHED && newState == TCP_FIN_WAIT1) || newState == TCP_CLOSE) {
+        bpf_map_delete_elem(&flowStats, &key);
+        bpf_map_delete_elem(&flowStats, &keyReversed);
+    }
     return 0;
 }
 
@@ -150,6 +177,16 @@ int tc_ingress(struct __sk_buff *skb) {
     key.localPort = sport;
     key.remotePort = dport;
     struct SockInfo *info = bpf_map_lookup_elem(&flowStats, &key);
+    if (info) {
+        info->flow += skb->len;
+    }
+    struct SockKey keyReversed = {
+        .localIp = key.remoteIp,
+        .remoteIp = key.localIp,
+        .localPort = key.remotePort,
+        .remotePort = key.localPort
+    };
+    info = bpf_map_lookup_elem(&flowStats, &keyReversed);
     if (info) {
         info->flow += skb->len;
     }

@@ -36,7 +36,8 @@ private:
         "L1-icache-load-misses", "L1-icache-loads", "branch-load-misses", "branch-loads", "dTLB-load-misses",
         "dTLB-loads", "iTLB-load-misses", "iTLB-loads", "cache-references", "cache-misses", "l2d_tlb_refill",
         "l2d_cache_refill", "l1d_tlb_refill", "l1d_cache_refill", "l1d_tlb", "l1i_tlb", "l1i_tlb_refill", "l2d_tlb",
-        "l2i_tlb", "l2i_tlb_refill", "inst_retired", "instructions", "sched:sched_process_fork", "sched:sched_process_exit"};
+        "l2i_tlb", "l2i_tlb_refill", "inst_retired", "instructions", "sched:sched_process_fork",
+        "sched:sched_process_exit"};
     std::unordered_map<std::string, TopicParam> topicParams;
     void InitCountingAttr(struct PmuAttr &attr);
     int OpenCounting(const oeaware::Topic &topic);

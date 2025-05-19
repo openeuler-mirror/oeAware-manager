@@ -12,7 +12,7 @@
 #include "numa_analysis.h"
 #include <string>
 #include <iostream>
-#include "oeaware/data/analysis_data.h"
+#include <yaml-cpp/yaml.h>
 #include "oeaware/logger.h"
 #include "oeaware/utils.h"
 #include "analysis_utils.h"
@@ -21,13 +21,16 @@
 #include "data_register.h"
 #include "oeaware/data/pmu_counting_data.h"
 #include "oeaware/data/pmu_uncore_data.h"
-#include <yaml-cpp/yaml.h>
+#include "oeaware/data/analysis_data.h"
 
 namespace oeaware {
 
 const int MS_PER_SEC = 1000;
-const double NUMA_OPS_THRESHOLD_PER_SEC = 2000000; // 包含oeaware分析自身的底噪
+const int DEFAULT_TIME_WINDOW_MS = 100;
+const int MAX_THREAD_THRESHOLD = 10000;
+const double NUMA_OPS_THRESHOLD_PER_SEC = 2000000; // Including oeaware analysis background noise
 const double NUMA_REMOTE_ACCESS_RATIO_THRESHOLD = 5.0;
+const double PERCENT_CONVERSION = 100.0;
 
 NumaAnalysis::NumaAnalysis()
 {
@@ -39,8 +42,6 @@ NumaAnalysis::NumaAnalysis()
     for (auto &topic : topicStrs) {
         supportTopics.emplace_back(Topic{name, topic, ""});
     }
-
-    LoadConfig();
 }
 
 Result NumaAnalysis::Enable(const std::string &param)
@@ -59,7 +60,22 @@ Result NumaAnalysis::OpenTopic(const oeaware::Topic &topic)
     if (std::find(topicStrs.begin(), topicStrs.end(), topic.topicName) == topicStrs.end()) {
         return Result(FAILED, "topic " + topic.topicName + " not support!");
     }
+
     auto topicType = topic.GetType();
+    auto params_map = GetKeyValueFromString(topic.params);
+    if (params_map.count("t")) {
+        time = atoi(params_map["t"].data());
+    }
+    if (params_map.count("threshold")) {
+        if (atoi(params_map["threshold"].data()) >= 1 &&
+            atoi(params_map["threshold"].data()) <= MAX_THREAD_THRESHOLD) {
+            threadThreshold = atoi(params_map["threshold"].data());
+        } else {
+            ERROR(logger, "Invalid threshold value: " << params_map["threshold"].data() << "!");
+            return Result(FAILED, "topic" + topicType + " open failed! Invalid threshold value!");
+        }
+    }
+
     topicStatus[topicType].open = true;
     beginTime = std::chrono::high_resolution_clock::now();
 
@@ -71,13 +87,6 @@ Result NumaAnalysis::OpenTopic(const oeaware::Topic &topic)
         Subscribe(subTopic);
     }
 
-    auto params_map = GetKeyValueFromString(topic.params);
-    if (params_map.count("t")) {
-        time = atoi(params_map["t"].data());
-    }
-    if (params_map.count("threshold")) {
-        threadThreshold = atoi(params_map["threshold"].data());
-    }
     oeaware::ReadSchedFeatures(schedFeaturePath, schedFeatues);
     return Result(OK);
 }
@@ -134,19 +143,17 @@ void NumaAnalysis::UpdateData(const DataList &dataList)
 
 bool NumaAnalysis::CheckNumaBottleneck()
 {
-    // 将totalOpsNum归一化为每秒的操作数
     double opsNumPerSecond = 0.0;
     if (timeWindowMs > 0) {
-        opsNumPerSecond = static_cast<double>(totalOpsNum) * 1000.0 / timeWindowMs;
+        opsNumPerSecond = static_cast<double>(totalOpsNum) * MS_PER_SEC / timeWindowMs;
     }
-    
-    // 使用归一化后的每秒操作数进行判断
+
     if (opsNumPerSecond <= NUMA_OPS_THRESHOLD_PER_SEC) {
         return false;
     }
 
     if (totalOpsNum > 0) {
-        remoteAccessRatio = static_cast<double>(totalRxOuter + totalRxSccl) / totalOpsNum * 100.0;
+        remoteAccessRatio = static_cast<double>(totalRxOuter + totalRxSccl) / totalOpsNum * PERCENT_CONVERSION;
         return remoteAccessRatio > NUMA_REMOTE_ACCESS_RATIO_THRESHOLD;
     }
 
@@ -158,68 +165,92 @@ void NumaAnalysis::Analysis()
     std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
 
-    // 计算每秒创建的线程数
-    double threadCreatedPerSecond = 0.0;
-    if (timeWindowMs > 0) {
-        threadCreatedPerSecond = static_cast<double>(threadCreatedCount) * 1000.0 / timeWindowMs;
-    }
+    CalculateAndAddMetrics(type, metrics);
+    GenerateConclusion(type, metrics);
+}
 
-    // 计算每秒的操作数
-    double opsNumPerSecond = 0.0;
-    if (timeWindowMs > 0) {
-        opsNumPerSecond = static_cast<double>(totalOpsNum) * 1000.0 / timeWindowMs;
-    }
+void NumaAnalysis::CalculateAndAddMetrics(std::vector<int>& type,
+                                          std::vector<std::vector<std::string>>& metrics)
+{
+    double threadCreatedPerSecond = CalculateThreadCreationRate();
+    double opsNumPerSecond = CalculateOpsRate();
 
-    // numa is bottleneck
+    // NUMA operations metric
     type.emplace_back(DATA_TYPE_CPU);
     metrics.emplace_back(std::vector<std::string>{
         "uncore_ops_num_per_second", std::to_string(opsNumPerSecond),
-            (opsNumPerSecond > NUMA_OPS_THRESHOLD_PER_SEC ? "high mem access" : "low mem access")});
+        (opsNumPerSecond > NUMA_OPS_THRESHOLD_PER_SEC ? "high mem access" : "low mem access")});
+
+    // Remote access ratio metric
     if (isNumaBottleneck) {
         type.emplace_back(DATA_TYPE_CPU);
         metrics.emplace_back(std::vector<std::string>{
             "remote_access_ratio", std::to_string(remoteAccessRatio) + "%",
-                (remoteAccessRatio > NUMA_REMOTE_ACCESS_RATIO_THRESHOLD ? "high remote mem access" : "low remote mem access")});
+            (remoteAccessRatio > NUMA_REMOTE_ACCESS_RATIO_THRESHOLD ? "high remote mem access"
+                                                                    : "low remote mem access")});
     }
 
-    // thread creation
+    // Thread creation metric
     type.emplace_back(DATA_TYPE_CPU);
     metrics.emplace_back(std::vector<std::string>{
         "thread_created_per_second", std::to_string(threadCreatedPerSecond),
-            (threadCreatedPerSecond > threadThreshold ? "high thread creation"
-                : "low thread creation")});
+        (threadCreatedPerSecond > threadThreshold ? "high thread creation"
+                                                  : "low thread creation")});
+}
 
+void NumaAnalysis::GenerateConclusion(std::vector<int>& type,
+                                      std::vector<std::vector<std::string>>& metrics)
+{
     std::string conclusion;
     std::vector<std::string> suggestionItem;
+    double threadCreatedPerSecond = CalculateThreadCreationRate();
 
-    // 使用归一化后的每秒线程创建数进行判断
-    if (isNumaBottleneck && threadCreatedPerSecond > threadThreshold) {
-        conclusion = "NUMA access bottleneck with high thread creation detected.";
-        if (IsSupportNumaSchedParal()) {
-            conclusion += " SCHED_PARAL recommended.";
-            suggestionItem.emplace_back("Enable NUMA native scheduling");
-            suggestionItem.emplace_back("echo SCHED_PARAL > " + schedFeaturePath);
-            suggestionItem.emplace_back(
-                "Reduces cross-NUMA access for applications with frequent thread creation");
+    if (isNumaBottleneck) {
+        if (threadCreatedPerSecond > threadThreshold) {
+            if (IsSupportNumaSchedParal()) {
+                conclusion =
+                    "NUMA access bottleneck with high thread creation detected. Enable NUMA native "
+                    "scheduling recommended.";
+                suggestionItem.emplace_back("Enable NUMA native scheduling");
+                suggestionItem.emplace_back("oeawarectl -e numa_sched");
+                suggestionItem.emplace_back(
+                    "Reduces cross-NUMA access for applications with frequent thread creation");
+            } else {
+                conclusion =
+                    "NUMA access bottleneck with high thread creation detected, but numa parallel "
+                    "schedule not support.";
+            }
         } else {
-            conclusion += "SCHED_PARAL not supported.";
+            conclusion = "NUMA access bottleneck detected. Enable NUMA Fast scheduling recommended.";
+            suggestionItem.emplace_back("Use numafast");
+            suggestionItem.emplace_back(
+                "step 1: if  `oeawarectl -q | grep tune_numa_mem_access` not exist, install "
+                "numafast\ninstall : `oeawarectl -i numafast`\nload :    `oeawarectl -l "
+                "libtune_numa.so`\nstep 2: enable instance `oeaware -e tune_numa_mem_access`\n");
+            suggestionItem.emplace_back(
+                "Optimizes memory access locality with low scheduling overhead");
         }
-    }
-
-    if (isNumaBottleneck && (threadCreatedPerSecond <= threadThreshold || !IsSupportNumaSchedParal())) {
-        conclusion = "NUMA access bottleneck detected. Enable NUMA Fast scheduling recommended.";
-        suggestionItem.emplace_back("Use numafast");
-        suggestionItem.emplace_back(
-            "step 1: if  `oeawarectl -q | grep tune_numa_mem_access` not exist, install "
-            "numafast\ninstall : `oeawarectl -i numafast`\nload :    `oeawarectl -l "
-            "libtune_numa.so`\nstep 2: enable instance `oeaware -e tune_numa_mem_access`\n");
-        suggestionItem.emplace_back(
-            "Optimizes memory access locality with low scheduling overhead");
     } else {
         conclusion = "NUMA is not a performance bottleneck. No NUMA-related optimization needed.";
     }
 
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
+}
+
+double NumaAnalysis::CalculateThreadCreationRate()
+{
+    if (timeWindowMs <= 0) {
+        return 0.0;
+    }
+    return static_cast<double>(threadCreatedCount) * MS_PER_SEC / timeWindowMs;
+}
+
+double NumaAnalysis::CalculateOpsRate()
+{
+    if (timeWindowMs <= 0) {
+        return 0.0;
+    }
+    return static_cast<double>(totalOpsNum) * MS_PER_SEC / timeWindowMs;
 }
 
 void* NumaAnalysis::GetResult()
@@ -241,7 +272,7 @@ void NumaAnalysis::Reset()
 {
     threadCreatedCount = 0;
     threadDestroyedCount = 0;
-    timeWindowMs = 100;
+    timeWindowMs = DEFAULT_TIME_WINDOW_MS;
     totalOpsNum = 0;
     totalRxOuter = 0;
     totalRxSccl = 0;
@@ -270,26 +301,10 @@ void NumaAnalysis::Run()
     }
 }
 
-void NumaAnalysis::LoadConfig()
-{
-    try {
-        YAML::Node config = YAML::LoadFile("/etc/oeAware/analysis_config.yaml");
-
-        if (config["numa_native_sched"] && config["numa_native_sched"]["thread_threshold"]) {
-            int configThreadThreshold = config["numa_native_sched"]["thread_threshold"].as<int>();
-            if (configThreadThreshold >= 1 && configThreadThreshold <= 10000) {
-                threadThreshold = configThreadThreshold;
-            }
-        }
-    } catch (const std::exception& e) {
-        // 配置文件加载失败，使用默认值或已有值
-    }
-}
-
 bool NumaAnalysis::IsSupportNumaSchedParal()
 {
     for (const auto &feature : schedFeatues) {
-        if (feature == "SCHED_PARAL" || feature == "NO_SCHED_PARAL") {
+        if (feature == "PARAL" || feature == "NO_PARAL") {
             return true;
         }
     }

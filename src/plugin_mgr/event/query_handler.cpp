@@ -49,6 +49,10 @@ EventResult QueryHandler::Handle(const Event &event)
         eventResult.opt = Opt::RESPONSE_OK;
         eventResult.payload.emplace_back(resText);
     } else {
+        if (event.payload.empty()) {
+            WARN(logger, "query event error.");
+            return EventResult(Opt::RESPONSE_ERROR, {"query event error"});
+        }
         auto name = event.payload[0];
         auto retCode = QueryPlugin(name, resText);
         if (retCode == ErrorCode::OK) {

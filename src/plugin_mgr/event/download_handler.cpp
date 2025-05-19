@@ -23,6 +23,10 @@ ErrorCode DownloadHandler::Download(const std::string &name, std::string &res)
 
 EventResult DownloadHandler::Handle(const Event &event)
 {
+    if (event.payload.empty()) {
+        WARN(logger, "download event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"download event error"});
+    }
     std::string resText;
     std::string name = event.payload[0];
     auto retCode = Download(name, resText);

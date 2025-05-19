@@ -22,17 +22,20 @@ EventResult UnsubscribeHandler::Handle(const Event &event)
         msg->Wait();
         INFO(logger, "sdk " << event.payload[0] << " disconnected and has been unsubscribed related topics.");
         return eventResult;
+    } else if (event.payload.size() == UNSUBSCRIBE_PARAM_SIZE) {
+        InStream in(event.payload[0]);
+        Topic topic;
+        topic.Deserialize(in);
+        auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE,
+            std::vector<std::string>{topic.GetType(), event.payload[1]});
+        instanceRunHandler->RecvQueuePush(msg);
+        msg->Wait();
+        result = msg->result;
+        eventResult.opt = Opt::UNSUBSCRIBE;
+        eventResult.payload.emplace_back(Encode(result));
+        return eventResult;
     }
-    InStream in(event.payload[0]);
-    Topic topic;
-    topic.Deserialize(in);
-    auto msg = std::make_shared<InstanceRunMessage>(RunType::UNSUBSCRIBE,
-        std::vector<std::string>{topic.GetType(), event.payload[1]});
-    instanceRunHandler->RecvQueuePush(msg);
-    msg->Wait();
-    result = msg->result;
-    eventResult.opt = Opt::UNSUBSCRIBE;
-    eventResult.payload.emplace_back(Encode(result));
-    return eventResult;
+    WARN(logger, "unsubscribe event error.");
+    return EventResult(Opt::RESPONSE_ERROR, {"unsubscribe event error"});
 }
 }

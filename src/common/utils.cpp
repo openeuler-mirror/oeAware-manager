@@ -378,7 +378,7 @@ bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
 
 bool IsNum(const std::string &s)
 {
-    std::regex num(R"(^[+]?\d+(\.\d+)?$)");
+    std::regex num(R"(^[-+]?\d+(\.\d+)?$)");
     return std::regex_match(s, num);
 }
 

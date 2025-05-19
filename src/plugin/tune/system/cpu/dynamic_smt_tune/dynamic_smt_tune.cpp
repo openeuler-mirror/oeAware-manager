@@ -47,10 +47,15 @@ oeaware::Result DynamicSmtTune::Enable(const std::string &param)
     if (!param.empty()) {
         auto paramsMap = GetKeyValueFromString(param);
         if (paramsMap.count("threshold")) {
+            if (!IsNum(paramsMap["threshold"])) {
+                return oeaware::Result(FAILED, "threshold is not a number.");
+            }
             schedUtilRatio = atof(paramsMap["threshold"].data());
             if (schedUtilRatio < DYNAMIC_SMT_MIN_THRESHOLD || schedUtilRatio > DYNAMIC_SMT_MAX_THRESHOLD) {
-                return oeaware::Result(FAILED, "Failed to set schedUtilRatio: " + schedUtilRatio);
+                return oeaware::Result(FAILED, "Failed to set schedUtilRatio: " + std::to_string(schedUtilRatio));
             }
+        } else {
+            return oeaware::Result(FAILED, "params invalid");
         }
     } else {
         schedUtilRatio = defaultRatio;

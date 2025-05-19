@@ -32,6 +32,10 @@ ErrorCode DisableHandler::InstanceDisabled(const std::string &name)
 
 EventResult DisableHandler::Handle(const Event &event)
 {
+    if (event.payload.empty()) {
+        WARN(logger, "disable event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"disable event error"});
+    }
     auto name = event.payload[0];
     auto retCode = InstanceDisabled(name);
     EventResult eventResult;

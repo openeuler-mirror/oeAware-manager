@@ -127,7 +127,7 @@ void DynamicSmtAnalysis::Analysis(const std::string &topicType)
     type.emplace_back(DATA_TYPE_CPU);
     auto cpuUsage = (topicStatus[topicType].cpuSum - topicStatus[topicType].cpuIdle) / topicStatus[topicType].cpuSum;
     metrics.emplace_back(std::vector<std::string>{"cpu_usage", std::to_string(cpuUsage *PERCENTAGE_FACTOR) + "%",
-        (cpuUsage *PERCENTAGE_FACTOR > topicStatus[topicType].threshold ? "high for dynamic smt tune" :
+        (cpuUsage *PERCENTAGE_FACTOR >= topicStatus[topicType].threshold ? "high for dynamic smt tune" :
             "low for dynamic smt tune")});
     std::string conclusion;
     std::vector<std::string> suggestionItem;

@@ -22,6 +22,7 @@ public:
     EventResult Handle(const Event &event) override;
 private:
     InstanceRunHandlerPtr instanceRunHandler;
+    const size_t UNSUBSCRIBE_PARAM_SIZE = 2;
 };
 }
 #endif

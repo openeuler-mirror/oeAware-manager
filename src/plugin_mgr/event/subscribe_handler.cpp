@@ -32,6 +32,10 @@ Result SubscribeHandler::Subscribe(const std::string &name, const Topic &topic)
 
 EventResult SubscribeHandler::Handle(const Event &event)
 {
+    if (event.payload.size() != SUBSCRIBE_PARAM_SIZE) {
+        WARN(logger, "subscribe event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"subscribe event error"});
+    }
     Topic topic;
     InStream in(event.payload[0]);
     topic.Deserialize(in);

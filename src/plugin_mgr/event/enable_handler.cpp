@@ -37,8 +37,15 @@ ErrorCode EnableHandler::InstanceEnabled(const std::string &name, const std::str
 
 EventResult EnableHandler::Handle(const Event &event)
 {
+    if (event.payload.empty()) {
+        WARN(logger, "enable event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"enable event error"});
+    }
     auto name = event.payload[0];
-    auto param = event.payload[1];
+    std::string param = "";
+    if (event.payload.size() > 1) {
+        param = event.payload[1];
+    }
     auto retCode = InstanceEnabled(name, param);
     EventResult eventResult;
     if (retCode == ErrorCode::OK) {

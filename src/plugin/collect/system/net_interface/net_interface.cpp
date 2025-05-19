@@ -351,7 +351,7 @@ void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
     struct bpf_map *map = obj->maps.flowStats;
     int allkeyNum = 0;
     int validKeyNum = 0;
-    
+
     err = bpf_map__get_next_key(map, NULL, &key, sizeof(SockKey));
     while (!err) {
         allkeyNum++;
@@ -367,7 +367,8 @@ void NetInterface::ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData)
                 << value.client.comm << " " << value.client.pid << " <-> "
                 << value.server.comm << " " << value.server.pid);
         }
-        if (value.flow == 0) {
+        if (value.flow == 0 || value.client.pid == 0 || value.server.pid == 0 ||
+            (value.client.pid == value.server.pid)) {
             err = bpf_map__get_next_key(map, &key, &nextKey, sizeof(SockKey));
             key = nextKey;
             continue;

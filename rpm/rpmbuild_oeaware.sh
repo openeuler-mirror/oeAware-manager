@@ -1,11 +1,17 @@
 #!/bin/bash
 set -x
+yum install -y git rsync
+yum install -y rpmdevtools
+
 spec_file="oeAware.spec"
 script_dir=$(cd $(dirname $0);pwd)
 commit_id=$(git rev-parse HEAD)
 cd $script_dir/
 version=$commit_id
 name="oeAware-manager"
+
+yum-builddep $spec_file
+rpmdev-setuptree
 
 rm -rf ${name}-${version}
 mkdir ${name}-${version}

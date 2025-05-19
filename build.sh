@@ -1,5 +1,6 @@
 
 # yum install log4cplus log4cplus-devel curl-devel  cmake make gcc-c++  boost-devel  yaml-cpp-devel gtest-devel gmock-devel kernel-devel libnl3 libnl3-devel
+# yum install bpftool libbpf-devel numactl numactl-devel clang
 #set -x
 script_dir=$(cd $(dirname $0);pwd)
 cd $script_dir/

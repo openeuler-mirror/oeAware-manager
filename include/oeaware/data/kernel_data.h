@@ -13,6 +13,7 @@
 #ifndef OEAWARE_DATA_KERNEL_DATA_H
 #define OEAWARE_DATA_KERNEL_DATA_H
 
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

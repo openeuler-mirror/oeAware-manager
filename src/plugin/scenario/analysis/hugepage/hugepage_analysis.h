@@ -75,7 +75,7 @@ private:
 	std::vector<std::string> topicStrs{"hugepage"};
 	std::unordered_map<std::string, TopicStatus> topicStatus;
 	std::vector<Topic> subscribeTopics;
-	AnalysisResultItem analysisResultItem;
+	AnalysisResultItem analysisResultItem = {};
 };
 }
 #endif

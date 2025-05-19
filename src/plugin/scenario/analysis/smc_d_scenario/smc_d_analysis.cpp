@@ -189,7 +189,7 @@ void *SmcDAnalysis::GetResult()
     std::vector<int> type;
     type.emplace_back(DATA_TYPE_NETWORK);
     type.emplace_back(DATA_TYPE_NETWORK);
-    AnalysisResultItem *result = new AnalysisResultItem;
+    AnalysisResultItem *result = new AnalysisResultItem{};
     double totalEstablishedRate = 0;
     double totalCloseWaitRate = 0;
     if (prevEstablishedCount != 0) {

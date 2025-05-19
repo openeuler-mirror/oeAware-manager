@@ -50,7 +50,7 @@ private:
     };
     std::string cpuPartId;
     std::vector<Topic> subscribeTopics;
-    AnalysisResultItem analysisResultItem;
+    AnalysisResultItem analysisResultItem = {};
     std::vector<std::string> topicStrs{"microarch_tidnocmp"};
     std::vector<std::string> analysisData;
     std::unordered_map<std::string, TopicStatus> topicStatus;

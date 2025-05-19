@@ -38,7 +38,7 @@ void CreateAnalysisResultItem(const std::vector<std::vector<std::string>> &metri
     std::string suggestion = "";
     std::string opt = "";
     std::string extra = "";
-    if (suggestionItem.size() > 1) {
+    if (suggestionItem.size() > EXTRA_INDEX) {
         const int SUGGESTION_INDEX = 0;
         const int OPT_INDEX = 1;
         suggestion = suggestionItem[SUGGESTION_INDEX];

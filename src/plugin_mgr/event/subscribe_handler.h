@@ -24,6 +24,7 @@ private:
     Result Subscribe(const std::string &name, const Topic &topic);
 private:
     InstanceRunHandlerPtr instanceRunHandler;
+    const size_t SUBSCRIBE_PARAM_SIZE = 2;
 };
 }
 #endif

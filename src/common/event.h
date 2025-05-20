@@ -34,7 +34,7 @@ struct Event {
 
 struct EventResult {
     EventResult() { }
-    EventResult(Opt opt) : opt(opt) { }
+    EventResult(const Opt &opt, const std::vector<std::string> &payload = {}) : opt(opt), payload(payload) { }
     Opt opt;
     std::vector<std::string> payload;
 };

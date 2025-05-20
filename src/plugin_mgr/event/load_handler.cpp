@@ -45,6 +45,10 @@ ErrorCode LoadHandler::LoadPlugin(const std::string &name)
 
 EventResult LoadHandler::Handle(const Event &event)
 {
+    if (event.payload.empty()) {
+        WARN(logger, "load event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"load event error"});
+    }
     std::string name = event.payload[0];
     auto retCode = LoadPlugin(name);
     EventResult eventResult;

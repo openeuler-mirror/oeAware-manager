@@ -39,6 +39,10 @@ ErrorCode RemoveHandler::Remove(const std::string &name)
 
 EventResult RemoveHandler::Handle(const Event &event)
 {
+    if (event.payload.empty()) {
+        WARN(logger, "remove event error.");
+        return EventResult(Opt::RESPONSE_ERROR, {"remove event error"});
+    }
     std::string name = event.payload[0];
     auto retCode = Remove(name);
     EventResult eventResult;

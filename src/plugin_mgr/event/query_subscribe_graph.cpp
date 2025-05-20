@@ -59,6 +59,10 @@ EventResult QuerySubscribeGraphHandler::Handle(const Event &event)
         eventResult.opt = Opt::RESPONSE_OK;
         eventResult.payload.emplace_back(resText);
     } else {
+        if (event.payload.empty()) {
+            WARN(logger, "query subscribe graph event error.");
+            return EventResult(Opt::RESPONSE_ERROR, {"query subscribe graph event error"});
+        }
         auto name = event.payload[0];
         auto retCode = QuerySubGraph(name, graph);
         resText = GenerateDot(graph);

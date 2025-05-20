@@ -83,8 +83,12 @@ oeaware::Result XcallTune::Enable(const std::string &param)
                 please add 'xcall' to cmdline.");
     }
     auto params = oeaware::GetKeyValueFromString(param);
-    if (params.count("c")) {
-        configPath = params["c"];
+    if (!params.empty()) {
+        if (params.count("c")) {
+            configPath = params["c"];
+        } else {
+            return oeaware::Result(FAILED, "params invalid");
+        }
     } else {
         configPath = "/usr/lib64/oeAware-plugin/xcall.yaml";
     }

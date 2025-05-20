@@ -33,6 +33,7 @@ const int DOCKER_CPU_USAGE_THRESHOLD = 209;
 constexpr double HOST_CPU_USAGE_THRESHOLD_DEFAULT = 45.0;
 constexpr double DOCKER_CPU_USAGE_THRESHOLD_DEFAULT = 95.0;
 
+const int THRESHOLD_UP = 100;
 class Config {
 public:
     bool Init(int argc, char **argv);
@@ -152,6 +153,11 @@ private:
     void PrintHelp();
     void DockerCoordinationBurstConfig(const YAML::Node config);
     void LoadMicroArchTidNoCmpConfig(const YAML::Node config);
+    void LoadDynamicSmtConfig(const YAML::Node &config);
+    void LoadHugepageConfig(const YAML::Node &config);
+    void LoadNumaConfig(const YAML::Node &config);
+    void LoadSmcDConfig(const YAML::Node &config);
+    void LoadXcallConfig(const YAML::Node &config);
 };
 
 #endif

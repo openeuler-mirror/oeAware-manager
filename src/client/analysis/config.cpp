@@ -208,53 +208,121 @@ void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
     return ;
 }
 
+void Config::LoadDynamicSmtConfig(const YAML::Node &config)
+{
+    if (config["dynamic_smt"]) {
+        auto dynamic_smt = config["dynamic_smt"];
+        double threshold = -1;
+        if (dynamic_smt["threshold"] && !dynamicSmtThresholdSet) {
+            threshold = dynamic_smt["threshold"].as<double>();
+        }
+        if (threshold < 0 || threshold > THRESHOLD_UP) {
+            std::cerr << "Error: analysis config 'dynamic_smt:threshold' invalid.\n";
+        } else {
+            dynamicSmtThreshold = threshold;
+        }
+    }
+}
+
+void Config::LoadHugepageConfig(const YAML::Node &config)
+{
+    if (config["hugepage"]) {
+        auto hugepage = config["hugepage"];
+        double l1 = -1;
+        double l2 = -1;
+        if (hugepage["l1_miss_threshold"] && !l1MissThresholdSet) {
+            l1 = hugepage["l1_miss_threshold"].as<double>();
+        }
+        if (hugepage["l2_miss_threshold"] && !l2MissThresholdSet) {
+            l2 = hugepage["l2_miss_threshold"].as<double>();
+        }
+        if (l1 < 0 || l1 > THRESHOLD_UP) {
+            std::cerr << "Error: analysis config 'hugepage:l1_miss_threshold' invalid.\n";
+        } else {
+            l1MissThreshold = l1;
+        }
+        if (l2 < 0 || l2 > THRESHOLD_UP) {
+            std::cerr << "Error: analysis config 'hugepage:l2_miss_threshold' invalid.\n";
+        } else {
+            l2MissThreshold = l2;
+        }
+    }
+}
+
+void Config::LoadNumaConfig(const YAML::Node &config)
+{
+    if (config["numa_analysis"]) {
+        auto numa_analysis = config["numa_analysis"];
+        int threshold = -1;
+        if (numa_analysis["thread_threshold"] && !numaThreadThresholdSet) {
+            threshold = numa_analysis["thread_threshold"].as<int>();
+        }
+        if (threshold < 0) {
+            std::cerr << "Error: analysis config 'numa_analysis:threshold' invalid.\n";
+        } else {
+            numaThreadThreshold = threshold;
+        }
+    }
+}
+
+void Config::LoadSmcDConfig(const YAML::Node &config)
+{
+    if (config["smc_d_analysis"]) {
+        auto smc_d_analysis = config["smc_d_analysis"];
+        double changeRate = -1;
+        double loNetFlow = -1;
+        if (smc_d_analysis["change_rate"] && !smcChangeRateSet) {
+            changeRate = smc_d_analysis["change_rate"].as<double>();
+        }
+        if (smc_d_analysis["lo_net_flow"] && !smcLoNetFlowSet) {
+            loNetFlow = smc_d_analysis["lo_net_flow"].as<double>();
+        }
+        if (changeRate < 0) {
+            std::cerr << "Error: analysis config 'smc_d_analysis:change_rate' invalid.\n";
+        } else {
+            smcChangeRate = changeRate;
+        }
+        if (loNetFlow < 0) {
+            std::cerr << "Error: analysis config 'smc_d_analysis:lo_net_flow' invalid.\n";
+        } else {
+            smcLoNetFlow = loNetFlow;
+        }
+    }
+}
+
+void Config::LoadXcallConfig(const YAML::Node &config)
+{
+    if (config["xcall_analysis"]) {
+        auto xcallAnalysis = config["xcall_analysis"];
+        double threshold = -1;
+        int num = -1;
+        if (xcallAnalysis["threshold"]) {
+            threshold = xcallAnalysis["threshold"].as<double>();
+        }
+        if (xcallAnalysis["num"]) {
+            num = xcallAnalysis["num"].as<int>();
+        }
+        if (threshold < 0 || threshold > THRESHOLD_UP) {
+            std::cerr << "Error: analysis config 'xcall_analysis:threshold' invalid.\n";
+        } else {
+            xcallThreshold = threshold;
+        }
+        if (num < 0) {
+            std::cerr << "Error: analysis config 'xcall_analysis:num' invalid.\n";
+        } else {
+            xcallTopNum = num;
+        }
+    }
+}
+
 bool Config::LoadConfig(const std::string& configPath)
 {
     try {
         YAML::Node config = YAML::LoadFile(configPath);
-        if (config["dynamic_smt"]) {
-            auto dynamic_smt = config["dynamic_smt"];
-            if (dynamic_smt["threshold"] && !dynamicSmtThresholdSet) {
-                const_cast<Config*>(this)->dynamicSmtThreshold = dynamic_smt["threshold"].as<double>();
-            }
-        }
-
-        if (config["hugepage"]) {
-            auto hugepage = config["hugepage"];
-            if (hugepage["l1_miss_threshold"] && !l1MissThresholdSet) {
-                const_cast<Config*>(this)->l1MissThreshold = hugepage["l1_miss_threshold"].as<double>();
-            }
-            if (hugepage["l2_miss_threshold"] && !l2MissThresholdSet) {
-                const_cast<Config*>(this)->l2MissThreshold = hugepage["l2_miss_threshold"].as<double>();
-            }
-        }
-
-        if (config["numa_analysis"]) {
-            auto numa_analysis = config["numa_analysis"];
-            if (numa_analysis["thread_threshold"] && !numaThreadThresholdSet) {
-                const_cast<Config*>(this)->numaThreadThreshold = numa_analysis["thread_threshold"].as<int>();
-            }
-        }
-
-        if (config["smc_d_analysis"]) {
-            auto smc_d_analysis = config["smc_d_analysis"];
-            if (smc_d_analysis["change_rate"] && !smcChangeRateSet) {
-                const_cast<Config*>(this)->smcChangeRate = smc_d_analysis["change_rate"].as<double>();
-            }
-            if (smc_d_analysis["lo_net_flow"] && !smcLoNetFlowSet) {
-                const_cast<Config*>(this)->smcLoNetFlow = smc_d_analysis["lo_net_flow"].as<int>();
-            }
-        }
-        
-        if (config["xcall_analysis"]) {
-            auto xcallAnalysis = config["xcall_analysis"];
-            if (xcallAnalysis["threshold"]) {
-                xcallThreshold = xcallAnalysis["threshold"].as<double>();
-            }
-            if (xcallAnalysis["num"]) {
-                xcallTopNum = xcallAnalysis["num"].as<int>();
-            }
-        }
+        LoadDynamicSmtConfig(config);
+        LoadHugepageConfig(config);
+        LoadNumaConfig(config);
+        LoadSmcDConfig(config);
         DockerCoordinationBurstConfig(config);
         LoadMicroArchTidNoCmpConfig(config);
         return true;

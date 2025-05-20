@@ -10,7 +10,7 @@ Prefix:     %{_prefix}
 BuildRequires: cmake make gcc-c++
 BuildRequires: curl-devel yaml-cpp-devel log4cplus-devel gtest-devel gmock-devel
 BuildRequires: libboundscheck numactl-devel git libnl3 libnl3-devel kernel-devel
-BuildRequires: libbpf-devel clang
+BuildRequires: libbpf-devel clang bpftool
 
 Requires: yaml-cpp curl log4cplus systemd libboundscheck acl patchelf libnl3 sysstat
 Obsoletes:  oeAware-collector < v2.0.0

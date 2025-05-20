@@ -13,6 +13,7 @@
 #ifndef OEAWARE_NETWORK_INTERFACE_H
 #define OEAWARE_NETWORK_INTERFACE_H
 
+#include <stdint.h>
 #include <net/if.h>
 
 #ifdef __cplusplus

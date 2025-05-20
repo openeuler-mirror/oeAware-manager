@@ -36,7 +36,8 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_counting_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_sampling_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_spe_data.h"
-    "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_uncore_data.h"   
+    "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_uncore_data.h"
+    "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_plugin.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/docker_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/analysis_data.h"
     DESTINATION "${CMAKE_BINARY_DIR}/output/include/oeaware/data")
@@ -44,6 +45,8 @@ endif()
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/kernel_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/command_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/thread_info.h"
+    "${CMAKE_SOURCE_DIR}/include/oeaware/data/env_data.h"
+    "${CMAKE_SOURCE_DIR}/include/oeaware/data/network_interface_data.h"
     DESTINATION "${CMAKE_BINARY_DIR}/output/include/oeaware/data")
 
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data_list.h"

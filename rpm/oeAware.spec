@@ -59,6 +59,7 @@ install -D -m 0640 ./build/output/plugin/lib/thread_scenario.conf %{buildroot}%{
 install -D -m 0640 ./build/output/plugin/lib/ub_tune.conf         %{buildroot}%{_libdir}/oeAware-plugin/
 install -D -m 0400 ./build/output/plugin/ko/smc_acc.ko            %{buildroot}%{_prefix}/lib/smc
 install -D -m 0640 ./build/output/plugin/lib/xcall.yaml           %{buildroot}%{_libdir}/oeAware-plugin/
+install -D -m 0640 ./build/output/plugin/lib/docker_burst.yaml    %{buildroot}%{_libdir}/oeAware-plugin/
 install -D -m 0640 ./build/output/plugin/lib/smc_acc.yaml         %{buildroot}%{_libdir}/oeAware-plugin/
 %preun
 %systemd_preun oeaware.service
@@ -89,6 +90,7 @@ fi
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/ub_tune.conf
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/thread_scenario.conf
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/xcall.yaml
+%attr(0640, root, root) %{_libdir}/oeAware-plugin/docker_burst.yaml
 %attr(0640, root, root) %{_libdir}/oeAware-plugin/smc_acc.yaml
 %attr(0400, root, root) %{_prefix}/lib/smc/smc_acc.ko
 

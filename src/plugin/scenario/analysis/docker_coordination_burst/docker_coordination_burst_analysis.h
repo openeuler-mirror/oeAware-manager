@@ -32,6 +32,15 @@ public:
         return id;
     }
 
+    void SetSoftQuota(int64_t softQuotaValue)
+    {
+        softQuota = softQuotaValue;
+    }
+    int64_t GetSoftQuota() const
+    {
+        return softQuota;
+    }
+
     double GetCpuUtil() const;
     void UpdateCpuUtil(const uint64_t cpuUsage, const uint64_t samplingTimeStamp);
 
@@ -39,6 +48,7 @@ private:
     std::string id;
     int64_t cfsPeriodUs = 0;
     int64_t cfsQuotaUs = 0;
+    int64_t softQuota = -1;
     int hostCpuNum = -1;
     uint64_t startTimestamp = 0;
     uint64_t endTimeStamp = 0;

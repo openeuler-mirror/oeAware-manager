@@ -157,6 +157,8 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
         ret &= GetContainerTasks(dir, container.tasks);
         ret &= GetContainersCpuInfo(container.cpu_usage, dir, "cpuacct.usage");
         GetSamplingTimestamp(container);
+        container.soft_quota = -1;
+        GetContainersCpuInfo(container.soft_quota, dir, "cpu.soft_quota");
         if (ret) {
             containers[dir] = container;
         }

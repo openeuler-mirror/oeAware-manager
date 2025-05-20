@@ -9,10 +9,12 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "cpu_burst_adapt.h"
+#include "cpu_burst/cpu_burst_adapt.h"
+#include "coordination_burst/coordination_burst_adapt.h"
 using namespace oeaware;
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
 {
     interface.emplace_back(std::make_shared<CpuBurstAdapt>());
+    interface.emplace_back(std::make_shared<CoordinationBurstAdapt>());
 }

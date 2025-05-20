@@ -54,6 +54,22 @@ bool SetMemLockRlimt(rlim_t limit);
 std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement);
 bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &features);
 void AnalysisResultItemFree(AnalysisResultItem *analysisResultItem);
-}
 
+    namespace DockerUtils {
+        constexpr int LONG_DOCKER_ID_LENGTH = 64;
+        constexpr int SHORT_DOCKER_ID_LENGTH = 12;
+
+        std::string FindDockerSubsystemCgroupPath(const std::string& dockerId, std::string subsystemName);
+        std::vector<std::string> GetAllDockerIDs();
+    }
+
+    namespace DirectoryWalker {
+        constexpr int MAX_SEARCHE_DEPTH = 5;
+        std::vector<std::string> ListFiles(const std::string& path);
+        bool IsDirectory(const std::string& path);
+        bool IsSymlink(const std::string& path);
+        std::string ReadSymlink(const std::string& path);
+    }
+
+}
 #endif

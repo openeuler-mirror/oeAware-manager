@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <csignal>
-#include <sys/resource.h> 
+#include <sys/resource.h>
 #include "plugin_manager.h"
 #include "message_manager.h"
 #include "oeaware/utils.h"

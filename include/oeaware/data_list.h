@@ -42,6 +42,7 @@
 #define OE_NETHARDIRQ_TUNE           "net_hard_irq_tune"
 #define OE_TRANSPARENT_HUGEPAGE_TUNE "transparent_hugepage_tune"
 #define OE_PRELOAD_TUNE              "preload_tune"
+#define OE_NUMA_SCHED_TUNE           "numa_sched_tune"
 
 #ifdef __cplusplus
 extern "C" {

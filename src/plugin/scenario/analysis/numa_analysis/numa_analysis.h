@@ -38,15 +38,19 @@ public:
 private:
     void PublishData(const Topic &topic);
     void Analysis();
+    void GenerateConclusion(std::vector<int>& type,
+        std::vector<std::vector<std::string>>& metrics);
+    void CalculateAndAddMetrics(std::vector<int>& type,
+        std::vector<std::vector<std::string>>& metrics);
+    double CalculateThreadCreationRate();
+    double CalculateOpsRate();
     void* GetResult();
     void Reset();
     bool CheckNumaBottleneck();
     void LoadConfig();
     bool IsSupportNumaSchedParal();
 
-    std::vector<Topic> subscribeTopics;
     std::vector<Topic> subTopics;
-
     std::vector<std::string> topicStrs{"numa_analysis"};
     std::vector<std::string> analysisData;
     std::unordered_map<std::string, TopicStatus> topicStatus;

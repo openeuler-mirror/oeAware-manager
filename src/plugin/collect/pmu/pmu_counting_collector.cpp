@@ -72,7 +72,7 @@ int PmuCountingCollector::OpenCounting(const oeaware::Topic &topic)
     int pd = PmuOpen(COUNTING, &attr);
     if (pd == -1) {
         std::cout << topic.topicName << " open failed: ";
-        perror(""); 
+        perror("");
     }
     delete[] evtList[0];
     return pd;

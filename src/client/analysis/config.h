@@ -111,7 +111,7 @@ private:
     double l2MissThreshold = 10;
     double dynamicSmtThreshold = 40;
     std::string  outMarkDownPath = "";
-    int numaThreadThreshold = 100; // defaut 100 threads
+    int numaThreadThreshold = 200; // defaut 200 threads
     double smcChangeRate = 0.1;
     int smcLoNetFlow = 100; // default 100MB/S
     double xcallThreshold = 5;

@@ -17,6 +17,7 @@
 #include "xcall/xcall_tune.h"
 #include "power/seep_tune/seep_tune.h"
 #include "transparent_hugepage_tune/transparent_hugepage_tune.h"
+#include "cpu/numa_sched_tune/numa_sched_tune.h"
 #include "preload/preload_tune.h"
 #include "binary/binary_tune.h"
 #ifdef BUILD_NETIRQ_TUNE
@@ -34,6 +35,7 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<Seep>());
     interface.emplace_back(std::make_shared<PreloadTune>());
     interface.emplace_back(std::make_shared<BinaryTune>());
+    interface.emplace_back(std::make_shared<NumaSchedTune>());
 #ifdef BUILD_NETIRQ_TUNE
     interface.emplace_back(std::make_shared<NetHardIrq>());
 #endif

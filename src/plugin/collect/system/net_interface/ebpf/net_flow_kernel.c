@@ -71,6 +71,38 @@ static __always_inline void ReadIpAndPort(struct sock *sk, struct SockKey *key, 
         keyReversed->remotePort = key->localPort;
     }
 }
+// bpf_strncmp always error, so re implement
+static __always_inline int Strncmp(const char *s1, const char *s2, size_t n)
+{
+    unsigned char c1, c2;
+    while (n) {
+        c1 = *s1++;
+        c2 = *s2++;
+        if (c1 != c2) {
+            return c1 < c2 ? -1 : 1;
+        }
+        if (!c1) {
+            break;
+        }
+        n--;
+    }
+    return 0;
+}
+
+static __always_inline bool IsValidData(struct ThreadData *td)
+{
+    if (!td) {
+        return false;
+    }
+    if (td->pid == 0) {
+        return false;
+    }
+    const char target[] = "ksoftirqd";
+    if (Strncmp(td->comm, target, sizeof(target) - 1) == 0) {
+        return false;
+    }
+    return true;
+}
 
 SEC("kprobe/tcp_connect")
 int BPF_KPROBE(tcp_connect, struct sock *sk)
@@ -80,7 +112,9 @@ int BPF_KPROBE(tcp_connect, struct sock *sk)
     // check loopback
     struct SockInfo info = {};
     UpdateThreadData(&info.client);
-    bpf_map_update_elem(&flowStats, &key, &info, BPF_ANY);
+    if (IsValidData(&info.client)) {
+        bpf_map_update_elem(&flowStats, &key, &info, BPF_ANY);
+    }
     return 0;
 }
 
@@ -92,6 +126,9 @@ int BPF_KRETPROBE(inet_csk_accept_exit, struct sock *sk)
     struct SockInfo *info = bpf_map_lookup_elem(&flowStats, &keyReversed);
     if (info) {
         UpdateThreadData(&info->server);
+        if (!IsValidData(&info->server)) {
+            bpf_map_delete_elem(&flowStats, &keyReversed);
+        }
     }
     return 0;
 }
@@ -120,12 +157,16 @@ int BPF_KPROBE(tcp_set_state, struct sock *sk, int state)
     if (oldState == TCP_SYN_SENT && newState == TCP_ESTABLISHED) {
         struct SockInfo info = {};
         UpdateThreadData(&info.client);
-        bpf_map_update_elem(&flowStats, &key, &info, BPF_ANY);
+        if (IsValidData(&info.client)) {
+            bpf_map_update_elem(&flowStats, &key, &info, BPF_ANY);
+        }
     } else if (oldState == TCP_SYN_RECV && newState == TCP_ESTABLISHED) {
         // This is a soft interrupt that is likely to occur on the client thread and requires IP reversal
         struct SockInfo info = {};
         UpdateThreadData(&info.client);
-        bpf_map_update_elem(&flowStats, &keyReversed, &info, BPF_ANY);
+        if (IsValidData(&info.client)) {
+            bpf_map_update_elem(&flowStats, &keyReversed, &info, BPF_ANY);
+        }
     } else if ((oldState == TCP_ESTABLISHED && newState == TCP_FIN_WAIT1) || newState == TCP_CLOSE) {
         bpf_map_delete_elem(&flowStats, &key);
         bpf_map_delete_elem(&flowStats, &keyReversed);

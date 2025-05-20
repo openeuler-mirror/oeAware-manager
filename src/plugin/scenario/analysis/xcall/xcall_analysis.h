@@ -52,7 +52,7 @@ private:
     std::unordered_map<std::string, XcallTopic> topicStatus;
     std::unordered_map<std::string, int> syscallTable;
     std::vector<Topic> subscribeTopics;
-    AnalysisResultItem analysisResultItem;
+    AnalysisResultItem analysisResultItem = {};
     int curTime = 0;
     double threshold = 5;
     double cpuSystemUsage = 0;

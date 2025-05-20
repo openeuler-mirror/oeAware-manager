@@ -67,7 +67,7 @@ private:
     uint64_t totalRxSccl = 0;
     double remoteAccessRatio = 0.0;
 
-    AnalysisResultItem analysisResultItem;
+    AnalysisResultItem analysisResultItem = {};
 };
 
 }  // namespace oeaware

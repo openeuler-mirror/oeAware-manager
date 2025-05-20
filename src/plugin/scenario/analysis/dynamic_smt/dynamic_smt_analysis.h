@@ -41,7 +41,7 @@ private:
     bool IsTuneSupport();
     std::vector<std::string> topicStrs{ "dynamic_smt" };
     std::unordered_map<std::string, TopicStatus> topicStatus;
-    std::vector<Topic> subscribeTopics;
+    std::vector<Topic> subscribeTopics = {};
     AnalysisResultItem analysisResultItem;
     const int MS_PER_SEC = 1000;
 };

@@ -39,8 +39,6 @@ NumaAnalysis::NumaAnalysis()
     for (auto &topic : topicStrs) {
         supportTopics.emplace_back(Topic{name, topic, ""});
     }
-
-    LoadConfig();
 }
 
 Result NumaAnalysis::Enable(const std::string &param)

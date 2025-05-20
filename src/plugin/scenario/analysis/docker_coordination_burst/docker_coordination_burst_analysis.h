@@ -85,7 +85,7 @@ private:
     };
     int hostCpuNum = -1;
     std::vector<Topic> subscribeTopics;
-    AnalysisResultItem analysisResultItem;
+    AnalysisResultItem analysisResultItem = {};
     std::vector<std::string> topicStrs{"docker_coordination_burst"};
     std::vector<std::string> analysisData;
     std::unordered_map<std::string, TopicStatus> topicStatus;

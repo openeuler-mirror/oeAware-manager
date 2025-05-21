@@ -21,6 +21,7 @@ struct AnalysisRst {
     bool shouldTune = false;
     float peak = 0.0;
     float average = 0.0;
+    bool isSupportMultiPath = false;
 };
 class NetHirqAnalysis : public Interface {
 public:
@@ -52,10 +53,13 @@ private:
     std::vector<oeaware::Topic> subscribeTopics;
     std::unordered_map<std::string, NetRx> netRxSum;    // dev name to rx sum
     std::unordered_map<std::string, std::vector<NetRx>> netRxSumTrace;
+    bool envIsSupportMultiPath = false;
     std::unordered_map<std::string, AnalysisRst> result; // dev name to analysis result
     AnalysisResultItem analysisResultItem = {};
     AnalysisRst GetAnalysisResult(const std::string &dev, const std::vector<NetRx> &netRxVec);
     void GenPublishData();
+    bool DevIsSupportMultiPath(const std::string &dev);
+    bool IsHaveOeNetCls();
 };
 }
 #endif

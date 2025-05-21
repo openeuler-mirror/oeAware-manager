@@ -98,6 +98,7 @@ AnalysisRst NetHirqAnalysis::GetAnalysisResult(const std::string &dev, const std
     ret.shouldTune = peak > HIRQ_TUNE_PEAK_THRESHOLD ? true : false;
     ret.peak = peak;
     ret.average = avg;
+    ret.isSupportMultiPath = DevIsSupportMultiPath(dev);
     return ret;
 }
 
@@ -105,9 +106,18 @@ void NetHirqAnalysis::GenPublishData()
 {
     std::vector<AnalysisRst> analysisRst;
     int shouldTuneNum = 0;
+    bool shouldMultiPath = false;
+    std::string ifnameParam;
     for (const auto &item : result) {
         if (item.second.shouldTune) {
             shouldTuneNum++;
+            if (item.second.isSupportMultiPath) {
+                shouldMultiPath = true;
+                if (!ifnameParam.empty()) {
+                    ifnameParam += "#";
+                }
+                ifnameParam += item.second.dev;
+            }
         }
         analysisRst.emplace_back(item.second);
     }
@@ -117,7 +127,7 @@ void NetHirqAnalysis::GenPublishData()
 
     std::vector<std::vector<std::string>> metrics;
     std::vector<int> type;
-     // system may have multiple network interface, only show showDevNum result
+    // system may have multiple network interface, only show showDevNum result
     int showDevNum = analysisRst.size() > SHOW_DEV_MAX_NUM ? SHOW_DEV_MAX_NUM : analysisRst.size();
     std::string conclusion;
     if (showDevNum <= 0) {
@@ -129,19 +139,56 @@ void NetHirqAnalysis::GenPublishData()
     for (int i = 0; i < showDevNum; ++i) {
         const std::string peakDesc = "peak:" + FloatToString(analysisRst[i].peak) + " (hirq/s)";
         const std::string avgDesc = "avg:" + FloatToString(analysisRst[i].average) + " (hirq/s)";
-        const std::string note = analysisRst[i].shouldTune ? "high hirq freq" : "low hirq freq";
+        const std::string note = (analysisRst[i].shouldTune ? "high hirq freq(>" : "low hirq freq(<")
+            + std::to_string(HIRQ_TUNE_PEAK_THRESHOLD) + ")";
         type.emplace_back(DATA_TYPE_NETWORK);
-        conclusion += "   " + analysisRst[i].dev + " " + peakDesc + ", " + avgDesc + "\n";
+        const std::string tmp = analysisRst[i].isSupportMultiPath ?
+            "(support multi_net_path_tune and net_hard_irq_tune)" : "(support net_hard_irq_tune)";
+        conclusion += "   " + analysisRst[i].dev + " " + peakDesc + ", " + avgDesc + tmp + "\n";
         metrics.emplace_back(std::vector<std::string>{analysisRst[i].dev, peakDesc, note});
     }
 
     std::vector<std::string> suggestionItem;
     if (shouldTuneNum > 0) {
         suggestionItem.emplace_back("use net hard irq tune");
-        suggestionItem.emplace_back("oeawarectl -e net_hard_irq_tune");
+        if (shouldMultiPath) {
+            // to do : sugggest specific appname
+            std::string cmd = "oeawarectl -e multi_net_path_tune -ifname " + ifnameParam + " -appname all_app .";
+            cmd += "\n You can replace the all_app with a specific app name";
+            suggestionItem.emplace_back(cmd);
+        } else {
+            suggestionItem.emplace_back("oeawarectl -e net_hard_irq_tune");
+        }
         suggestionItem.emplace_back("affinity network threads and interrupts");
     }
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
+}
+
+bool NetHirqAnalysis::DevIsSupportMultiPath(const std::string &dev)
+{
+    // need env support net multi path, env have oenetcls.ko
+    if (!envIsSupportMultiPath) {
+        return false;
+    }
+    // need dev support config ntuple
+    std::string cmd = "ethtool -k " + dev + " | grep ntuple";
+    std::string output;
+    if (!ExecCommand(cmd, output)) {
+        return false;
+    }
+    if (output.find("ntuple") == std::string::npos || output.find("fixed") != std::string::npos) {
+        return false;
+    }
+    return true;
+}
+
+bool NetHirqAnalysis::IsHaveOeNetCls()
+{
+    int result = system("modinfo oenetcls > /dev/null 2>&1");
+    if (result != 0) {
+        return false;
+    }
+    return true;
 }
 
 void NetHirqAnalysis::UpdateData(const DataList &dataList)
@@ -169,6 +216,7 @@ Result NetHirqAnalysis::Enable(const std::string &param)
     for (auto &topic : subscribeTopics) {
         Subscribe(topic);
     }
+    envIsSupportMultiPath = IsHaveOeNetCls();
     return oeaware::Result(OK);
 }
 

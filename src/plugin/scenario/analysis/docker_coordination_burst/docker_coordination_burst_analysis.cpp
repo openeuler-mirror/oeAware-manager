@@ -24,7 +24,7 @@
 constexpr int PERCENTAGE_FACTOR = 100;
 constexpr int MS_PER_SEC = 1000;
 const std::string SCHED_SOFT_RUNTIME_RATIO_PATH =
-    "/proc/sys/kernel/normalize_capacity/sched_soft_runtime_ratio";
+    "/proc/sys/kernel/sched_soft_runtime_ratio";
 constexpr double MIN_PERCENT = 0.0;
 constexpr double MAX_PERCENT = 100.0;
 constexpr double MAX_RATIO = 20.0;
@@ -148,9 +148,11 @@ void DockerCoordinationBurstAnalysis::UpdateDockerInfo(const std::string &topicT
         if (dockerIt == topicStatus[topicType].dockerList.end()) {
             DockerInfo dockerInfo(container->id, container->cfs_period_us, container->cfs_quota_us, hostCpuNum);
             dockerInfo.UpdateCpuUtil(container->cpu_usage, container->sampling_timestamp);
+            dockerInfo.SetSoftQuota(container->soft_quota);
             topicStatus[topicType].dockerList.emplace(container->id, dockerInfo);
         } else {
             dockerIt->second.UpdateCpuUtil(container->cpu_usage, container->sampling_timestamp);
+            dockerIt->second.SetSoftQuota(container->soft_quota);
         }
     }
 }
@@ -218,7 +220,7 @@ void DockerCoordinationBurstAnalysis::HandleSuggestDocker(const std::string &top
             std::to_string(dockerCpuUtil) + "%",
             (dockerCpuUtil > dockerCpuUsageThreshold ? "high for docker coordination burst"
                                                                             : "low for docker coordination burst")});
-        if (dockerCpuUtil > dockerCpuUsageThreshold) {
+        if (dockerCpuUtil > dockerCpuUsageThreshold && docker.second.GetSoftQuota() == 0) {
             suggestionDockers += dockerShortId + ",";
             suggestDockerNum++;
         }
@@ -255,8 +257,9 @@ void DockerCoordinationBurstAnalysis::Analysis(const std::string &topicType)
 
     if (hostCpuUtil <= hostCpuUsageThreshold) {
         if (suggestionDockers.empty()) {
-            conclusion = "The system loads is low, but the docker load is not high, do not need to enable docker "
-                         "coordination burst.";
+            conclusion = "The system loads is low, but the docker load is not high or the docker"
+                         " coordination burst is already open, do not need to enable"
+                         " docker coordination burst.";
         } else {
             if (IsTuneSupport()) {
                 conclusion = "The system loads is low. The dockers which cpu loads are high "

@@ -14,6 +14,7 @@ struct Container {
     int64_t cfs_burst_us;
     int64_t cpu_usage; // Total CPU Time (cpuacct.usage)
     int64_t sampling_timestamp;
+    int64_t soft_quota;
     std::string cpus; // change to char* if need to serialization
     std::vector<int32_t> tasks; // change to int32_t* if need to serialization
 };

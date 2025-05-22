@@ -20,6 +20,8 @@
 #include <iostream>
 #include <cctype>
 #include <array>
+#include <dirent.h>
+#include <unistd.h>
 #include <linux/if.h>
 
 namespace oeaware {
@@ -528,5 +530,148 @@ void AnalysisResultItemFree(AnalysisResultItem *analysisResultItem)
         analysisResultItem->suggestionItem.extra = nullptr;
     }
 }
+}
 
+namespace oeaware::DirectoryWalker {
+    std::vector<std::string> ListFiles(const std::string& path)
+    {
+        std::vector<std::string> files;
+        DIR* dir = opendir(path.c_str());
+        if (!dir) {
+            return files;
+        }
+
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != nullptr) {
+            if (entry->d_name[0] != '.') {
+                files.push_back(entry->d_name);
+            }
+        }
+        closedir(dir);
+        return files;
+    }
+
+    bool IsDirectory(const std::string& path)
+    {
+        struct stat st;
+        return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+    }
+
+    bool IsSymlink(const std::string& path)
+    {
+        struct stat st;
+        return lstat(path.c_str(), &st) == 0 && S_ISLNK(st.st_mode);
+    }
+
+    std::string ReadSymlink(const std::string& path)
+    {
+        char buf[PATH_MAX];
+        ssize_t len = readlink(path.c_str(), buf, sizeof(buf) - 1);
+        if (len != -1) {
+            buf[len] = '\0';
+            return std::string(buf);
+        }
+        return "";
+    }
+}
+
+namespace oeaware::DockerUtils {
+    std::vector<std::string> GetCgroupMounts(const std::string& subsystem)
+    {
+        std::vector<std::string> mounts;
+        std::ifstream mountsFile("/proc/mounts");
+
+        std::string line;
+        while (getline(mountsFile, line)) {
+            if (line.find("cgroup") != std::string::npos &&
+                line.find(subsystem) != std::string::npos) {
+                size_t start = line.find(' ');
+                size_t end = line.find(' ', start + 1);
+                mounts.push_back(line.substr(start + 1, end - start - 1));
+            }
+        }
+        return !mounts.empty() ? mounts : std::vector<std::string>{"/sys/fs/cgroup"};
+    }
+
+    std::string SearchDirectory(const std::string& basePath,
+                                const std::string& dockerId,
+                                int maxDepth = DirectoryWalker::MAX_SEARCHE_DEPTH)
+    {
+        if (maxDepth <= 0) {
+            return "";
+        }
+
+        for (const auto& entry : DirectoryWalker::ListFiles(basePath)) {
+            std::string fullPath = basePath + "/" + entry;
+            std::string realPath = fullPath;
+
+            if (DirectoryWalker::IsSymlink(fullPath)) {
+                std::string link = DirectoryWalker::ReadSymlink(fullPath);
+                realPath = link[0] == '/' ? link : basePath + "/" + link;
+            }
+            if (realPath.find(dockerId) != std::string::npos) {
+                return realPath;
+            }
+
+            if (DirectoryWalker::IsDirectory(realPath)) {
+                std::string found = SearchDirectory(realPath, dockerId, maxDepth - 1);
+                if (!found.empty()) {
+                    return found;
+                }
+            }
+        }
+        return "";
+    }
+    std::string FindDockerSubsystemCgroupPath(const std::string& dockerId, std::string subsystemName)
+    {
+        if (dockerId.length() != LONG_DOCKER_ID_LENGTH) {
+            return "";
+        }
+        auto searchPaths = GetCgroupMounts(subsystemName);
+
+        const std::vector<std::string> priorityPaths = {
+            "docker",
+            "kubepods.slice",
+            "system.slice",
+            "kubepods"
+        };
+
+        for (const auto& base : searchPaths) {
+            for (const auto& pp : priorityPaths) {
+                std::string target = base + "/" + pp;
+                if (!DirectoryWalker::IsDirectory(target)) {
+                    continue;
+                }
+                std::string found = SearchDirectory(target, dockerId);
+                if (!found.empty()) {
+                    return found;
+                }
+            }
+
+            std::string found = SearchDirectory(base, dockerId);
+            if (!found.empty()) {
+                return found;
+            }
+        }
+        return "";
+    }
+
+    std::vector<std::string> GetAllDockerIDs()
+    {
+        std::vector<std::string> containerIDs;
+        std::array<char, EXEC_COMMAND_BUFLEN> buffer;
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("docker ps -aq --no-trunc", "r"), pclose);
+        if (!pipe) {
+            return containerIDs;
+        }
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+            std::string id(buffer.data());
+            if (!id.empty() && id.back() == '\n') {
+                id.pop_back();
+            }
+            containerIDs.emplace_back(id);
+        }
+
+        return containerIDs;
+    }
 }

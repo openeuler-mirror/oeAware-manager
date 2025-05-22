@@ -23,6 +23,9 @@
 #ifdef BUILD_NETIRQ_TUNE
 #include "network/hardirq_tune/hardirq_tune.h"
 #endif
+#ifdef BUILD_MULTI_NET_PATH_TUNE
+#include "network/multi_net_path/multi_net_path.h"
+#endif
 using namespace oeaware;
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
@@ -38,5 +41,8 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<NumaSchedTune>());
 #ifdef BUILD_NETIRQ_TUNE
     interface.emplace_back(std::make_shared<NetHardIrq>());
+#endif
+#ifdef BUILD_MULTI_NET_PATH_TUNE
+    interface.emplace_back(std::make_shared<MultiNetPath>());
 #endif
 }

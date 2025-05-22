@@ -271,7 +271,13 @@ void InstanceRunHandler::Schedule()
         if (!instance->enabled) {
             continue;
         }
+        auto begin = std::chrono::high_resolution_clock::now();
+        DEBUG(logger, "instance: " << instance->name << "::" << instance->pluginName << " start run");
         instance->interface->Run();
+        uint64_t interval = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - begin).count();
+        DEBUG(logger, "instance: " << instance->name << "::" << instance->pluginName
+            << " run time: " << interval << " ms");
         // static plugin only run once
         if (instance->interface->GetType() & INSTANCE_RUN_ONCE) {
             CloseInstance(instance);

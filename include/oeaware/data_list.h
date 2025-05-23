@@ -41,6 +41,7 @@
 #define OE_SEEP_TUNE                 "seep_tune"
 #define OE_XCALL_TUNE                "xcall_tune"
 #define OE_NETHARDIRQ_TUNE           "net_hard_irq_tune"
+#define OE_MULTI_NET_PATH_TUNE       "multi_net_path_tune"
 #define OE_TRANSPARENT_HUGEPAGE_TUNE "transparent_hugepage_tune"
 #define OE_PRELOAD_TUNE              "preload_tune"
 #define OE_NUMA_SCHED_TUNE           "numa_sched_tune"

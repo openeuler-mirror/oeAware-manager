@@ -14,6 +14,7 @@
 #include "oeaware/data/analysis_data.h"
 #include "oeaware/data/env_data.h"
 #include "oeaware/data/network_interface_data.h"
+#include "oeaware/data/net_hardirq_tune_data.h"
 
 namespace oeaware {
 void TopicFree(CTopic *topic)
@@ -1127,6 +1128,39 @@ void NetLocalAffiFree(void *data)
     netData = nullptr;
 }
 
+int NetHirqTuneDebugSerialize(const void *data, OutStream &out)
+{
+    auto logData = static_cast<const NetHirqTuneDebugInfo *>(data);
+    out << std::string(logData->log);
+    return 0;
+}
+
+int NetHirqTuneDebugDeserialize(void **data, InStream &in)
+{
+    *data = new NetHirqTuneDebugInfo();
+    auto logData = static_cast<NetHirqTuneDebugInfo *>(*data);
+    std::string log;
+    in >> log;
+    logData->log = new char[log.size() + 1];
+    strcpy_s(logData->log, log.size() + 1, log.data());
+    return 0;
+}
+
+void NetHirqTuneDebugFree(void *data)
+{
+    auto logData = static_cast<NetHirqTuneDebugInfo*>(data);
+    if (logData == nullptr) {
+        return;
+    }
+    if (logData->log != nullptr) {
+        delete[] logData->log;
+        logData->log = nullptr;
+    }
+    delete logData;
+    logData = nullptr;
+}
+
+
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
     registerEntry[name] = entry;
@@ -1175,6 +1209,8 @@ void Register::InitRegisterData()
     RegisterData(name, RegisterEntry(NetIntfDriverSerialize, NetIntfDriverDeserialize, NetIntfDriverFree));
     name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_LOCAL_NET_AFFINITY);
     RegisterData(name, RegisterEntry(NetLocalAffiSerialize, NetLocalAffiDeserialize, NetLocalAffiFree));
+    name = std::string(OE_NETHARDIRQ_TUNE) + std::string("::") + std::string(OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO);
+    RegisterData(name, RegisterEntry(NetHirqTuneDebugSerialize, NetHirqTuneDebugDeserialize, NetHirqTuneDebugFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

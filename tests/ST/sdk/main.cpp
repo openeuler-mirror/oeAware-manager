@@ -5,6 +5,7 @@
 #include <iomanip>
 #include "oeaware/data_list.h"
 #include "oeaware/data/network_interface_data.h"
+#include "oeaware/data/net_hardirq_tune_data.h"
 #include "test_inc.h"
 
 using CallbackFunction = std::function<bool(int)>;
@@ -59,6 +60,8 @@ int main(int argc, char *argv[])
     manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_BASE_TOPIC), TestNetIntfBaseInfo, "show base net intf info");
     manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NETWORK_INTERFACE_DRIVER_TOPIC), TestNetIntfDirverInfo, "show driver net intf info");
     manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_LOCAL_NET_AFFINITY), TestNetLocalAffiInfo, "show local net affinity info");
+    manager.RegisterCallback(std::string(OE_NETHARDIRQ_TUNE) + std::string("::") +
+        std::string(OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO), TestHirqTuneDebug, "show net hirq tune debug info");
     if (argc >= 2) {
         options = std::string(argv[1]);
         if (!manager.IsValidOption(options)) {

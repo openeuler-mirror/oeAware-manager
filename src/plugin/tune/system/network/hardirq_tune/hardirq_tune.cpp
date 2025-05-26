@@ -1,4 +1,7 @@
 #include "hardirq_tune.h"
+#include <sstream>
+#include <iomanip>
+#include <dirent.h>
 #include "oeaware/data/env_data.h"
 #include "oeaware/data/pmu_plugin.h"
 #include "oeaware/data/pmu_sampling_data.h"
@@ -42,17 +45,100 @@ NetHardIrq::NetHardIrq()
 	description += "                        3.pmu_sampling_collector::net:napi_gro_receive_entry\n";
     description += "[usage] \n";
     description += "        example:You can use `oeawarectl -e net_hard_irq_tune` to enable\n";
+    supportTopics.emplace_back(Topic{ .instanceName = OE_NETHARDIRQ_TUNE,
+        .topicName = OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO, .params = "" });
 }
 
 oeaware::Result NetHardIrq::OpenTopic(const oeaware::Topic &topic)
 {
-    (void)topic;
+    if (topic.instanceName != this->name) {
+        return oeaware::Result(FAILED, "OpenTopic:" + topic.GetType() + " failed, instanceName is not match");
+    }
+
+    if (topic.params != "") {
+        return oeaware::Result(FAILED, "OpenTopic:" + topic.GetType() + " failed, params is not empty");
+    }
+
+    if (topic.topicName != OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO) {
+        return oeaware::Result(FAILED, "OpenTopic:" + topic.GetType() + " failed, topicName is not match");
+    }
+    debugTopicOpen = true;
     return oeaware::Result(OK);
 }
 
 void NetHardIrq::CloseTopic(const oeaware::Topic &topic)
 {
-    (void)topic;
+    if (debugTopicOpen && topic.topicName == OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO) {
+        debugTopicOpen = false;
+    }
+}
+void NetHardIrq::Init()
+{
+    showVerbose = false;
+    debugLog = "";
+    runCnt = 0;
+    InitIrqInfo();
+}
+
+void NetHardIrq::InitIrqInfo()
+{
+    const char *irqPath = "/proc/irq";
+    DIR *dir = opendir(irqPath);
+
+    if (dir == nullptr) {
+        ERROR(logger, "NetHardIrq failed to open " << irqPath);
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        if (!std::isdigit(entry->d_name[0])) {
+            continue;
+        }
+        int irqNum;
+        try {
+            irqNum = std::stoi(entry->d_name);
+        }
+        catch (...) {
+            WARN(logger, "Failed to parse IRQ number: " << entry->d_name);
+            continue;
+        }
+        irqInfo[irqNum].originAffinity = IrqGetSmpAffinity(irqNum);
+    }
+    closedir(dir);
+}
+
+bool NetHardIrq::ResolveCmd(const std::string &param)
+{
+    if (param.empty()) {
+        return true;
+    }
+    auto paramsMap = GetKeyValueFromString(param);
+    for (auto &item : paramsMap) {
+        if (!cmdHelp.count(item.first)) {
+            ERROR(logger, "invalid param: " << item.first);
+            return false;
+        }
+    }
+    if (paramsMap.count("verbose")) {
+        if (paramsMap["verbose"] == "on") {
+            showVerbose = true;
+        } else if (paramsMap["verbose"] == "off") {
+            showVerbose = false;
+        } else {
+            ERROR(logger, "verbose invalid param: " << paramsMap["verbose"]);
+            return false;
+        }
+    }
+    return true;
+}
+
+void NetHardIrq::ShowHelp()
+{
+    WARN(logger, "command example: oeawarectl -e " << name << " ...");
+    for (const auto &item : cmdHelp) {
+        WARN(logger, item.first << " : " << item.second);
+    }
 }
 
 void oeaware::NetHardIrq::UpdateSystemInfo(const DataList &dataList)
@@ -143,6 +229,11 @@ void NetHardIrq::UpdateCpuInfo(const EnvCpuUtilParam *data)
         for (size_t i = 0; i < cpuTimeDiff.size(); i++) {
             cpuTimeDiff[i].resize(CPU_UTIL_TYPE_MAX, 0);
             cpuUtil[i].resize(CPU_UTIL_TYPE_MAX, 0);
+        }
+    }
+    for (size_t i = 0; i < cpuTimeDiff.size(); ++i) {
+        for (size_t j = 0; j < cpuTimeDiff[i].size(); ++j) {
+            cpuTimeDiff[i][j] = data->times[i][j];
         }
     }
 }
@@ -289,19 +380,32 @@ void NetHardIrq::MigrateHardIrq()
         });
 
     std::vector<std::vector<CpuSort>> cpuSort = SortNumaCpuUtil();
+    AddLog([&]() { return CpuSortLog(cpuSort); });
     std::vector<int> newBindCnt(numaNum);
     for (auto &unit : migUint) {
         int preferredNode = unit.preferredNode;
+        AddLog([&]() {
+            return "migUint " + unit.GetInfo();
+            });
         if (unit.lastBindCore != -1 && preferredNode == cpu2Numa[unit.lastBindCore]) {
+            AddLog([]() { return " skip\n"; });
             continue;
         }
         const std::vector<CpuSort> &sortedList = cpuSort[preferredNode];
         /* 1. different interrupts should be allocated to different cores as much as possible
            2. interrupt priority binding on cores with low CPU utilization */
         int preferredCpu = sortedList[newBindCnt[preferredNode] % numaNum].cpu; // this may cause bind to the same core
-        newBindCnt[preferredNode]++;
-        if (IrqSetSmpAffinity(preferredCpu, unit.irqId)) {
+        if (IrqSetSmpAffinity(preferredCpu, std::to_string(unit.irqId))) {
+            newBindCnt[preferredNode]++;
+            AddLog([&]() {
+                return ", set irq from core " + (unit.lastBindCore == -1 ?
+                    irqInfo[unit.irqId].originAffinity : std::to_string(unit.lastBindCore))
+                    + " to " + std::to_string(preferredCpu)
+                    + ", numaBindCnt " + std::to_string(newBindCnt[preferredNode]) + " \n";
+                });
             netQueue[unit.dev][unit.queId].lastBindCpu = preferredCpu;
+            irqInfo[unit.irqId].isTuned = true;
+            irqInfo[unit.irqId].lastAffinity = preferredCpu;
         }
     }
 }
@@ -377,6 +481,11 @@ void NetHardIrq::MatchThreadAndQueue()
             }
         }
     }
+    AddLog([&]() {
+        return "thread data cnt:" + std::to_string(threadData.size()) +
+            ", queue data cnt:" + std::to_string(queueData.size()) +
+            ", match times:" + std::to_string(matchTimes) + "\n";
+        });
     threadData.clear();
     queueData.clear();
 }
@@ -391,9 +500,13 @@ void NetHardIrq::UpdateData(const DataList &dataList)
 
 oeaware::Result NetHardIrq::Enable(const std::string &param)
 {
-    (void)param;
     bool isActive;
     irqbalanceStatus = false;
+    Init();
+    if (!ResolveCmd(param)) {
+        ShowHelp();
+        return oeaware::Result(FAILED, "NetHardIrq resolve cmd failed");
+    }
     if (!conf.InitConf("/lib64/oeAware-plugin/hardirq_tune.conf")) {
         return oeaware::Result(FAILED, "read conf failed");
     }
@@ -421,10 +534,60 @@ void NetHardIrq::Disable()
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
+    for (const auto &info : irqInfo) {
+        if (!info.second.isTuned) {
+            continue;
+        }
+        IrqSetSmpAffinity(info.first, info.second.originAffinity);
+        INFO(logger, "Restore IRQ " << info.first << " affinity from "
+            << info.second.lastAffinity << " to " << info.second.originAffinity);
+    }
+    envInit = false;
+    cpu2Numa.clear();
+    irqInfo.clear();
+    netQueue.clear();
+}
+
+void NetHardIrq::PublishData()
+{
+    if (!debugTopicOpen) {
+        return;
+    }
+    DataList dataList;
+    if (debugTopicOpen) {
+        oeaware::SetDataListTopic(&dataList, name, OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO, "");
+        NetHirqTuneDebugInfo *debugInfo = new NetHirqTuneDebugInfo();
+        debugInfo->log = new char[debugLog.size() + 1];
+        strcpy_s(debugInfo->log, debugLog.size() + 1, debugLog.data());
+        dataList.len = 1;
+        dataList.data = new void *[1];
+        dataList.data[0] = debugInfo;
+        Publish(dataList);
+    }
+}
+
+std::string NetHardIrq::CpuSortLog(const std::vector<std::vector<CpuSort>> &cpuSort)
+{
+    std::string log;
+    for (size_t n = 0; n < cpuSort.size(); ++n) {
+        log += "NUMA " + std::to_string(n) + ": ";
+        for (auto &cpuSort : cpuSort[n]) {
+            std::ostringstream oss;
+            oss << "[ " << cpuSort.cpu << "," << std::fixed << std::setprecision(1) << cpuSort.ratio << "]";
+            log += oss.str();
+        }
+        log += "\n";
+    }
+    return log;
 }
 
 void NetHardIrq::Run()
 {
+    AddLog([&]() {
+        return "======================================== NetHardIrq run "
+            + std::to_string(runCnt) + " ========================================\n";
+        });
+    runCnt++;
     if (!envInit) {
         return;
     }
@@ -434,6 +597,11 @@ void NetHardIrq::Run()
     Tune();
     ResetNetQueue();
     ResetCpuInfo();
+    PublishData();
     netDataInterval = 0;
     ethQueData.clear();
+    if (showVerbose) {
+        INFO(logger, debugLog);
+    }
+    debugLog = "";
 }

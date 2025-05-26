@@ -364,9 +364,9 @@ std::vector<int> ParseRange(const std::string &rangeStr)
     return numbers;
 }
 
-bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
+bool IrqSetSmpAffinity(int preferredCpu, const std::string &irqNum)
 {
-    std::string smpAffinityPath = "/proc/irq/" + std::to_string(irqNum) + "/smp_affinity_list";
+    std::string smpAffinityPath = "/proc/irq/" + irqNum + "/smp_affinity_list";
 
     std::ofstream file(smpAffinityPath);
     if (!file.is_open()) {
@@ -376,6 +376,19 @@ bool IrqSetSmpAffinity(int preferredCpu, int irqNum)
     file << preferredCpu << '\n';
     file.close();
     return true;
+}
+
+std::string IrqGetSmpAffinity(int irqNum)
+{
+    std::string smpAffinityPath = "/proc/irq/" + std::to_string(irqNum) + "/smp_affinity_list";
+    std::ifstream file(smpAffinityPath);
+    if (!file.is_open()) {
+        return "";
+    }
+    std::string smpAffinity;
+    file >> smpAffinity;
+    file.close();
+    return smpAffinity;
 }
 
 bool IsNum(const std::string &s)

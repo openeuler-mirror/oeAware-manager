@@ -14,6 +14,7 @@
 
 #include "oeaware/interface.h"
 #include "oeaware/data/env_data.h"
+#include "oeaware/data/net_hardirq_tune_data.h"
 #include "libkperf/pmu.h"
 #include "irq_frontend.h"
 
@@ -57,6 +58,12 @@ struct HardIrqMigUint {
     int lastBindCore;
     int preferredNode;
     int priority;
+    std::string GetInfo() const
+    {
+        return "dev " + dev + ", irq " + std::to_string(irqId) + ", queId  " + std::to_string(queId) +
+            ", rxSum " + std::to_string(rxSum) + ", lastBindCore " + std::to_string(lastBindCore) +
+            ", preferredNode " + std::to_string(preferredNode) + ", priority " + std::to_string(priority);
+    }
 };
 
 class NetHardIrq : public Interface {
@@ -69,20 +76,32 @@ public:
     Result Enable(const std::string &param) override;
     void Disable() override;
     void Run() override;
-
+    struct IrqInfo {
+        std::string originAffinity;
+        int lastAffinity;
+        bool isTuned = false;
+    };
 private:
     std::vector<oeaware::Topic> subscribeTopics;
     std::unordered_map<std::string, std::unordered_map<int, QueueInfo>> netQueue;
+    std::unordered_map<int, struct IrqInfo> irqInfo;
     const int slidingWinLen = 200; // for match que and thread info
     bool irqbalanceStatus = false; // irqbalance status before tune
     int netDataInterval = 0; // unit ms
     int numaNum = 0;
     std::vector<int> cpu2Numa;
     bool envInit = false;
+    std::unordered_map<std::string, std::string> cmdHelp = {
+        {"verbose", "<on/off> on:show verbose info, off(default):hide verbose info"},
+    };
     std::vector<std::vector<uint64_t>> cpuTimeDiff;
     std::vector<std::vector<float>> cpuUtil;
     std::vector<RecNetQueue> queueData;
     std::vector<RecNetThreads> threadData;
+    void Init();
+    void InitIrqInfo();
+    bool ResolveCmd(const std::string &cmd);
+    void ShowHelp();
     void UpdateSystemInfo(const DataList &dataList);
     void UpdateNetInfo(const DataList &dataList);
     void UpdateEnvInfo(const DataList &dataList);
@@ -101,9 +120,23 @@ private:
     void ResetNetQueue();
     std::vector<std::vector<CpuSort>> SortNumaCpuUtil();
     void Tune();
-
+    // read conf and resolve queue to irq
     IrqFrontEnd conf;
     std::unordered_map<std::string, EthQueInfo> ethQueData;
+    // for debug
+    bool showVerbose = false;
+    bool debugTopicOpen = false;
+    uint64_t runCnt = 0;
+    std::string debugLog;
+    template<typename F>
+    void AddLog(F &&logFunc) // delay call
+    {
+        if (showVerbose || debugTopicOpen) {
+            debugLog += logFunc();
+        }
+    }
+    std::string CpuSortLog(const std::vector<std::vector<CpuSort>> &cpuSort);
+    void PublishData();
 };
 }
 

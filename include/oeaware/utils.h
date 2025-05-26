@@ -47,6 +47,7 @@ bool IrqSetSmpAffinity(int preferredCpu, const std::string &irqNum);
 std::string IrqGetSmpAffinity(int irqNum);
 /// @brief Check whether a string is an integer or a floating point number.
 bool IsNum(const std::string &s);
+bool IsInteger(const std::string &s);
 std::string GetNetOperateStr(int state);
 int GetNetOperateTypeByStr(const std::string &state);
 bool GetSysFsNrOpen(long &nrOpen);

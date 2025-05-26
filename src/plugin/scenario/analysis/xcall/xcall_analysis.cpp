@@ -87,6 +87,10 @@ void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
         return;
     }
     std::ifstream straceFile("/tmp/strace.txt");
+    if (!straceFile.is_open()) {
+        WARN(logger, "/tmp/strace.txt is not exist.");
+        return;
+    }
     std::string line;
     int skipLine = 2;
     std::vector<XcallInfo> vec;

@@ -21,7 +21,7 @@ public:
         : instanceRunHandler(instanceRunHandler) { }
     EventResult Handle(const Event &event) override;
 private:
-    ErrorCode InstanceEnabled(const std::string &name, const std::string &param = "");
+    ErrorCode InstanceEnabled(const std::string &name, const std::string &param, std::string &err);
 private:
     std::shared_ptr<InstanceRunHandler> instanceRunHandler;
 };

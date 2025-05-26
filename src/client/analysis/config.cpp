@@ -181,17 +181,39 @@ void Config::DockerCoordinationBurstConfig(const YAML::Node config)
     if (!config["docker_coordination_burst"]) {
         return;
     }
-
     auto dockerCoordinationBurstConfig = config["docker_coordination_burst"];
-
-    if (dockerCoordinationBurstConfig["host_cpu_usage_threshold"] && !hostCpuUsageThresholdSet) {
-        hostCpuUsageThreshold = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<double>();
+    double threshold = 0;
+    if (dockerCoordinationBurstConfig["host_cpu_usage_threshold"]) {
+        std::string cooString = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<std::string>();
+        if (!oeaware::IsNum(cooString)) {
+            std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" << cooString <<
+            ")' value must be a number.\n";
+        } else {
+            threshold = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<double>();
+            if (threshold < 0 || threshold >= THRESHOLD_UP) {
+                std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" <<
+                threshold << ")' value must be a [0, 100].\n";
+            } else if (!hostCpuUsageThresholdSet) {
+                hostCpuUsageThreshold = threshold;
+            }
+        }
     }
 
-    if (dockerCoordinationBurstConfig["docker_cpu_usage_threshold"] && !dockerCpuUsageThresholdSet) {
-        dockerCpuUsageThreshold = dockerCoordinationBurstConfig["docker_cpu_usage_threshold"].as<double>();
+    if (dockerCoordinationBurstConfig["docker_cpu_usage_threshold"]) {
+        std::string cpuUsageString = dockerCoordinationBurstConfig["docker_cpu_usage_threshold"].as<std::string>();
+        if (!oeaware::IsNum(cpuUsageString)) {
+            std::cerr << "Warn: analysis config 'docker_coordination_burst:docker_cpu_usage_threshold(" <<
+            cpuUsageString << ")' value must be a number.\n";
+        } else {
+            threshold = dockerCoordinationBurstConfig["docker_cpu_usage_threshold"].as<double>();
+            if (threshold < 0 || threshold >= THRESHOLD_UP) {
+                std::cerr << "Warn: analysis config 'docker_coordination_burst:docker_cpu_usage_threshold(" <<
+                threshold << ")' value must be [0, 100].\n";
+            } else if (!dockerCpuUsageThresholdSet) {
+                dockerCpuUsageThreshold = threshold;
+            }
+        }
     }
-    return ;
 }
 
 void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
@@ -199,9 +221,7 @@ void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
     if (!config["microarch_tidnocmp"]) {
         return ;
     }
-
     auto microArchTidNoCmpConfig = config["microarch_tidnocmp"];
-
     std::stringstream yamlStream;
     yamlStream << config["microarch_tidnocmp"];  // Output node content to stream, then parsed by the plugin
     microArchTidNoCmpConfigStream = yamlStream.str();
@@ -210,107 +230,172 @@ void Config::LoadMicroArchTidNoCmpConfig(const YAML::Node config)
 
 void Config::LoadDynamicSmtConfig(const YAML::Node &config)
 {
-    if (config["dynamic_smt"]) {
-        auto dynamic_smt = config["dynamic_smt"];
-        double threshold = -1;
-        if (dynamic_smt["threshold"] && !dynamicSmtThresholdSet) {
+    if (!config["dynamic_smt"]) {
+        return;
+    }
+    auto dynamic_smt = config["dynamic_smt"];
+    double threshold = -1;
+    if (dynamic_smt["threshold"]) {
+        std::string thresholdString = dynamic_smt["threshold"].as<std::string>();
+        if (!oeaware::IsNum(thresholdString)) {
+            std::cerr << "Warn: analysis config 'dynamic_smt:threshold(" << thresholdString <<
+                ")' value must be a number.\n";
+            return;
+        } else {
             threshold = dynamic_smt["threshold"].as<double>();
         }
-        if (threshold < 0 || threshold > THRESHOLD_UP) {
-            std::cerr << "Error: analysis config 'dynamic_smt:threshold' invalid.\n";
-        } else {
-            dynamicSmtThreshold = threshold;
-        }
+    }
+    if (threshold < 0 || threshold > THRESHOLD_UP) {
+        std::cerr << "Warn: analysis config 'dynamic_smt:threshold(" << threshold <<
+            ")' value must be [0, 100].\n";
+    } else if (!dynamicSmtThresholdSet) {
+        dynamicSmtThreshold = threshold;
     }
 }
 
 void Config::LoadHugepageConfig(const YAML::Node &config)
 {
-    if (config["hugepage"]) {
-        auto hugepage = config["hugepage"];
-        double l1 = -1;
-        double l2 = -1;
-        if (hugepage["l1_miss_threshold"] && !l1MissThresholdSet) {
+    if (!config["hugepage"]) {
+        return;
+    }
+    auto hugepage = config["hugepage"];
+    double l1 = -1;
+    double l2 = -1;
+    if (hugepage["l1_miss_threshold"]) {
+        std::string l1String = hugepage["l1_miss_threshold"].as<std::string>();
+        if (!oeaware::IsNum(l1String)) {
+            std::cerr << "Warn: analysis config 'hugepage:l1_miss_threshold(" << l1String <<
+                ")' value must be a number.\n";
+        } else {
             l1 = hugepage["l1_miss_threshold"].as<double>();
+            if (l1 < 0 || l1 > THRESHOLD_UP) {
+                std::cerr << "Warn: analysis config 'hugepage:l1_miss_threshold(" << l1String <<
+                    ")' value must be [0, 100].\n";
+            } else if (!l1MissThresholdSet) {
+                l1MissThreshold = l1;
+            }
         }
-        if (hugepage["l2_miss_threshold"] && !l2MissThresholdSet) {
+    }
+    if (hugepage["l2_miss_threshold"]) {
+        std::string l2String = hugepage["l2_miss_threshold"].as<std::string>();
+        if (!oeaware::IsNum(hugepage["l2_miss_threshold"].as<std::string>())) {
+            std::cerr << "Warn: analysis config 'hugepage:l2_miss_threshold(" << l2String <<
+            ")' value must be a number.\n";
+        } else {
             l2 = hugepage["l2_miss_threshold"].as<double>();
-        }
-        if (l1 < 0 || l1 > THRESHOLD_UP) {
-            std::cerr << "Error: analysis config 'hugepage:l1_miss_threshold' invalid.\n";
-        } else {
-            l1MissThreshold = l1;
-        }
-        if (l2 < 0 || l2 > THRESHOLD_UP) {
-            std::cerr << "Error: analysis config 'hugepage:l2_miss_threshold' invalid.\n";
-        } else {
-            l2MissThreshold = l2;
+            if (l2 < 0 || l2 > THRESHOLD_UP) {
+                std::cerr << "Warn: analysis config 'hugepage:l1_miss_threshold(" << l2String <<
+                    ")' value must be [0, 100].\n";
+            } else if (l2MissThresholdSet) {
+                l2MissThreshold = l2;
+            }
         }
     }
 }
 
 void Config::LoadNumaConfig(const YAML::Node &config)
 {
-    if (config["numa_analysis"]) {
-        auto numa_analysis = config["numa_analysis"];
-        int threshold = -1;
-        if (numa_analysis["thread_threshold"] && !numaThreadThresholdSet) {
+    if (!config["numa_analysis"]) {
+        return;
+    }
+    auto numa_analysis = config["numa_analysis"];
+    int threshold = -1;
+    if (numa_analysis["thread_threshold"]) {
+        std::string thresholdString = numa_analysis["thread_threshold"].as<std::string>();
+        if (!oeaware::IsInteger(thresholdString)) {
+            std::cerr << "Warn: analysis config 'smc_d_analysis:thread_threshold(" << thresholdString <<
+                ")' value must be a integer.\n";
+            return;
+        } else {
             threshold = numa_analysis["thread_threshold"].as<int>();
         }
-        if (threshold < 0) {
-            std::cerr << "Error: analysis config 'numa_analysis:threshold' invalid.\n";
-        } else {
-            numaThreadThreshold = threshold;
-        }
+    }
+    if (threshold < 0) {
+        std::cerr << "Warn: analysis config 'smc_d_analysis:thread_threshold(" << threshold <<
+            ")' value must be a non-negative integer.\n";
+        return;
+    }
+    if (!numaThreadThresholdSet) {
+        numaThreadThreshold = threshold;
     }
 }
 
 void Config::LoadSmcDConfig(const YAML::Node &config)
 {
-    if (config["smc_d_analysis"]) {
-        auto smc_d_analysis = config["smc_d_analysis"];
-        double changeRate = -1;
-        double loNetFlow = -1;
-        if (smc_d_analysis["change_rate"] && !smcChangeRateSet) {
+    if (!config["smc_d_analysis"]) {
+        return;
+    }
+    auto smc_d_analysis = config["smc_d_analysis"];
+    double changeRate = -1;
+    double loNetFlow = -1;
+    if (smc_d_analysis["change_rate"]) {
+        std::string rateString = smc_d_analysis["change_rate"].as<std::string>();
+        if (!oeaware::IsNum(rateString)) {
+            std::cerr << "Warn: analysis config 'smc_d_analysis:change_rate(" << rateString <<
+                ")' value must be a number.\n";
+        } else {
             changeRate = smc_d_analysis["change_rate"].as<double>();
+            if (changeRate < 0) {
+                std::cerr << "Warn: analysis config 'smc_d_analysis:change_rate(" << changeRate <<
+                    ")' value must a non-negative number.\n";
+            } else if (!smcChangeRateSet) {
+                smcChangeRate = changeRate;
+            }
         }
-        if (smc_d_analysis["lo_net_flow"] && !smcLoNetFlowSet) {
+    }
+    if (smc_d_analysis["lo_net_flow"]) {
+        std::string flowString = smc_d_analysis["lo_net_flow"].as<std::string>();
+        if (!oeaware::IsNum(flowString)) {
+            std::cerr << "Warn: analysis config 'smc_d_analysis:lo_net_flow(" << flowString <<
+                ")' value must be a number.\n";
+        } else {
             loNetFlow = smc_d_analysis["lo_net_flow"].as<double>();
-        }
-        if (changeRate < 0) {
-            std::cerr << "Error: analysis config 'smc_d_analysis:change_rate' invalid.\n";
-        } else {
-            smcChangeRate = changeRate;
-        }
-        if (loNetFlow < 0) {
-            std::cerr << "Error: analysis config 'smc_d_analysis:lo_net_flow' invalid.\n";
-        } else {
-            smcLoNetFlow = loNetFlow;
+            if (loNetFlow < 0) {
+                std::cerr << "Warn: analysis config 'smc_d_analysis:lo_net_flow(" << loNetFlow <<
+                    ")' value must a non-negative number.\n";
+            } else if (!smcLoNetFlowSet) {
+                smcLoNetFlow = loNetFlow;
+            }
         }
     }
 }
 
 void Config::LoadXcallConfig(const YAML::Node &config)
 {
-    if (config["xcall_analysis"]) {
-        auto xcallAnalysis = config["xcall_analysis"];
-        double threshold = -1;
-        int num = -1;
-        if (xcallAnalysis["threshold"]) {
+    if (!config["xcall_analysis"]) {
+        return;
+    }
+    auto xcallAnalysis = config["xcall_analysis"];
+    double threshold = -1;
+    int num = -1;
+    if (xcallAnalysis["threshold"]) {
+        std::string thString = xcallAnalysis["threshold"].as<std::string>();
+        if (!oeaware::IsNum(thString)) {
+            std::cerr << "Warn: analysis config 'xcall_analysis:threshold(" << thString <<
+                ")' value must be a number.\n";
+        } else {
             threshold = xcallAnalysis["threshold"].as<double>();
+            if (threshold < 0 || threshold > THRESHOLD_UP) {
+                std::cerr << "Warn: analysis config 'xcall_analysis:threshold(" << thString <<
+                    ")' value must be [0, 100].\n";
+            } else {
+                xcallThreshold = threshold;
+            }
         }
-        if (xcallAnalysis["num"]) {
+    }
+    if (xcallAnalysis["num"]) {
+        std::string numString = xcallAnalysis["num"].as<std::string>();
+        if (!oeaware::IsInteger(numString)) {
+            std::cerr << "Warn: analysis config 'xcall_analysis:num(" << numString <<
+                ")' value must be a integer.\n";
+        } else {
             num = xcallAnalysis["num"].as<int>();
-        }
-        if (threshold < 0 || threshold > THRESHOLD_UP) {
-            std::cerr << "Error: analysis config 'xcall_analysis:threshold' invalid.\n";
-        } else {
-            xcallThreshold = threshold;
-        }
-        if (num < 0) {
-            std::cerr << "Error: analysis config 'xcall_analysis:num' invalid.\n";
-        } else {
-            xcallTopNum = num;
+            if (num < 0) {
+                std::cerr << "Warn: analysis config 'xcall_analysis:num(" << numString <<
+                    ")' value must be a non-negative integer.\n";
+            } else {
+                xcallTopNum = num;
+            }
         }
     }
 }
@@ -323,6 +408,7 @@ bool Config::LoadConfig(const std::string& configPath)
         LoadHugepageConfig(config);
         LoadNumaConfig(config);
         LoadSmcDConfig(config);
+        LoadXcallConfig(config);
         DockerCoordinationBurstConfig(config);
         LoadMicroArchTidNoCmpConfig(config);
         return true;

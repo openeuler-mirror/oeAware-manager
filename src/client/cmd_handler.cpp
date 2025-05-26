@@ -150,7 +150,7 @@ void EnabledHandler::ResHandler(Message &msg)
     if (msg.opt == Opt::RESPONSE_OK) {
         std::cout << "Instance enabled successfully.\n";
     } else {
-        std::cout << "Instance enabled failed, because "<< msg.payload[0] << ".\n";
+        std::cout << "Instance enabled failed, because "<< msg.payload[0] << "\n";
     }
 }
 

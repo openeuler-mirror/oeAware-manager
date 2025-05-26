@@ -15,7 +15,10 @@
 #include <vector>
 #include <unordered_set>
 #include "oeaware/interface.h"
-
+const std::vector<std::vector<int>> XCALL_RANGE = {
+    {0, 294},
+    {403, 469},
+};
 class XcallTune : public oeaware::Interface {
 public:
     XcallTune();

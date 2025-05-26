@@ -382,6 +382,12 @@ bool IsNum(const std::string &s)
     return std::regex_match(s, num);
 }
 
+bool IsInteger(const std::string &s)
+{
+    std::regex num(R"(^[+-]?([0-9]\d*)$)");
+    return std::regex_match(s, num);
+}
+
 std::string GetNetOperateStr(int state)
 {
     std::vector<std::string> stateMap = { "unknown",

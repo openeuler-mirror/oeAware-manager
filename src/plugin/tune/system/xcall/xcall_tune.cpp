@@ -64,6 +64,10 @@ int XcallTune::ReadConfig(const std::string &path)
             for (auto p : item) {
                 std::string xcallName = p.first.as<std::string>();
                 std::string xcallEvent = p.second.as<std::string>();
+                if (xcallName != "xcall_1") {
+                    WARN(logger, "xcall config('" << xcallName << "') error.");
+                    return -1;
+                }
                 auto events = oeaware::SplitString(xcallEvent, ",");
                 for (auto &event: events) {
                     xcallTune[threadName].emplace_back(std::make_pair(xcallName, event));
@@ -87,7 +91,12 @@ oeaware::Result XcallTune::Enable(const std::string &param)
         if (params.count("c")) {
             configPath = params["c"];
         } else {
-            return oeaware::Result(FAILED, "params invalid");
+            std::string invalid = "";
+            for (auto &p : params) {
+                if (!invalid.empty()) invalid += ",";
+                invalid += p.first;
+            }
+            return oeaware::Result(FAILED, "params(" + invalid + ") invalid");
         }
     } else {
         configPath = "/usr/lib64/oeAware-plugin/xcall.yaml";
@@ -127,6 +136,17 @@ int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
     return 0;
 }
 
+static bool SyscallNumberRange(const std::string &s)
+{
+    int number = atoi(s.data());
+    for (auto &r : XCALL_RANGE) {
+        if (number >= r[0] && number <= r[1]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void XcallTune::Run()
 {
     for (auto &item : threadId) {
@@ -137,6 +157,14 @@ void XcallTune::Run()
             }
             for (auto v : xcallTune[item.first]) {
                 if (v.first != "xcall_1") {
+                    continue;
+                }
+                if (!oeaware::IsInteger(v.second)) {
+                    WARN(logger, "systcall number must be a integer, but " << v.second);
+                    continue;
+                }
+                if (!SyscallNumberRange(v.second)) {
+                    WARN(logger, "syscall number range [0, 294], [403, 469], but " << v.second);
                     continue;
                 }
                 if (WriteSysParam(path, v.second) == 0) {

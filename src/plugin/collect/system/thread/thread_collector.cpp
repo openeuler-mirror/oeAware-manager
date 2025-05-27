@@ -65,7 +65,7 @@ oeaware::Result ThreadCollector::Enable(const std::string &param)
     // 先初始化一次所有的线程信息，然后打开ebpf追踪线程变化情况
     INFO(logger, "enable ebpf thread collector");
     GetAllThreads();
-    OpenThreadTrace();
+    return OpenThreadTrace();
 #endif
     return oeaware::Result(OK);
 }
@@ -147,18 +147,11 @@ oeaware::Result ThreadCollector::OpenThreadTrace()
 oeaware::Result ThreadCollector::ReadThreadTrace()
 {
     int err = 0;
-
-    while (true) {
-        err = ring_buffer__poll(rb, 1000);
-        if (err == 0) {
-            break;
-        }
-        if (err < 0) {
-            ERROR(logger, "Failed to poll ring buffer, " << err);
-            return oeaware::Result(FAILED);
-        }
+    err = ring_buffer__poll(rb, 0);
+    if (err < 0) {
+        ERROR(logger, "Failed to poll ring buffer, " << err);
+        return oeaware::Result(FAILED);
     }
-
     return oeaware::Result(OK);
 }
 

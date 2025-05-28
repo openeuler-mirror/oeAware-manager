@@ -16,23 +16,20 @@
 #include <unordered_set>
 #include <string>
 #include <functional>
+#include <chrono>
 #include <bpf/libbpf.h>
 #include <bpf/libbpf_common.h>
 #include "net_intf_comm.h"
+#include "ebpf/net_flow_comm.h"
 #include "oeaware/interface.h"
 #include "oeaware/data/network_interface_data.h"
 
-struct SockKey {
-    uint32_t localIp;
-    uint32_t remoteIp;
-    uint16_t localPort;
-    uint16_t remotePort;
-    bool operator==(const SockKey &other) const
-    {
-        return std::tie(localIp, remoteIp, localPort, remotePort) ==
-            std::tie(other.localIp, other.remoteIp, other.localPort, other.remotePort);
-    }
-};
+inline bool operator==(const SockKey &lhs, const SockKey &rhs)
+{
+    return std::tie(lhs.localIp, lhs.localPort, lhs.remoteIp, lhs.remotePort) ==
+           std::tie(rhs.localIp, rhs.localPort, rhs.remoteIp, rhs.remotePort);
+}
+
 namespace std {
     template<>
     struct hash<SockKey> {
@@ -41,7 +38,7 @@ namespace std {
             size_t h2 = std::hash<uint32_t>()(key.remoteIp);
             size_t h3 = std::hash<uint16_t>()(key.localPort);
             size_t h4 = std::hash<uint16_t>()(key.remotePort);
-            // 1 2 3 : simple method to combine the hashes
+            // 1 2 3 : simple method to combine the hashes (FNV-1a)
             return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
@@ -67,27 +64,36 @@ private:
         std::string topicName;
         std::vector<std::string> supportParams;
         std::unordered_set<std::string> openedParams;
+        std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     };
     std::vector<std::string> topicStr = { OE_NETWORK_INTERFACE_BASE_TOPIC,
-        OE_NETWORK_INTERFACE_DRIVER_TOPIC, OE_LOCAL_NET_AFFINITY };
+        OE_NETWORK_INTERFACE_DRIVER_TOPIC, OE_LOCAL_NET_AFFINITY, OE_NET_THREAD_QUE_DATA };
     std::unordered_map<std::string, NetIntfBaseInfo> netIntfBaseInfo; // intf to share info
     std::unordered_map<std::string, NetIntTopic> netTopicInfo; // topic name to topic info
-    std::unordered_map<SockKey, uint64_t> lastSockFlow;
+    std::unordered_map<std::string, bool> debugCtl;
     void InitTopicInfo(const std::string &name);
     void PublishBaseInfo(const std::string &params);
     void PublishDriverInfo(const std::string &params);
     void PublishLocalNetAffiInfo(const std::string &params);
+    void PublishNetQueueInfo(const std::string &params, const int &interval);
     bool AttachTcProgram(struct net_flow_kernel *obj, std::string name, int ifindex);
-    bool OpenNetFlow();
-    void CloseNetFlow();
+    bool OpenNetFlow(const std::string &topicName);
+    void CloseNetFlow(const std::string &topicName);
     void ReadFlow(std::unordered_map<uint64_t, uint64_t> &flowData);
+    void ReadNetQueue(std::vector<QueueInfo> &threadQueData);
 
-    struct LocalNetAffiCtl {
+    struct NetFlowCtl {
+        // ebpf net comm
         void *skel = nullptr;
         std::unordered_map<std::string, NetDevHook> netDevHooks;
-        bool debugUser = false;
-        bool debugKernel = false;
-    } localNetAffiCtl;
+        std::unordered_set<std::string> openTopic;
+        // local net process info
+        std::unordered_map<SockKey, uint64_t> lastSockFlow;
+        // remote recv queue info
+        std::unordered_map<SockKey, uint64_t> lastQueTimes;
+        std::unordered_map<SockKey, uint64_t> lastQueLen;
+
+    } netFlowCtl;
 };
 
 #endif // OEAWARE_NET_INTERFACE_H

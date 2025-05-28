@@ -53,6 +53,21 @@ static int ShowNetLocalAffiInfo(const DataList *dataList)
     return 0;
 }
 
+static int ShowNetTheadQueInfo(const DataList *dataList)
+{
+    if (dataList && dataList->len && dataList->data) {
+        std::string topicParams = std::string(dataList->topic.params);
+        NetThreadQueDataList *data = static_cast<NetThreadQueDataList *>(dataList->data[0]);
+        std::cout << topicParams << " data->count: " << data->count << ", interval: " << data->intervalMs << " ms" << std::endl;
+        for (int n = 0; n < data->count; n++) {
+            const auto &queData = data->queData[n];
+            std::cout << "pid " << queData.pid << ", tid " << queData.tid << ", index " << queData.ifIndex
+                << ", queId " << queData.queueId << ", times " << queData.times << ", len " << queData.len << std::endl;
+        }
+    }
+    return 0;
+}
+
 bool TestNetIntfBaseInfo(int time)
 {
     CTopic topic1 = { OE_NET_INTF_INFO,  OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_all" };
@@ -95,15 +110,34 @@ bool TestNetLocalAffiInfo(int time)
 {
     CTopic topic1 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, OE_PARA_LOC_NET_AFFI_USER_DEBUG };
     CTopic topic2 = { OE_NET_INTF_INFO,  OE_LOCAL_NET_AFFINITY, OE_PARA_PROCESS_AFFINITY };
-    
     int ret = OeInit();
     if (ret != 0) {
         std::cout << " SDK(Analysis) Init failed , result " << ret << std::endl;
         return false;
     }
 
-    OeSubscribe(&topic1, ShowNetLocalAffiInfo);
+    OeSubscribe(&topic1, nullptr);
     OeSubscribe(&topic2, ShowNetLocalAffiInfo);
+    sleep(time);
+    OeUnsubscribe(&topic1);
+    OeUnsubscribe(&topic2);
+    OeClose();
+    return true;
+}
+
+bool TestNetThrQueInfo(int time)
+{
+    CTopic topic1 = { OE_NET_INTF_INFO,  OE_NET_THREAD_QUE_DATA, OE_PARA_NET_RECV_QUE_USER_DEBUG };
+    CTopic topic2 = { OE_NET_INTF_INFO,  OE_NET_THREAD_QUE_DATA, OE_PARA_THREAD_RECV_QUE_CNT };
+
+    int ret = OeInit();
+    if (ret != 0) {
+        std::cout << " SDK(Analysis) Init failed , result " << ret << std::endl;
+        return false;
+    }
+
+    OeSubscribe(&topic1, nullptr);
+    OeSubscribe(&topic2, ShowNetTheadQueInfo);
     sleep(time);
     OeUnsubscribe(&topic1);
     OeUnsubscribe(&topic2);

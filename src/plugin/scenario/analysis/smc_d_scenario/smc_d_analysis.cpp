@@ -196,7 +196,7 @@ void *SmcDAnalysis::GetResult()
         totalEstablishedRate = totalEstablishedDelta / static_cast<double>(prevEstablishedCount);
         totalCloseWaitRate = totalCloseWaitDelta / static_cast<double>(prevEstablishedCount);
     }
-    bool isSilence = prevEstablishedCount < 50;
+    bool isSilence = prevEstablishedCount == 0;
     bool isHighFlow = netFlow >= netFlowThreshold;
     bool isSmcDUsable = totalEstablishedRate < changeRateThreshold && totalCloseWaitRate < changeRateThreshold;
     std::vector<std::vector<std::string>> metrics;
@@ -206,7 +206,7 @@ void *SmcDAnalysis::GetResult()
         conclusion = conclusionNoSupport;
     } else if (isSilence) {
         metrics.emplace_back(std::vector<std::string>{
-            smcDTcpChangeRate, "low", "stable"
+            smcDTcpChangeRate, "0", "low"
         });
         metrics.emplace_back(std::vector<std::string>{
             loNetFlow, std::to_string(netFlow)+"(MB/s)", isHighFlow ? "high" : "low"

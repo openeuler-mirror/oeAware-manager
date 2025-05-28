@@ -15,6 +15,3 @@ add_library(smc_tune STATIC
         smc_netlink.cpp)
 
 target_link_libraries(smc_tune nl-genl-3 nl-3)
-
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/smc_acc.yaml"
-                      DESTINATION "${PLUGIN_OUTPUT_LIBRARY_DIRECTORY}")

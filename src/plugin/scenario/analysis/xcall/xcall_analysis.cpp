@@ -81,7 +81,7 @@ void XcallAnalysis::Disable()
 
 void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
 {
-    std::string path = DEFAULT_PLUGIN_PATH + "/xcall" + "-" + std::to_string(pid) + ".yaml";
+    std::string path = DEFAULT_PLUGIN_CONFIG_PATH + "/xcall" + "-" + std::to_string(pid) + ".yaml";
     std::ofstream file(path);
     if (!file.is_open()) {
         return;

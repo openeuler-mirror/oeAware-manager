@@ -48,7 +48,7 @@ private:
     Node nodes[MAX_NODE]{};
     std::set<int> bindTid;
     bool isInit = false;
-    std::string CONFIG_PATH = "/usr/lib64/oeAware-plugin/ub_tune.conf";
+    std::string CONFIG_PATH = DEFAULT_PLUGIN_CONFIG_PATH + "/ub_tune.conf";
     std::set<std::string> keyThreadNames;
     void ReadKeyThreads(const std::string &file_name);
     void initCpuMap();

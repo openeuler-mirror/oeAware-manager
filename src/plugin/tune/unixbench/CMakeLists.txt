@@ -12,5 +12,3 @@ endif()
 
 set_target_properties(ub_tune PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/ub_tune.conf"
-            DESTINATION "${PLUGIN_OUTPUT_LIBRARY_DIRECTORY}")

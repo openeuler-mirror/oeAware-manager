@@ -14,8 +14,8 @@
 #define OEAWARE_MANAGER_DOCKER_SMT_H
 #include <set>
 #include <utility>
+#include <oeaware/default_path.h>
 #include "oeaware/interface.h"
-
 
 class BinaryTune : public oeaware::Interface {
 public:
@@ -61,7 +61,7 @@ private:
     std::map<int32_t, cpu_set_t> tuneThreads{};
     std::map<std::string, int32_t> configBinary{};
     std::vector<cpu_set_t> phyNumaMask{};
-    const std::string configPath = "/usr/lib64/oeAware-plugin/binary_tune.yaml";
+    const std::string configPath = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/binary_tune.yaml";
 };
 
 #endif //OEAWARE_MANAGER_DOCKER_SMT_H

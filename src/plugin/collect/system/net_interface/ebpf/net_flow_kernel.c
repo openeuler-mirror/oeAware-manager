@@ -14,30 +14,12 @@
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_endian.h>
+#include "net_flow_comm.h"
 
 #define ETH_P_IP   0x0800  // IPv4以太网协议类型
 #define TC_ACT_OK  0       // TC放行动作
 
 #define LOOPBACK_IP 0x0100007F // 127.0.0.1
-
-struct SockKey {
-    uint32_t localIp;
-    uint32_t remoteIp;
-    uint16_t localPort;
-    uint16_t remotePort;
-};
-
-struct ThreadData {
-    uint32_t pid;
-    uint32_t tid;
-    char comm[16];
-};
-
-struct SockInfo {
-    struct ThreadData client;
-    struct ThreadData server;
-    uint64_t flow;
-};
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -45,6 +27,20 @@ struct {
     __type(key, struct SockKey);
     __type(value, struct SockInfo);
 } flowStats SEC(".maps");
+
+/*
+* 1. It is assumed that a 4-tuple can only use one NIC queue to receive packets.
+* 2. Why not use the network card queue as the key directly?
+* Because the queue information cannot be obtained when tcp "accept()".
+* 3. Why not use recvmsg/skb_copy_datagram_iovec and other statistics on thread queues/cpu and other information?
+* Because the background noise ratio is high.
+*/
+struct {
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __uint(max_entries, 65536);
+    __type(key, struct SockKey);
+    __type(value, struct QueueInfo);
+} rcvQueStatus SEC(".maps");
 
 static __always_inline void UpdateThreadData(struct ThreadData *td)
 {
@@ -130,6 +126,14 @@ int BPF_KRETPROBE(inet_csk_accept_exit, struct sock *sk)
             bpf_map_delete_elem(&flowStats, &keyReversed);
         }
     }
+
+    struct QueueInfo queInfo = {};
+    UpdateThreadData(&queInfo.td);
+    if (IsValidData(&queInfo.td)) {
+        queInfo.times = 0;
+        queInfo.len = 0;
+        bpf_map_update_elem(&rcvQueStatus, &keyReversed, &queInfo, BPF_ANY);
+    }
     return 0;
 }
 
@@ -140,6 +144,9 @@ int BPF_KPROBE(tcp_close, struct sock *sk)
     ReadIpAndPort(sk, &key, &keyReversed);
     bpf_map_delete_elem(&flowStats, &key);
     bpf_map_delete_elem(&flowStats, &keyReversed);
+
+    bpf_map_delete_elem(&rcvQueStatus, &key);
+    bpf_map_delete_elem(&rcvQueStatus, &keyReversed);
     return 0;
 }
 
@@ -170,6 +177,8 @@ int BPF_KPROBE(tcp_set_state, struct sock *sk, int state)
     } else if ((oldState == TCP_ESTABLISHED && newState == TCP_FIN_WAIT1) || newState == TCP_CLOSE) {
         bpf_map_delete_elem(&flowStats, &key);
         bpf_map_delete_elem(&flowStats, &keyReversed);
+        bpf_map_delete_elem(&rcvQueStatus, &key);
+        bpf_map_delete_elem(&rcvQueStatus, &keyReversed);
     }
     return 0;
 }
@@ -211,7 +220,7 @@ int tc_ingress(struct __sk_buff *skb) {
     } else {
         return TC_ACT_OK;
     }
-
+    // local network
     struct SockKey key;
     key.localIp = ip->saddr;
     key.remoteIp = ip->daddr;
@@ -231,8 +240,24 @@ int tc_ingress(struct __sk_buff *skb) {
     if (info) {
         info->flow += skb->len;
     }
+    // remote network
+    if (skb->ifindex <= 0) {
+        return TC_ACT_OK; // not a valid interface
+    }
+    struct QueueInfo *queInfo = bpf_map_lookup_elem(&rcvQueStatus, &key);
+    if (queInfo) {
+        queInfo->ifIdx = skb->ifindex;
+        queInfo->queueId = skb->queue_mapping;
+        queInfo->len += skb->len;
+        queInfo->times++;
+    }
     return TC_ACT_OK;
 }
+
+/*
+* SEC("kprobe/skb_copy_datagram_iter") also can get thread net info
+* more accurate than accept, but more noise
+*/
 
 char _license[] SEC("license") = "GPL";
 

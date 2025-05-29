@@ -1160,6 +1160,57 @@ void NetHirqTuneDebugFree(void *data)
     logData = nullptr;
 }
 
+int NetThreadQueSerialize(const void *data, OutStream &out)
+{
+    auto netData = static_cast<const NetThreadQueDataList *>(data);
+    out << netData->intervalMs;
+    out << netData->count;
+    for (int n = 0; n < netData->count; ++n) {
+        out << netData->queData[n].pid;
+        out << netData->queData[n].tid;
+        out << netData->queData[n].ifIndex;
+        out << netData->queData[n].queueId;
+        out << netData->queData[n].times;
+        out << netData->queData[n].len;
+    }
+    return 0;
+}
+
+int NetThreadQueDeserialize(void **data, InStream &in)
+{
+    *data = new NetThreadQueDataList();
+    auto netData = static_cast<NetThreadQueDataList *>(*data);
+    in >> netData->intervalMs;
+    in >> netData->count;
+    if (netData->count <= 0) {
+        return 0;
+    }
+    netData->queData = new NetThreadQueData[netData->count];
+    for (int n = 0; n < netData->count; ++n) {
+        in >> netData->queData[n].pid;
+        in >> netData->queData[n].tid;
+        in >> netData->queData[n].ifIndex;
+        in >> netData->queData[n].queueId;
+        in >> netData->queData[n].times;
+        in >> netData->queData[n].len;
+    }
+    return 0;
+}
+
+void NetThreadQueFree(void *data)
+{
+    auto netData = static_cast<NetThreadQueDataList*>(data);
+    if (netData == nullptr) {
+        return;
+    }
+    if (netData->queData != nullptr) {
+        delete[] netData->queData;
+        netData->queData = nullptr;
+    }
+    netData->count = 0;
+    delete netData;
+    netData = nullptr;
+}
 
 void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 {
@@ -1211,6 +1262,8 @@ void Register::InitRegisterData()
     RegisterData(name, RegisterEntry(NetLocalAffiSerialize, NetLocalAffiDeserialize, NetLocalAffiFree));
     name = std::string(OE_NETHARDIRQ_TUNE) + std::string("::") + std::string(OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO);
     RegisterData(name, RegisterEntry(NetHirqTuneDebugSerialize, NetHirqTuneDebugDeserialize, NetHirqTuneDebugFree));
+    name = std::string(OE_NET_INTF_INFO) + std::string("::") + std::string(OE_NET_THREAD_QUE_DATA);
+    RegisterData(name, RegisterEntry(NetThreadQueSerialize, NetThreadQueDeserialize, NetThreadQueFree));
 }
 
 SerializeFunc Register::GetDataSerialize(const std::string &name)

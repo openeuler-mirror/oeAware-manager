@@ -9,6 +9,7 @@ bool TestCpuUtilInfo(int time);
 bool TestNetIntfBaseInfo(int time);
 bool TestNetIntfDirverInfo(int time);
 bool TestNetLocalAffiInfo(int time);
+bool TestNetThrQueInfo(int time);
 
 // net hirq tune
 bool TestHirqTuneDebug(int time);

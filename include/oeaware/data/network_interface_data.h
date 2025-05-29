@@ -79,6 +79,32 @@ typedef struct {
     struct ProcessNetAffinityData *affinity;
 } ProcessNetAffinityDataList;
 
+// topic
+#define OE_NET_THREAD_QUE_DATA "net_thread_que_data"
+// params of net_thread_que_data
+#define OE_PARA_NET_RECV_QUE_USER_DEBUG "net_thread_que_data_usr_debug"
+#define OE_PARA_NET_RECV_QUE_KERN_DEBUG "lnet_thread_que_data_kern_debug"
+#define OE_PARA_THREAD_RECV_QUE_CNT "thread_recv_que_cnt"
+/*
+* network threads receive packet information of every eth queue
+* only support tcp now
+* need subscribe this before tcp link
+*/
+struct NetThreadQueData {
+    uint32_t pid;
+    uint32_t tid;
+    int ifIndex;    // ifIndex of eth (not include lo)
+    int queueId;
+    uint32_t times; // hirq of receive packet count
+    uint64_t len;   // receive packet length
+};
+
+typedef struct {
+    uint64_t intervalMs;
+    int count;
+    struct NetThreadQueData *queData;
+} NetThreadQueDataList;
+
 #ifdef __cplusplus
 }
 #endif

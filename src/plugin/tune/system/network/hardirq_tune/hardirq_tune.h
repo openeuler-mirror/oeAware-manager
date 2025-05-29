@@ -15,6 +15,7 @@
 #include "oeaware/interface.h"
 #include "oeaware/data/env_data.h"
 #include "oeaware/data/net_hardirq_tune_data.h"
+#include "oeaware/data/pmu_sampling_data.h"
 #include "libkperf/pmu.h"
 #include "irq_frontend.h"
 
@@ -66,6 +67,11 @@ struct HardIrqMigUint {
     }
 };
 
+struct ThreadNumaInfo {
+    std::unordered_map<int, std::unordered_map<int, uint64_t>> queRxTimes; // ifIdx,que times
+    std::vector<uint64_t> cyclesNumaRatio;  // numa distribution for approximating network threads
+    uint64_t cyclesSum;
+};
 class NetHardIrq : public Interface {
 public:
     NetHardIrq();
@@ -81,7 +87,9 @@ public:
         int lastAffinity;
         bool isTuned = false;
     };
+
 private:
+    bool highNoiseSample = false;
     std::vector<oeaware::Topic> subscribeTopics;
     std::unordered_map<std::string, std::unordered_map<int, QueueInfo>> netQueue;
     std::unordered_map<int, struct IrqInfo> irqInfo;
@@ -90,27 +98,37 @@ private:
     int netDataInterval = 0; // unit ms
     int numaNum = 0;
     std::vector<int> cpu2Numa;
+    std::unordered_map<uint32_t, std::string> ifIdxToName;
     bool envInit = false;
-    std::unordered_map<std::string, std::string> cmdHelp = {
-        {"verbose", "<on/off> on:show verbose info, off(default):hide verbose info"},
+    std::map<std::string, std::string> cmdHelp = {
+        {"netdata", std::string("") +
+         "    -netdata <type>        specify the source of network data, <type> should be : \n" +
+         "                           thread_recv_que                use net_thread_que_data topic," +
+         " low load collect, only support tcp(default)\n" +
+         "                           skb_copy                       use skb copy, high load collect\n"},
+        {"verbose",
+         "    -verbose <on/off>      on:show verbose info, off(default):hide verbose info"},
     };
     std::vector<std::vector<uint64_t>> cpuTimeDiff;
     std::vector<std::vector<float>> cpuUtil;
     std::vector<RecNetQueue> queueData;
     std::vector<RecNetThreads> threadData;
+    std::unordered_map<uint32_t, ThreadNumaInfo> threadNumaInfo;
     void Init();
     void InitIrqInfo();
     bool ResolveCmd(const std::string &cmd);
-    void ShowHelp();
+    std::string GetHelp();
     void UpdateSystemInfo(const DataList &dataList);
-    void UpdateNetInfo(const DataList &dataList);
+    void UpdatePmuSampleInfo(const DataList &dataList);
     void UpdateEnvInfo(const DataList &dataList);
     void UpdateNetIntfInfo(const DataList &dataList);
     void UpdateCpuInfo(const EnvCpuUtilParam *data);
     void UpdateQueueData(const PmuData *data, int dataLen);
     void UpdateThreadData(const PmuData *data, int dataLen);
+    void UpdateCyclesData(const PmuData *data, int dataLen);
     void AddIrqToQueueInfo();
     void MatchThreadAndQueue();
+    void MatchThreadQueAndNuma();
     void UpdateThreadAndQueueInfo(const RecNetQueue &queData, const RecNetThreads &thrData);
     void ClearInvalidQueueInfo();
     void CalCpuUtil();

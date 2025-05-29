@@ -68,19 +68,6 @@ public:
     void Run() override;
 
 private:
-    void PublishData(const Topic &topic);
-    void Reset(const std::string &topicType);
-    void Analysis(const std::string &topicType);
-    void UpdateDockerInfo(const std::string &topicType, const DataList &dataList);
-    void UpdateCpuUtil(const std::string &topicType, const EnvCpuUtilParam *cpuUtilData);
-    bool Init();
-	bool ParseConfig(const std::string topicType, const std::string &param);
-    bool IsTuneSupport();
-    void HandleSuggestDocker(const std::string &topicType, int &suggestDockerNum,
-                             std::string &suggestionDockers, std::vector<int> &type,
-                             std::vector<std::vector<std::string>> &metrics);
-
-private:
     struct TopicStatus {
         bool isOpen = false;
         bool isPublish = false;
@@ -93,6 +80,39 @@ private:
         double hostCpuUtilSum = 0.0;
         uint64_t sampleCount = 0;
     };
+    struct DockersListRecord {
+        std::string suggestionDockers;
+        std::string highCpuUsageDockers;
+        std::string enabledDockers;
+
+        void CheckTail(std::string &dockersStr)
+        {
+            if (!dockersStr.empty() && dockersStr.back() == ',') {
+                dockersStr.pop_back();
+            }
+        }
+    };
+
+private:
+    void PublishData(const Topic &topic);
+    void Reset(const std::string &topicType);
+    void Analysis(const std::string &topicType);
+    void UpdateDockerInfo(const std::string &topicType, const DataList &dataList);
+    void UpdateCpuUtil(const std::string &topicType, const EnvCpuUtilParam *cpuUtilData);
+    bool Init();
+    bool ParseConfig(const std::string topicType, const std::string &param);
+    bool IsTuneSupport();
+    void HandleSuggestDocker(const std::string &topicType,
+                             DockersListRecord &dockerRecord,
+                             std::vector<int> &type,
+                             std::vector<std::vector<std::string>> &metrics);
+    void AnalysisResult(const std::string &topicType,
+                        std::vector<std::vector<std::string>> &metrics,
+                        std::string &conclusion,
+                        std::vector<std::string> &suggestionItem,
+                        std::vector<int> &type);
+
+private:
     int hostCpuNum = -1;
     std::vector<Topic> subscribeTopics;
     AnalysisResultItem analysisResultItem = {};

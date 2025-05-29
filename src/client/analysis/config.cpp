@@ -190,7 +190,7 @@ void Config::DockerCoordinationBurstConfig(const YAML::Node config)
             ")' value must be a number.\n";
         } else {
             threshold = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<double>();
-            if (threshold < 0 || threshold >= THRESHOLD_UP) {
+            if (threshold < 0 || threshold > THRESHOLD_UP) {
                 std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" <<
                 threshold << ")' value must be a [0, 100].\n";
             } else if (!hostCpuUsageThresholdSet) {
@@ -206,7 +206,7 @@ void Config::DockerCoordinationBurstConfig(const YAML::Node config)
             cpuUsageString << ")' value must be a number.\n";
         } else {
             threshold = dockerCoordinationBurstConfig["docker_cpu_usage_threshold"].as<double>();
-            if (threshold < 0 || threshold >= THRESHOLD_UP) {
+            if (threshold < 0 || threshold > THRESHOLD_UP) {
                 std::cerr << "Warn: analysis config 'docker_coordination_burst:docker_cpu_usage_threshold(" <<
                 threshold << ")' value must be [0, 100].\n";
             } else if (!dockerCpuUsageThresholdSet) {

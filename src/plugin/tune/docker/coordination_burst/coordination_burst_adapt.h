@@ -12,11 +12,12 @@
 #ifndef COORDINATION_BURST_ADAPT_H
 #define COORDINATION_BURST_ADAPT_H
 #include <set>
+#include <yaml-cpp/yaml.h>
 #include "oeaware/interface.h"
 
 constexpr double DEFAULT_RATIO = 20.0;
-constexpr double MAX_RATIO = 20.0;
-constexpr double MIN_RATIO = 1.0;
+constexpr int MAX_RATIO = 20;
+constexpr int MIN_RATIO = 1;
 
 class CoordinationBurstAdapt : public oeaware::Interface {
 public:
@@ -30,11 +31,14 @@ public:
     void Run() override;
 private:
     std::string FixYaml(std::string raw);
-    int ParseParam(const std::string &param);
-    int ReadConfig(const std::string &path);
+    std::string ParseParam(const std::string &param);
+    std::string ReadConfig(const std::string &path);
+    std::string CheckYamlParam(YAML::Node &parsedConfig);
+    std::string ParseYamlRatio(YAML::Node &parsedConfig);
+    bool HasSpecialChar(const std::string &str) const;
     bool CheckEnv();
     int GetRatio();
-    bool SetRatio(const int ratioValue);
+    std::string SetRatio(const int ratioValue);
     int GetSoftQuota(const std::string &cgroupPath);
     bool SetSoftQuota(const int softQuota, const std::string &cgroupPath);
     void GetAllDockers();

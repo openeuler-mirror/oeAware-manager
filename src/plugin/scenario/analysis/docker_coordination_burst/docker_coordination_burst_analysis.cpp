@@ -124,6 +124,7 @@ void DockerCoordinationBurstAnalysis::CloseTopic(const oeaware::Topic &topic)
 {
     auto topicType = topic.GetType();
     topicStatus[topicType].isOpen = false;
+    topicStatus[topicType].isPublish = false;
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
@@ -204,8 +205,7 @@ bool DockerCoordinationBurstAnalysis::IsTuneSupport()
 }
 
 void DockerCoordinationBurstAnalysis::HandleSuggestDocker(const std::string &topicType,
-                                                          int &suggestDockerNum,
-                                                          std::string &suggestionDockers,
+                                                          DockersListRecord &dockerRecord,
                                                           std::vector<int> &type,
                                                           std::vector<std::vector<std::string>> &metrics)
 {
@@ -220,21 +220,28 @@ void DockerCoordinationBurstAnalysis::HandleSuggestDocker(const std::string &top
             std::to_string(dockerCpuUtil) + "%",
             (dockerCpuUtil > dockerCpuUsageThreshold ? "high for docker coordination burst"
                                                                             : "low for docker coordination burst")});
-        if (dockerCpuUtil > dockerCpuUsageThreshold && docker.second.GetSoftQuota() == 0) {
-            suggestionDockers += dockerShortId + ",";
-            suggestDockerNum++;
+        if (dockerCpuUtil < dockerCpuUsageThreshold) {
+            continue;
+        }
+        dockerRecord.highCpuUsageDockers += dockerShortId + ",";
+        int64_t curSoftQuota = docker.second.GetSoftQuota();
+        if (curSoftQuota == 0) {
+            dockerRecord.suggestionDockers += dockerShortId + ",";
+        } else if (curSoftQuota == 1) {
+            dockerRecord.enabledDockers += dockerShortId + ",";
         }
     }
-    if (!suggestionDockers.empty() && suggestionDockers.back() == ',') {
-        suggestionDockers.pop_back();
-    }
+    dockerRecord.CheckTail(dockerRecord.suggestionDockers);
+    dockerRecord.CheckTail(dockerRecord.enabledDockers);
+    dockerRecord.CheckTail(dockerRecord.highCpuUsageDockers);
 }
 
-void DockerCoordinationBurstAnalysis::Analysis(const std::string &topicType)
+void DockerCoordinationBurstAnalysis::AnalysisResult(const std::string &topicType,
+                                                     std::vector<std::vector<std::string>> &metrics,
+                                                     std::string &conclusion,
+                                                     std::vector<std::string> &suggestionItem,
+                                                     std::vector<int> &type)
 {
-    std::vector<std::vector<std::string>> metrics;
-    std::vector<int> type;
-
     double hostCpuUtil = topicStatus[topicType].hostCpuUtil * PERCENTAGE_FACTOR;
     double hostCpuUsageThreshold = topicStatus[topicType].hostCpuUsageThreshold;
 
@@ -245,40 +252,51 @@ void DockerCoordinationBurstAnalysis::Analysis(const std::string &topicType)
                 ? "high for docker coordination burst"
                 : "low for docker coordination burst")});
 
-    std::string suggestionDockers;
-    int suggestDockerNum = 0;
-    HandleSuggestDocker(topicType, suggestDockerNum, suggestionDockers, type, metrics);
+    DockersListRecord dockerRecord;
+    HandleSuggestDocker(topicType, dockerRecord, type, metrics);
 
-    std::string conclusion;
-    std::vector<std::string> suggestionItem;
+    if (!IsTuneSupport()) {
+        conclusion = "The environment is not support docker coordination burst tune.";
+        return;
+    }
+
     if (topicStatus[topicType].dockerList.empty()) {
         conclusion = "No docker found in this environment. So no need to use docker coordination burst.";
+        return;
     }
 
     if (hostCpuUtil <= hostCpuUsageThreshold) {
-        if (suggestionDockers.empty()) {
-            conclusion = "The system loads is low, but the docker load is not high or the docker"
-                         " coordination burst is already open, do not need to enable"
-                         " docker coordination burst.";
+        if (dockerRecord.suggestionDockers.empty()) {
+            if (dockerRecord.highCpuUsageDockers.empty()) {
+                conclusion = "The system loads is low, and the docker load is low."
+                             " Do not need to enable docker coordination burst.";
+            } else {
+                conclusion = "The system loads is low, and the docker [" + dockerRecord.enabledDockers +
+                             " ] coordination burst is already open, do not need to enable docker coordination burst.";
+            }
         } else {
-            if (IsTuneSupport()) {
-                conclusion = "The system loads is low. The dockers which cpu loads are high "
-                            "can use docker coordination burst.";
+                conclusion = "The system loads is low. Found some dockers which cpu loads are high and not enable "
+                             "docker coordination burst yet. Please enable docker coordination burst for them.";
                 suggestionItem.emplace_back("use docker coordination burst");
-                suggestionItem.emplace_back("oeawarectl -e docker_burst -docker_id " + suggestionDockers + " -ratio " +
-                                            std::to_string(static_cast<int>(MAX_RATIO)));
+                suggestionItem.emplace_back("oeawarectl -e docker_burst -docker_id [" + dockerRecord.suggestionDockers +
+                                            "] -ratio " + std::to_string(static_cast<int>(MAX_RATIO)));
                 suggestionItem.emplace_back("The idle cpu of the scheduling physical machine is scheduled to "
                                             "heavy load containers to improve performance.");
-            } else {
-                conclusion = "The system loads is low. The dockers which cpu loads are high "
-                            "can use docker coordination burst. but the environment is not "
-                            "support docker coordination burst tune.";
-            }
         }
     } else {
         conclusion = "The system loads is high, and fewer idle cpus available for scheduling. "
-                    "So do not need enable docker coordination burst.";
+                     "So do not need enable docker coordination burst.";
     }
+}
+
+void DockerCoordinationBurstAnalysis::Analysis(const std::string &topicType)
+{
+    std::vector<std::vector<std::string>> metrics;
+    std::vector<int> type;
+    std::string conclusion;
+    std::vector<std::string> suggestionItem;
+
+    AnalysisResult(topicType, metrics, conclusion, suggestionItem, type);
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
 }
 

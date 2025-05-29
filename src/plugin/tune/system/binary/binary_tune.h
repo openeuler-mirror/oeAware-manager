@@ -31,8 +31,8 @@ private:
     struct InternalContainer {
         InternalContainer() = default;
         InternalContainer(std::string name, int64_t period, int64_t quota, int64_t burst,
-                          std::string cpus, std::vector<int32_t> tasks):id(std::move(name)),cfsPeriodUs(period),
-                          cfsQuotaUs(quota),cfsBurstUs(burst),cpus(std::move(cpus)), tasks(std::move(tasks)){
+                          std::string cpus, std::vector<int32_t> tasks):id(std::move(name)), cfsPeriodUs(period),
+                          cfsQuotaUs(quota), cfsBurstUs(burst), cpus(std::move(cpus)), tasks(std::move(tasks)) {
         }
         std::string id;
         int64_t cfsPeriodUs = 0;
@@ -49,6 +49,7 @@ private:
                      std::map<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>> &threadWaitTuneByCore);
     void BindNuma(int32_t numaNode,
                   std::map<int32_t, std::vector<int32_t>> &threadWaitTuneByNuma);
+    void BindAllCores(const std::vector<int32_t> &threads);
     int ReadConfig(const std::string &path);
     void ParseBinaryElf(const std::string &filePath, int32_t &policy);
     std::vector<oeaware::Topic> subscribeTopics{};
@@ -56,12 +57,15 @@ private:
     std::vector<int> cpu2Numa{};
     int32_t numaNum = 1;
     int32_t cpuCoreNum = 1;
+    int32_t cpuNumOnline = 1;
+    bool isCpuAllOnline = true;
     std::vector<InternalContainer> containers{};
     std::map<int32_t, std::string> threads{};
     std::map<int32_t, cpu_set_t> tuneThreads{};
     std::map<std::string, int32_t> configBinary{};
     std::vector<cpu_set_t> phyNumaMask{};
     const std::string configPath = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/binary_tune.yaml";
+    std::set<int32_t> hasLoggedThreads;
 };
 
 #endif //OEAWARE_MANAGER_DOCKER_SMT_H

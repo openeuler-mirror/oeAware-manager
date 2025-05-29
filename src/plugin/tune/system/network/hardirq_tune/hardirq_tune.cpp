@@ -9,6 +9,8 @@
 
 using namespace oeaware;
 
+static const std::string HARDIRQ_CONFIG_PATH = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/hardirq_tune.conf";
+
 NetHardIrq::NetHardIrq()
 {
     name = OE_NETHARDIRQ_TUNE;
@@ -507,8 +509,8 @@ oeaware::Result NetHardIrq::Enable(const std::string &param)
         ShowHelp();
         return oeaware::Result(FAILED, "NetHardIrq resolve cmd failed");
     }
-    if (!conf.InitConf("/lib64/oeAware-plugin/hardirq_tune.conf")) {
-        return oeaware::Result(FAILED, "read conf failed");
+    if (!conf.InitConf(HARDIRQ_CONFIG_PATH)) {
+        return oeaware::Result(FAILED, "read " + HARDIRQ_CONFIG_PATH + " failed.");
     }
 
     // irq tune confilct with irqbalance

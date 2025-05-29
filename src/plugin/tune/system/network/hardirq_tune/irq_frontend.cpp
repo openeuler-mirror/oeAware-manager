@@ -155,7 +155,6 @@ bool IrqFrontEnd::ReadQue2IrqConf()
 {
     std::ifstream configFile(confPath);
     if (!configFile.is_open()) {
-        std::cerr << "Failed to open config file: " << confPath << std::endl;
         return false;
     }
 

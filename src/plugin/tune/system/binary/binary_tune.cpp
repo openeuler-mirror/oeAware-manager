@@ -37,10 +37,12 @@ int BinaryTune::ReadConfig(const std::string &path)
 {
     std::ifstream configFile(path);
     if (!configFile.is_open()) {
+        WARN(logger, "binary_tune.yaml open failed.");
         return -1;
     }
     YAML::Node node = YAML::LoadFile(path);
     if (!node.IsMap()) {
+        WARN(logger, "binary_tune.yaml format error.");
         return -1;
     }
     for (auto item : node) {

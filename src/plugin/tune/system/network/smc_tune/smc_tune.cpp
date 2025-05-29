@@ -17,6 +17,7 @@
 
 #define SMC_OP SmcOperator::getInstance()
 using namespace oeaware;
+static const std::string SMC_CONFIG_PATH = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/smc_acc.yaml";
 int log_level = 0;
 SmcTune::SmcTune()
 {
@@ -48,7 +49,7 @@ void SmcTune::UpdateData(const DataList &dataList)
 oeaware::Result SmcTune::Enable(const std::string &param)
 {
     (void)param;
-    if (ReadConfig(SMC_ACC_YAML_PATH) < 0) {
+    if (ReadConfig(SMC_CONFIG_PATH) < 0) {
         return oeaware::Result(FAILED);
     }
     SMC_OP->SetShortConnection(shortConnection);
@@ -66,7 +67,7 @@ void SmcTune::Disable()
 
 void SmcTune::Run()
 {
-    ReadConfig(SMC_ACC_YAML_PATH);
+    ReadConfig(SMC_CONFIG_PATH);
     if (SMC_OP->IsSamePortList(blackPortList, whitePortList)) {
         return;
     }

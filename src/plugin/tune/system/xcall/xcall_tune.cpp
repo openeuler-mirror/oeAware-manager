@@ -15,6 +15,7 @@
 #include "oeaware/data/thread_info.h"
 #include "oeaware/utils.h"
 
+static const std::string XCALL_CONFIG_PATH = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/xcall.yaml";
 XcallTune::XcallTune()
 {
     name = OE_XCALL_TUNE;
@@ -99,7 +100,7 @@ oeaware::Result XcallTune::Enable(const std::string &param)
             return oeaware::Result(FAILED, "params(" + invalid + ") invalid");
         }
     } else {
-        configPath = "/usr/lib64/oeAware-plugin/xcall.yaml";
+        configPath = XCALL_CONFIG_PATH;
     }
     int ret = ReadConfig(configPath);
     Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});

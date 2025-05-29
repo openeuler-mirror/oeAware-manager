@@ -13,6 +13,7 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include <regex>
+#include <oeaware/default_path.h>
 #include "oeaware/utils.h"
 
 constexpr int PERIOD = 1000;
@@ -20,7 +21,7 @@ constexpr int PRIORITY = 2;
 const std::string SCHED_SOFT_RUNTIME_RATIO_PATH =
     "/proc/sys/kernel/sched_soft_runtime_ratio";
 const std::string DOCKER_COORDINATION_BURST_CONFIG_PATH =
-    "/usr/lib64/oeAware-plugin/docker_burst.yaml";
+    oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/docker_burst.yaml";
 
 CoordinationBurstAdapt::CoordinationBurstAdapt()
 {

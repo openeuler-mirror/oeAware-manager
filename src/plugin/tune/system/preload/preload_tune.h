@@ -39,7 +39,7 @@ private:
     std::string ExtractSoName(const std::string& path);
     std::string ParseLddLine(const std::string& line);
     std::vector<ConfigNode> config;
-    std::string configPath = DEFAULT_PRELOAD_PATH;
+    std::string configPath = DEFAULT_PLUGIN_CONFIG_PATH + "/preload.yaml";
 };
 }
 

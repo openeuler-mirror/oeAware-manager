@@ -1,0 +1,4 @@
+#[process name]: policy 
+# policy:1 means all threads bind on all physical cores;
+#        2 means all threads bind on some physical cores.
+#redis-server: 1

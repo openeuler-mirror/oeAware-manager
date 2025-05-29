@@ -74,6 +74,4 @@ extern log4cplus::Logger g_smcLogger;
 
 #define SMC_UEID_NAME "SMCV2-OPENEULER-UEID"
 
-#define SMC_ACC_YAML_PATH "/usr/lib64/oeAware-plugin/smc_acc.yaml"
-
 #endif /* SMCTOOLS_COMMON_H */

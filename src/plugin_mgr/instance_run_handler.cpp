@@ -50,7 +50,7 @@ void InstanceRunHandler::DisableInstance(const std::string &name)
     }
     auto instance = memoryStore->GetInstance(name);
     instance->enabled = false;
-    instance->interface->Disable();
+    instance->interface->ManageDisable();
     INFO(logger, "instance " << name << " has been disabled.");
 }
 
@@ -72,7 +72,7 @@ Result InstanceRunHandler::Subscribe(const std::vector<std::string> &payload)
         }
     }
     if (!topicState[topic.instanceName][topic.topicName][topic.params]) {
-        result = instance->interface->OpenTopic(topic);
+        result = instance->interface->ManageTopicOpen(topic);
         if (result.code < 0) {
             WARN(logger, "topic{" << LogText(topic.instanceName) << ", " << LogText(topic.topicName) << ", " <<
                 LogText(topic.params) << "} open failed, " << result.payload);
@@ -101,7 +101,7 @@ void InstanceRunHandler::UpdateInstance()
                     Topic topic = Topic{p.first, pt.first, pp.first};
                     std::string type = Concat({p.first, pt.first, pp.first}, "::");
                     if (!subscibers.count(type)) {
-                        memoryStore->GetInstance(p.first)->interface->CloseTopic(topic);
+                        memoryStore->GetInstance(p.first)->interface->ManageTopicClose(topic);
                         pp.second = false;
                     } else {
                         cntTopic++;
@@ -172,7 +172,7 @@ Result InstanceRunHandler::Publish(const std::vector<std::string> &payload)
         }
     }
     if (!topic.topicName.empty()) {
-        result = instance->interface->OpenTopic(topic);
+        result = instance->interface->ManageTopicOpen(topic);
         if (result.code < 0) {
             WARN(logger, result.code);
             return result;
@@ -256,7 +256,7 @@ bool InstanceRunHandler::HandleMessage()
 void InstanceRunHandler::CloseInstance(std::shared_ptr<Instance> instance)
 {
     instance->enabled = false;
-    instance->interface->Disable();
+    instance->interface->ManageDisable();
 }
 
 void InstanceRunHandler::Schedule()

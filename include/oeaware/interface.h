@@ -11,6 +11,7 @@
  ******************************************************************************/
 #ifndef OEAWARE_INTERFACE_H
 #define OEAWARE_INTERFACE_H
+#include <unordered_set>
 #include <oeaware/data_list.h>
 #include <oeaware/logger.h>
 #include <oeaware/safe_queue.h>
@@ -68,6 +69,27 @@ public:
     virtual Result Enable(const std::string &param = "") = 0;
     virtual void Disable() = 0;
     virtual void Run() = 0;
+    Result ManageTopicOpen(const Topic &topic)
+    {
+        Result ret = OpenTopic(topic);
+        if (ret.code == OK) {
+            openTopics.insert(topic.GetType());
+        }
+        return ret;
+    }
+    void ManageTopicClose(const Topic &topic)
+    {
+        CloseTopic(topic);
+        openTopics.erase(topic.GetType());
+    }
+    void ManageDisable()
+    {
+        std::vector<std::string> topicsTypes = std::vector<std::string>(openTopics.begin(), openTopics.end());
+        for (const auto &type : topicsTypes) {
+            CloseTopic(Topic::GetTopicFromType(type));
+        }
+        Disable();
+    }
 protected:
     std::string name;
     std::string version;
@@ -105,6 +127,7 @@ protected:
         recvQueue->Push(msg);
     }
 private:
+    std::unordered_set<std::string> openTopics;
     std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
 };
 }

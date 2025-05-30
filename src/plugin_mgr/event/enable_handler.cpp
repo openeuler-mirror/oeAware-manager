@@ -58,7 +58,7 @@ EventResult EnableHandler::Handle(const Event &event)
             err = ErrorText::GetErrorText(retCode);
         }
         WARN(logger, name << "(param:'"<< LogText(param) << "')" << " enabled failed. because " <<
-            err << ".");
+            err);
         eventResult.opt = Opt::RESPONSE_ERROR;
         eventResult.payload.emplace_back(err);
     }

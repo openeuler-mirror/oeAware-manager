@@ -44,8 +44,27 @@ void DynamicSmtTune::UpdateData(const DataList &dataList)
 
 oeaware::Result DynamicSmtTune::Enable(const std::string &param)
 {
+    if (!CheckEnv()) {
+        return oeaware::Result(FAILED, "Please enable SMT and include CONFIG_SCHED_SMT in kernel.");
+    }
+
+    if (!InitSchedParam()) {
+        return oeaware::Result(FAILED, "Failed to found sched features file.");
+    }
+
     if (!param.empty()) {
         auto paramsMap = GetKeyValueFromString(param);
+        std::string invalidParam = "";
+        for (auto &p : paramsMap) {
+            if (p.first == "threshold") {
+                continue;
+            }
+            if (!invalidParam.empty()) invalidParam += ",";
+            invalidParam += p.first;
+        }
+        if (!invalidParam.empty()) {
+            return oeaware::Result(FAILED, "params (" + invalidParam + ") invalid.");
+        }
         if (paramsMap.count("threshold")) {
             if (!IsInteger(paramsMap["threshold"])) {
                 return oeaware::Result(FAILED, "threshold value is not a integer.");
@@ -55,32 +74,15 @@ oeaware::Result DynamicSmtTune::Enable(const std::string &param)
                 return oeaware::Result(FAILED, "the threshold range is [0, 100], but is " +
                     std::to_string(schedUtilRatio));
             }
-        } else {
-            std::string invalidParam = "";
-            for (auto &p : paramsMap) {
-                if (!invalidParam.empty()) invalidParam += ",";
-                invalidParam += p.first;
-            }
-            return oeaware::Result(FAILED, "params (" + invalidParam + ") invalid.");
         }
-    } else {
-        schedUtilRatio = defaultRatio;
     }
-
-    if (!CheckEnv()) {
-        return oeaware::Result(FAILED, "Please enable SMT and include CONFIG_SCHED_SMT in kernel");
-    }
-
-    if (!InitSchedParam()) {
-        return oeaware::Result(FAILED, "Failed to found sched features file");
-    }
-
+    
     if (!SetSchedFeatures(schedRatioPath, schedUtilRatio)) {
-        return oeaware::Result(FAILED, "Failed to set sched_util_ratio");
+        return oeaware::Result(FAILED, "Failed to set sched_util_ratio.");
     }
 
     if (!SetSchedFeatures(schedFeaturesPath, "KEEP_ON_CORE")) {
-        return oeaware::Result(FAILED, "Failed to set sched features");
+        return oeaware::Result(FAILED, "Failed to set sched features.");
     }
     return oeaware::Result(OK);
 }
@@ -89,12 +91,12 @@ void DynamicSmtTune::Disable()
 {
     if (!initialStatus) {
         if (!SetSchedFeatures(schedFeaturesPath, "NO_KEEP_ON_CORE")) {
-            ERROR(logger, "Failed to restore initial state of sched features");
+            ERROR(logger, "Failed to restore initial state of sched features.");
         }
     }
     if (initialRatio != -1) {
         if (!SetSchedFeatures(schedRatioPath, initialRatio)) {
-            ERROR(logger, "Failed to restore initial state of sched_util_ratio");
+            ERROR(logger, "Failed to restore initial state of sched_util_ratio.");
         }
     }
 }
@@ -107,7 +109,7 @@ bool oeaware::DynamicSmtTune::CheckEnv()
 {
     std::ifstream smtFile("/sys/devices/system/cpu/smt/active");
     if (!smtFile.is_open()) {
-        ERROR(logger, "Failed to open SMT status file");
+        ERROR(logger, "Failed to open SMT status file.");
         return false;
     }
 

@@ -102,10 +102,15 @@ public:
     {
         return xcallTopNum;
     }
+    int GetTimeout() const
+    {
+        return timeout;
+    }
 private:
     const int minAnalyzeTime = 1;
     const int maxAnalyzeTime = 100;
     int analysisTime = 30; // default 30s
+    int timeout = 5;
     int pid = -1;
     double l1MissThreshold = 5;
     double l2MissThreshold = 10;
@@ -118,7 +123,7 @@ private:
     int xcallTopNum = 5;
     double hostCpuUsageThreshold = HOST_CPU_USAGE_THRESHOLD_DEFAULT;
     double dockerCpuUsageThreshold = DOCKER_CPU_USAGE_THRESHOLD_DEFAULT;
-    std::string microArchTidNoCmpConfigStream = "";
+    std::string microArchTidNoCmpConfigStream = "mysqld";
     const std::string shortOptions = "t:hrv";
     const std::vector<option> longOptions = {
         {"help", no_argument, nullptr, 'h'},
@@ -158,6 +163,7 @@ private:
     void LoadNumaConfig(const YAML::Node &config);
     void LoadSmcDConfig(const YAML::Node &config);
     void LoadXcallConfig(const YAML::Node &config);
+    void LoadTimeout(const YAML::Node &config);
 };
 
 #endif

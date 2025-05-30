@@ -1,20 +1,22 @@
+# default analysis config
+timeout: 5  # Client wait timeout
 dynamic_smt:
-  threshold: 40.0
+  threshold: 40.0 # Value range:[0,100].
 
 hugepage:
-  l1_miss_threshold: 5.0
-  l2_miss_threshold: 10.0
+  l1_miss_threshold: 5.0  # Value range:[0,100].
+  l2_miss_threshold: 10.0 # Value range:[0,100].
 
 numa_analysis:
-  thread_threshold: 200  # thread count threshold to use numa native schedule.
+  thread_threshold: 200  # thread count threshold to use numa native schedule. Value must be a non-negative integer.
 
 smc_d_analysis:
-  change_rate: 0.1
+  change_rate: 0.1 # Value must be a non-negative number.
   local_net_flow: 100 # MB/S
 
 docker_coordination_burst:
-  host_cpu_usage_threshold: 45
-  docker_cpu_usage_threshold: 95
+  host_cpu_usage_threshold: 45  # Value range:[0,100].
+  docker_cpu_usage_threshold: 95 # Value range:[0,100].
 
 microarch_tidnocmp:
   service_list:
@@ -22,5 +24,5 @@ microarch_tidnocmp:
   cpu_part:
     - 0xd02
 xcall_analysis:
-  threshold: 5 # Kernel cpu usage
-  num: 5 # top num syscall
+  threshold: 5 # Kernel cpu usage, value range:[0,100].
+  num: 5 # top num syscall , value must be a non-negative integer.

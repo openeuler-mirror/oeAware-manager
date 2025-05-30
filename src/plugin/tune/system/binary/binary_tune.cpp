@@ -15,12 +15,12 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <yaml-cpp/yaml.h>
-#include "binary_tune.h"
 #include "oeaware/data/env_data.h"
 #include "oeaware/data/thread_info.h"
 #include "oeaware/data/docker_data.h"
+#include "binary_tune.h"
 
-bool IsSmtEnable() 
+bool IsSmtEnable()
 {
     std::string content;
     std::ifstream inFile("/sys/devices/system/cpu/smt/active");
@@ -30,7 +30,6 @@ bool IsSmtEnable()
     inFile >> content;
     inFile.close();
     return content == "1";
-
 }
 
 int BinaryTune::ReadConfig(const std::string &path)
@@ -67,6 +66,7 @@ BinaryTune::BinaryTune()
     topic.topicName = this->name;
     supportTopics.push_back(topic);
     subscribeTopics.emplace_back(oeaware::Topic{OE_ENV_INFO, "static", "" });
+    subscribeTopics.emplace_back(oeaware::Topic{OE_ENV_INFO, "realtime", "" });
     subscribeTopics.emplace_back(oeaware::Topic{OE_THREAD_COLLECTOR, OE_THREAD_COLLECTOR, ""});
     subscribeTopics.emplace_back(oeaware::Topic{OE_DOCKER_COLLECTOR, OE_DOCKER_COLLECTOR, ""});
 }
@@ -91,12 +91,12 @@ void BinaryTune::UpdateData(const DataList &dataList)
         cpuCoreNum = dataTmp->cpuNumConfig;
         cpu2Numa.resize(dataTmp->cpuNumConfig);
         phyNumaMask.resize(numaNum);
-        for (int i=0; i < numaNum; i++) {
+        for (int i = 0; i < numaNum; i++) {
             CPU_ZERO(&phyNumaMask[i]);
         }
         for (int i = 0; i < dataTmp->cpuNumConfig; i++) {
             cpu2Numa[i] = dataTmp->cpu2Node[i];
-            if (i%2 == 0) {
+            if (i % 2 == 0) {
                 CPU_SET(i, &phyNumaMask[cpu2Numa[i]]);
             }
         }
@@ -106,6 +106,14 @@ void BinaryTune::UpdateData(const DataList &dataList)
     }
     if (!envInit) {
         return;
+    }
+    if (topicName == "realtime") {
+        auto *dataTmp = static_cast<EnvRealTimeInfo *>(dataList.data[0]);
+        if (dataTmp->dataReady == ENV_DATA_READY) {
+            cpuNumOnline = dataTmp->cpuNumOnline;
+        } else {
+            cpuNumOnline = cpuCoreNum;  // if data is not ready, assume that all cpus are online temporary
+        }
     }
     if (topicName == OE_DOCKER_COLLECTOR) {
         containers.clear();
@@ -155,6 +163,7 @@ void BinaryTune::Disable()
         sched_setaffinity(it.first, sizeof(*oldMask), oldMask);
     }
     tuneThreads.clear();
+    hasLoggedThreads.clear();
 }
 
 void BinaryTune::ParseBinaryElf(const std::string &filePath, int32_t &policy)
@@ -236,6 +245,18 @@ void BinaryTune::ParseBinaryElf(const std::string &filePath, int32_t &policy)
     close(fd);
 }
 
+void BinaryTune::BindAllCores(const std::vector<int32_t> &threads)
+{
+    cpu_set_t newMask;
+    CPU_ZERO(&newMask);
+    for (int32_t i = 0; i < cpuCoreNum; i++) {
+        CPU_SET(i, &newMask);
+    }
+    for (auto t : threads) {
+        SetAffinity(t, newMask);
+    }
+}
+
 void BinaryTune::FindSpecialBin(std::map<int32_t, int64_t> &dockerCpuOnNuma,
                                 std::map<int32_t, std::vector<int32_t>> &threadWaitTuneByNuma,
                                 std::map<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>> &threadWaitTuneByCore)
@@ -245,30 +266,25 @@ void BinaryTune::FindSpecialBin(std::map<int32_t, int64_t> &dockerCpuOnNuma,
     int32_t buffLen = 1024;
     char* filePathBuff = new char[buffLen];
     for (auto &i : containers) {
-        // check if container bind on a numa
-        size_t delimiterPos = i.cpus.find('-');
-        if (delimiterPos == std::string::npos) {
-            continue;
-        }
-        std::string str1 = i.cpus.substr(0, delimiterPos);
-        std::string str2 = i.cpus.substr(delimiterPos + 1);
-
-        int32_t startCore = std::stoi(str1);
-        int32_t endCore = std::stoi(str2);
-        int32_t initNuma = cpu2Numa[startCore];
-        for (int32_t c = startCore;  c <= endCore;  c++) {
-            if (cpu2Numa[c] != initNuma) {
+        std::vector<int> cpus = oeaware::ParseRange(i.cpus);
+        bool isFullNuma = true; // true means the container's cpu is bound to all cpus of a single numa
+        int32_t initNuma = cpu2Numa[cpus[0]];
+        for (auto &cpu : cpus) {
+            if (cpu2Numa[cpu] != initNuma) {
                 initNuma = -1;
+                isFullNuma = false;
                 break;
             }
         }
-        if (initNuma == -1) {
-            continue;
+        if (cpus.size() != (cpuCoreNum / numaNum)) {
+            isFullNuma = false;
         }
-        dockerCpuOnNuma[initNuma] += i.cfsQuotaUs/i.cfsPeriodUs;
+
         threadPolicy.clear();
         containerThreads.insert(i.tasks.begin(), i.tasks.end());
         std::vector<int32_t> threadBindCore;
+        std::vector<int32_t> crossNumaThreads;
+
         for (auto j : i.tasks) {
             if (threads.count(j) == 0) {
                 continue;
@@ -285,29 +301,59 @@ void BinaryTune::FindSpecialBin(std::map<int32_t, int64_t> &dockerCpuOnNuma,
                 ParseBinaryElf(filePath, policy);
                 threadPolicy[threads[j]] = policy;
             }
+
+            // if isFullNuma is false, the plugin will not take effect and should record these threads to print log
+            if (!isFullNuma) {
+                if ((threadPolicy[threads[j]] == 1 || threadPolicy[threads[j]] == 2)) {
+                    crossNumaThreads.push_back(j);  // record user-configured threads
+                    if (hasLoggedThreads.find(j) == hasLoggedThreads.end()) {   // this log is only printed once
+                        WARN(logger, "binary_tune: container is not bind on the whole numa, so donot bind thread " << j);
+                        hasLoggedThreads.insert(j);
+                    }
+                }
+                continue;
+            }
+
             if (threadPolicy[threads[j]] == 1) {  // 1 means all threads bind on all physical cores.
                 threadWaitTuneByNuma[initNuma].push_back(j);
+                hasLoggedThreads.erase(j);
                 continue;
             }
             if (threadPolicy[threads[j]] == 2) {  // 2 means all threads bind on some physical cores.
                 threadBindCore.push_back(j);
+                hasLoggedThreads.erase(j);
                 continue;
             }
         }
-        if (!threadBindCore.empty()) {
-            threadWaitTuneByCore[initNuma].emplace_back(std::make_pair(i.cfsQuotaUs/i.cfsPeriodUs,std::move(threadBindCore)));
+
+        if (isFullNuma) {
+            dockerCpuOnNuma[initNuma] += i.cfsQuotaUs/i.cfsPeriodUs;
+            if (!threadBindCore.empty()) {
+                threadWaitTuneByCore[initNuma].emplace_back(std::make_pair(i.cfsQuotaUs / i.cfsPeriodUs, std::move(threadBindCore)));
+            }
+        } else if (!crossNumaThreads.empty()) {
+            BindAllCores(crossNumaThreads); // restore thread-core binding to match the container's cpu affinity
         }
     }
     delete[] filePathBuff;
     // clear dead thread
-    for (auto it = tuneThreads.begin(); it != tuneThreads.end(); ) {
+    for (auto it = tuneThreads.begin(); it != tuneThreads.end();) {
         if (containerThreads.count(it->first) == 0) {
             it = tuneThreads.erase(it);
             continue;
         }
         ++it;
     }
+
+    for (auto it = hasLoggedThreads.begin(); it != hasLoggedThreads.end();) {
+        if (containerThreads.count(*it) == 0) {
+            it = hasLoggedThreads.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
+
 void BinaryTune::SetAffinity(int32_t tid, cpu_set_t& newMask)
 {
     cpu_set_t currentMask;
@@ -316,13 +362,13 @@ void BinaryTune::SetAffinity(int32_t tid, cpu_set_t& newMask)
         return;
     }
     if (sched_setaffinity(tid, sizeof(newMask), &newMask) == 0) {
-        tuneThreads.emplace(tid,currentMask);
+        tuneThreads.emplace(tid, currentMask);
     }
 }
 
-
-void BinaryTune::BindCpuCore(int32_t numaNode,
-                             std::map<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>> &threadWaitTuneByCore) {
+void BinaryTune::BindCpuCore(int32_t numaNode, std::map<int32_t,
+                             std::vector<std::pair<int32_t, std::vector<int32_t>>>> &threadWaitTuneByCore)
+{
     int32_t coreIndex = numaNode * (cpuCoreNum/numaNum);
     int32_t endIndex = (numaNode + 1) * (cpuCoreNum/numaNum);
     for (auto &item : threadWaitTuneByCore[numaNode]) {
@@ -342,7 +388,8 @@ void BinaryTune::BindCpuCore(int32_t numaNode,
     }
 }
 
-void BinaryTune::BindNuma(int32_t numaNode, std::map<int32_t, std::vector<int32_t>> &threadWaitTuneByNuma) {
+void BinaryTune::BindNuma(int32_t numaNode, std::map<int32_t, std::vector<int32_t>> &threadWaitTuneByNuma)
+{
     for (auto t : threadWaitTuneByNuma[numaNode]) {
         SetAffinity(t, phyNumaMask[numaNode]);
     }
@@ -350,6 +397,15 @@ void BinaryTune::BindNuma(int32_t numaNode, std::map<int32_t, std::vector<int32_
 
 void BinaryTune::Run()
 {
+    if (cpuNumOnline != cpuCoreNum) {
+        if (isCpuAllOnline) {   // this log is only printed once when cpu is found to be offline for the first time
+            WARN(logger, "binary_tune: plugin will not take effect because not all cpus are online");
+            isCpuAllOnline = false;
+        }
+        return;
+    }
+    isCpuAllOnline = true;
+
     std::map<int32_t, std::vector<int32_t>> threadWaitTuneByNuma;
     std::map<int32_t, std::vector<std::pair<int32_t, std::vector<int32_t>>>> threadWaitTuneByCore;
     std::map<int32_t, int64_t> dockerCpuOnNuma;

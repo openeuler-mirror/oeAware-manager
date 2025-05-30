@@ -15,6 +15,7 @@
 #include <vector>
 #include <memory>
 #include <dlfcn.h>
+#include <unordered_set>
 #include "oeaware/interface.h"
 
 namespace oeaware {
@@ -24,8 +25,10 @@ struct Instance {
     bool state = true;
     bool enabled;
     uint64_t enableCnt = 0;
-    std::shared_ptr<Interface> interface;
     std::unordered_map<std::string, Topic> supportTopics;
+    std::shared_ptr<Interface> interface; // later move to private
+    // value is topic type, used to close all topics when disable
+    std::unordered_set<std::string> openTopics;
     const static std::string pluginEnabled;
     const static std::string pluginDisabled;
     const static std::string pluginStateOn;
@@ -33,6 +36,9 @@ struct Instance {
     std::string GetInfo() const;
     std::string GetName() const;
     std::string GetRun() const;
+    Result OpenTopic(const Topic &topic);
+    void CloseTopic(const Topic &topic);
+    void Disable();
 };
 
 class Plugin {

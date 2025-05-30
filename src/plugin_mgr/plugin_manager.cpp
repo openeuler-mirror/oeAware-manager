@@ -146,7 +146,10 @@ void PluginManager::Exit()
             if (!instance->enabled) {
                 continue;
             }
-            instance->interface->ManageDisable();
+            for (auto &p : instance->supportTopics) {
+                instance->interface->CloseTopic(p.second);
+            }
+            instance->interface->Disable();
             INFO(logger, instance->name << " instance disabled.");
         }
     }

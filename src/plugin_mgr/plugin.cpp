@@ -81,6 +81,30 @@ std::string Instance::GetRun() const
     return name + " (" + runText + ")";
 }
 
+Result Instance::OpenTopic(const Topic &topic)
+{
+    Result ret = interface->OpenTopic(topic);
+    if (ret.code == OK) {
+        openTopics.insert(topic.GetType());
+    }
+    return ret;
+}
+
+void Instance::CloseTopic(const Topic &topic)
+{
+    interface->CloseTopic(topic);
+    openTopics.erase(topic.GetType());
+}
+
+void Instance::Disable()
+{
+    std::vector<std::string> topicsTypes = std::vector<std::string>(openTopics.begin(), openTopics.end());
+    for (const auto &type : topicsTypes) {
+        interface->CloseTopic(Topic::GetTopicFromType(type));
+    }
+    interface->Disable();
+}
+
 std::string Instance::GetName() const
 {
     return name;

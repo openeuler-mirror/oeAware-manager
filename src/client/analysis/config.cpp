@@ -167,7 +167,7 @@ bool Config::Init(int argc, char **argv)
                 smcChangeRate = atof(optarg);
                 if (smcChangeRate < 0) {
                     std::cerr << "Warn: analysis config 'smc_d_analysis:smcChangeRate(" << optarg <<
-                    ")' value must be  non-negative integer.\n";
+                    ")' value must be non-negative integer.\n";
                     PrintHelp();
                     return false;
                 }
@@ -182,7 +182,7 @@ bool Config::Init(int argc, char **argv)
                 smcLoNetFlow = atoi(optarg);
                  if (smcLoNetFlow < 0) {
                     std::cerr << "Warn: analysis config 'smc_d_analysis:smcLoNetFlow(" << optarg <<
-                    ")' value must be  non-negative integer.\n";
+                    ")' value must be non-negative integer.\n";
                     PrintHelp();
                     return false;
                 }
@@ -197,7 +197,7 @@ bool Config::Init(int argc, char **argv)
                 hostCpuUsageThreshold = atof(optarg);
                 if (hostCpuUsageThreshold < 0 || hostCpuUsageThreshold > THRESHOLD_UP) {
                     std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" <<
-                    optarg << ")' value must be a [0, 100].\n";
+                    optarg << ")' value must be [0, 100].\n";
                     PrintHelp();
                     return false;
                 }
@@ -212,7 +212,7 @@ bool Config::Init(int argc, char **argv)
                 dockerCpuUsageThreshold = atof(optarg);
                 if (dockerCpuUsageThreshold < 0 || dockerCpuUsageThreshold > THRESHOLD_UP) {
                     std::cerr << "Warn: analysis config 'docker_coordination_burst:dockerCpuUsageThreshold(" <<
-                    optarg << ")' value must be a [0, 100].\n";
+                    optarg << ")' value must be [0, 100].\n";
                     PrintHelp();
                     return false;
                 }
@@ -246,7 +246,7 @@ void Config::DockerCoordinationBurstConfig(const YAML::Node config)
             threshold = dockerCoordinationBurstConfig["host_cpu_usage_threshold"].as<double>();
             if (threshold < 0 || threshold > THRESHOLD_UP) {
                 std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" <<
-                threshold << ")' value must be a [0, 100].\n";
+                threshold << ")' value must be [0, 100].\n";
             } else if (!hostCpuUsageThresholdSet) {
                 hostCpuUsageThreshold = threshold;
             }
@@ -454,6 +454,25 @@ void Config::LoadXcallConfig(const YAML::Node &config)
     }
 }
 
+
+void Config::LoadTimeout(const YAML::Node &config)
+{
+    if (config["timeout"]) {
+        std::string timeoutStr = config["timeout"].as<std::string>();
+        if (oeaware::IsInteger(timeoutStr)) {
+            int t = config["timeout"].as<int>();
+            if (t < 0) {
+                std::cerr << "Warn: config 'timeout(" << timeoutStr <<
+                ")' value must be a non-negative integer.\n";
+            } else {
+                timeout = t;
+            }
+        } else {
+            std::cerr << "Warn: config 'timeout(" << timeoutStr <<
+                ")' value must be a non-negative integer.\n";
+        }
+    }
+}
 bool Config::LoadConfig(const std::string& configPath)
 {
     try {
@@ -465,6 +484,7 @@ bool Config::LoadConfig(const std::string& configPath)
         LoadXcallConfig(config);
         DockerCoordinationBurstConfig(config);
         LoadMicroArchTidNoCmpConfig(config);
+        LoadTimeout(config);
         return true;
     } catch (const YAML::Exception& e) {
         std::cerr << "Error loading config file: " << e.what() << std::endl;

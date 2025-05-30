@@ -29,6 +29,7 @@ void AnalysisCli::Run()
     auto &analysisReport = oeaware::AnalysisReport::GetInstance();
     analysisReport.Init(config);
     std::cout << "Analyzing... Please wait " << analysisTime << "s.\n";
+    timeout = config.GetTimeout();
     sleep(analysisTime + timeout);
     analysisReport.Print();
     if (!config.GetOutMarkDownPath().empty()) {

@@ -82,29 +82,33 @@ int XcallTune::ReadConfig(const std::string &path)
 
 oeaware::Result XcallTune::Enable(const std::string &param)
 {
-    (void)param;
     if (!oeaware::FileExist("/proc/1/xcall")) {
-        return oeaware::Result(FAILED, "xcall does not open. If the system supports xcall, \
-                please add 'xcall' to cmdline.");
+        return oeaware::Result(FAILED, "xcall does not open. If the system supports xcall, "
+                "please add 'xcall' to cmdline.");
     }
     auto params = oeaware::GetKeyValueFromString(param);
-    if (!params.empty()) {
-        if (params.count("c")) {
-            configPath = params["c"];
-        } else {
-            std::string invalid = "";
-            for (auto &p : params) {
-                if (!invalid.empty()) invalid += ",";
-                invalid += p.first;
-            }
-            return oeaware::Result(FAILED, "params(" + invalid + ") invalid");
+    std::string invalid = "";
+    for (auto &p : params) {
+        if (p.first == "c") {
+            continue;
         }
+        if (!invalid.empty()) invalid += ",";
+        invalid += p.first;
+    }
+    if (!invalid.empty()) {
+        return oeaware::Result(FAILED, "params(" + invalid + ") invalid.");
+    }
+    if (params.count("c")) {
+        configPath = params["c"];
     } else {
         configPath = XCALL_CONFIG_PATH;
     }
     int ret = ReadConfig(configPath);
+    if (ret < 0) {
+        return oeaware::Result(FAILED, "config path '" + configPath + "' error.");
+    }
     Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
-    return oeaware::Result(ret);
+    return oeaware::Result(OK);
 }
 
 void XcallTune::Disable()

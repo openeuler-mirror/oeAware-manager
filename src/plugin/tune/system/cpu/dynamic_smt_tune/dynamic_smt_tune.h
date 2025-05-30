@@ -30,11 +30,10 @@ public:
     void Run() override;
 
 private:
-    const int defaultRatio = 100;
     const int defaultPriority = 2;
     bool initialStatus = false;
     int initialRatio = -1;
-    int schedUtilRatio;
+    int schedUtilRatio = 100;
     std::string schedRatioPath = "/proc/sys/kernel/sched_util_ratio";
     std::string schedFeaturesPath{};
     bool CheckEnv();

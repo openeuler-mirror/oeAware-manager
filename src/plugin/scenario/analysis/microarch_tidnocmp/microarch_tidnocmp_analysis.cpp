@@ -111,6 +111,7 @@ void MicroarchTidNoCmpAnalysis::CloseTopic(const oeaware::Topic &topic)
 {
     auto topicType = topic.GetType();
     topicStatus[topicType].isOpen = false;
+    topicStatus[topicType].isPublish = false;
     for (auto &topic : subscribeTopics) {
         Unsubscribe(topic);
     }
@@ -182,13 +183,13 @@ void MicroarchTidNoCmpAnalysis::Analysis(const std::string &topicType)
         analysisTopicStatus.supportCpuPartId.end()) {
         if (analysisTopicStatus.catchedThreadList.empty()) {
             conclusion = "Can not find service in [" + supportService +
-                         "] running in the current environment. So do not need to enable TidNoCmp.";
+                         "] running in the current environment. So do not need to disable TidCmp.";
         } else {
             conclusion = "The TidNoCmp applicable service [" + suggestionThreads +
-                         "] is running in the current environment. So enable TidNoCmp.";
+                         "] is running in the current environment. So disable TidCmp.";
             suggestionItem.emplace_back("use micro-arch TidNoCmp");
             suggestionItem.emplace_back("Please set bios config [Advanced -> Power And Performance "
-                                        "Configuration -> CPU PM Control -> TidNoCMP] to [Enabled].");
+                                        "Configuration -> CPU PM Control -> TidCMP] to [Disabled].");
             suggestionItem.emplace_back(
                 "Disable the isolation of thread branch prediction records to "
                 "improve the performance of the supported service.");

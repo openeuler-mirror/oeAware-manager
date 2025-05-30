@@ -11,7 +11,6 @@
  ******************************************************************************/
 #include "coordination_burst_adapt.h"
 #include <iostream>
-#include <yaml-cpp/yaml.h>
 #include <regex>
 #include <oeaware/default_path.h>
 #include "oeaware/utils.h"
@@ -83,54 +82,124 @@ std::string CoordinationBurstAdapt::FixYaml(std::string raw)
     return raw;
 }
 
-int CoordinationBurstAdapt::ParseParam(const std::string &param)
+std::string CoordinationBurstAdapt::CheckYamlParam(YAML::Node &parsedConfig)
 {
+    std::string retMsg;
+    if (!parsedConfig.IsMap()) {
+        retMsg = "CoordinationBurstAdapt ParseParam config format is invalid.";
+        ERROR(logger, retMsg);
+        return retMsg;
+    }
+
+    std::string invalidKeys = "";
+    for (const auto &pair : parsedConfig) {
+        std::string key = pair.first.as<std::string>();
+        if (key != "ratio" && key != "docker_id") {
+            invalidKeys += key + " ";
+        }
+    }
+
+    if (invalidKeys.empty()) {
+        return "";
+    }
+    retMsg = "CoordinationBurstAdapt ParseParam " + invalidKeys + "is invalid."
+             " Please use cli param '-docker_id [id1,id2] -ratio 20' or set"
+             " docker_id and ratio in " + DOCKER_COORDINATION_BURST_CONFIG_PATH;
+    ERROR(logger, retMsg);
+    return retMsg;
+}
+
+std::string CoordinationBurstAdapt::ParseYamlRatio(YAML::Node &parsedConfig)
+{
+    std::string retMsg;
+    std::string ratioString = parsedConfig["ratio"].as<std::string>();
+    if (!oeaware::IsInteger(ratioString)) {
+        retMsg = "CoordinationBurstAdapt Param ratio should be integer.";
+        ERROR(logger, retMsg);
+        return retMsg;
+    } else {
+        ratio = parsedConfig["ratio"].as<int>();
+        isRatioSet = true;
+    }
+    return "";
+}
+
+bool CoordinationBurstAdapt::HasSpecialChar(const std::string &str) const
+{
+    return str.find_first_not_of(
+        "abcdefjhijklmnopqrstuvwxyz"
+        "0123456789:_[],. {}") != std::string::npos;
+}
+
+std::string CoordinationBurstAdapt::ParseParam(const std::string &param)
+{
+    std::string retMsg;
     std::string paramStr = FixYaml("{" + param + "}");
+    if (HasSpecialChar(paramStr)) {
+        retMsg = "Input param has invalid character.";
+        return retMsg;
+    }
     std::istringstream iss(paramStr);
     try {
         YAML::Node parsedConfig = YAML::Load(iss);
+        retMsg = CheckYamlParam(parsedConfig);
+        if (retMsg != "") {
+            return retMsg;
+        }
+
         if (parsedConfig["ratio"]) {
-            ratio = parsedConfig["ratio"].as<double>();
-            isRatioSet = true;
+            retMsg = ParseYamlRatio(parsedConfig);
+            if (retMsg != "") {
+                return retMsg;
+            }
         }
         if (parsedConfig["docker_id"]) {
-            if (parsedConfig["docker_id"].IsSequence()) {
+            if (parsedConfig["docker_id"].IsSequence()) { // param: -docker_id [id1,id2,id3]
                 for (auto &&id : parsedConfig["docker_id"]) {
                     UpdateDockerInfo(id.as<std::string>());
                 }
-            } else {
+            } else { // param: -docker_id id1
                 UpdateDockerInfo(parsedConfig["docker_id"].as<std::string>());
             }
             isDockerListSet = true;
         }
     } catch (const YAML::Exception &e) {
-        ERROR(logger, "CoordinationBurstAdapt ParseParam config format is invalid.");
-        return -1;
+        retMsg = "CoordinationBurstAdapt ParseParam format parse failed: " + std::string(e.what());
+        ERROR(logger, retMsg);
+        return retMsg;
     }
-    return 0;
+    return "";
 }
 
-int CoordinationBurstAdapt::ReadConfig(const std::string &path)
+std::string CoordinationBurstAdapt::ReadConfig(const std::string &path)
 {
+    std::string retMsg;
     try {
         std::ifstream sysFile(path);
 
         if (!sysFile.is_open()) {
-            WARN(logger, "docker_burst.yaml config open failed.");
-            return -1;
+            retMsg = DOCKER_COORDINATION_BURST_CONFIG_PATH + " config open failed.";
+            WARN(logger, retMsg);
+            return retMsg;
         }
 
         YAML::Node config = YAML::LoadFile(path);
 
-        if (!isRatioSet) {
-            double paramRatio = config["ratio"].as<double>();
-            ratio = paramRatio;
-            isRatioSet = true;
+        retMsg = CheckYamlParam(config);
+        if (retMsg != "") {
+            return retMsg;
+        }
+
+        if (!isRatioSet && config["ratio"]) {
+            retMsg = ParseYamlRatio(config);
+            if (retMsg != "") {
+                return retMsg;
+            }
         }
 
         std::vector<std::string> dockerList;
-        if (!isDockerListSet && config["docker_list"] && config["docker_list"].IsSequence()) {
-            dockerList = config["docker_list"].as<std::vector<std::string>>();
+        if (!isDockerListSet && config["docker_id"] && config["docker_id"].IsSequence()) {
+            dockerList = config["docker_id"].as<std::vector<std::string>>();
             for (const auto &dockerId : dockerList) {
                 UpdateDockerInfo(dockerId);
             }
@@ -139,9 +208,12 @@ int CoordinationBurstAdapt::ReadConfig(const std::string &path)
 
         sysFile.close();
     } catch (const YAML::Exception &e) {
-        std::cerr << "YAML parse failed: " << e.what() << std::endl;
+        retMsg = "CoordinationBurstAdapt read config from " + DOCKER_COORDINATION_BURST_CONFIG_PATH
+                 + " YAML parse failed: " + std::string(e.what());
+        ERROR(logger, retMsg);
+        return retMsg;
     }
-    return 0;
+    return "";
 }
 
 void CoordinationBurstAdapt::GetAllDockers()
@@ -176,22 +248,30 @@ oeaware::Result CoordinationBurstAdapt::Enable(const std::string &param)
         return oeaware::Result(FAILED, "Docker coordination burst init failed. may not support.");
     }
 
-    ParseParam(param);
+    std::string retMsg = ParseParam(param);
+    if (!retMsg.empty()) {
+        return oeaware::Result(FAILED, retMsg);
+    }
     if (!isDockerListSet || !isRatioSet) {
-        ReadConfig(DOCKER_COORDINATION_BURST_CONFIG_PATH);
+        retMsg = ReadConfig(DOCKER_COORDINATION_BURST_CONFIG_PATH);
+        if (!retMsg.empty()) {
+            return oeaware::Result(FAILED, retMsg);
+        }
     }
 
     if (containers.empty()) {
         if (!isDockerListSet) {
             containers.insert(allContainers.begin(), allContainers.end());
         } else {
-            return oeaware::Result(FAILED, "All config docker_id is invalid."
-                                           "Cannot found cgroup path or docker not exist.");
+            return oeaware::Result(FAILED,
+                "All config docker_id is invalid."
+                "Cannot found cgroup path or docker not exist.");
         }
     }
 
-    if (!SetRatio(ratio)) {
-        return oeaware::Result(FAILED, "Set ratio to " + DOCKER_COORDINATION_BURST_CONFIG_PATH + " failed.");
+    retMsg = SetRatio(ratio);
+    if (retMsg != "") {
+        return oeaware::Result(FAILED, retMsg);
     }
 
     std::set<std::string> succeedContainers;
@@ -251,27 +331,32 @@ int CoordinationBurstAdapt::GetRatio()
     return ratioValue;
 }
 
-bool CoordinationBurstAdapt::SetRatio(const int ratioValue)
+std::string CoordinationBurstAdapt::SetRatio(const int ratioValue)
 {
+    std::string retMsg;
     if (ratioValue < MIN_RATIO || ratioValue > MAX_RATIO) {
-        ERROR(logger, "ratio is invalid. The ratio must be between " << MIN_RATIO <<
-                      " and " << std::to_string(MAX_RATIO));
-        return  false;
+        retMsg = "ratio is invalid. The ratio must be in [" + std::to_string(MIN_RATIO) +
+                 ", " + std::to_string(MAX_RATIO) + "].";
+        ERROR(logger, retMsg);
+        return retMsg;
     }
 
     std::ofstream file(SCHED_SOFT_RUNTIME_RATIO_PATH, std::ios::out | std::ios::in);
     if (!file.is_open()) {
-        ERROR(logger, "Failed to open file: " << SCHED_SOFT_RUNTIME_RATIO_PATH);
-        return false;
+        retMsg = "Failed to open file: " + SCHED_SOFT_RUNTIME_RATIO_PATH + ".";
+        ERROR(logger, retMsg);
+        return retMsg;
     }
     file << ratioValue;
     if (!file.flush()) {
-        ERROR(logger, "Failed to flush << " << ratioValue << " to file: " << SCHED_SOFT_RUNTIME_RATIO_PATH);
-        return false;
+        retMsg = "Failed to flush " + std::to_string(ratioValue) + " to file: " +
+                 SCHED_SOFT_RUNTIME_RATIO_PATH + ".";
+        ERROR(logger, retMsg);
+        return retMsg;
     }
     file.close();
     INFO(logger, "Successfully set " << SCHED_SOFT_RUNTIME_RATIO_PATH << " to: " << ratioValue);
-    return true;
+    return "";
 }
 
 int CoordinationBurstAdapt::GetSoftQuota(const std::string &cgroupPath)

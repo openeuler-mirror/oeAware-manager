@@ -18,14 +18,6 @@ NetHardIrq::NetHardIrq()
     period = 1000;       // 1000 ms
     priority = 2;        // 2: tune instance
     type = TUNE;
-
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_ENV_INFO, "static", "" });
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_PMU_SAMPLING_COLLECTOR, "skb:skb_copy_datagram_iovec", "" });
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_PMU_SAMPLING_COLLECTOR, "net:napi_gro_receive_entry", "" });
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_ENV_INFO, "cpu_util", "" });
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_NET_INTF_INFO, OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_up" });
-    subscribeTopics.emplace_back(oeaware::Topic{ OE_NET_INTF_INFO, OE_NETWORK_INTERFACE_DRIVER_TOPIC, "operstate_up" });
-
     description += "[introduction] \n";
     description += "               Bind the interrupt corresponding to the network interface queue to NUMA, \n";
     description += "               which receives packets frequently in the network, to accelerate network processing\n";
@@ -132,15 +124,26 @@ bool NetHardIrq::ResolveCmd(const std::string &param)
             return false;
         }
     }
+    if (paramsMap.count("netdata")) {
+        if (paramsMap["netdata"] == "thread_recv_que") {
+            highNoiseSample = false;
+        } else if (paramsMap["netdata"] == "skb_copy") {
+            highNoiseSample = true;
+        } else {
+            ERROR(logger, "netdata invalid param: " << paramsMap["netdata"]);
+        }
+    }
     return true;
 }
 
-void NetHardIrq::ShowHelp()
+std::string NetHardIrq::GetHelp()
 {
-    WARN(logger, "command example: oeawarectl -e " << name << " ...");
+    std::string output;
+    output += "Usage : oeawarectl -e " + name + " [options] \n";
     for (const auto &item : cmdHelp) {
-        WARN(logger, item.first << " : " << item.second);
+        output +=  item.second + " \n";
     }
+    return output;
 }
 
 void oeaware::NetHardIrq::UpdateSystemInfo(const DataList &dataList)
@@ -157,7 +160,7 @@ void oeaware::NetHardIrq::UpdateSystemInfo(const DataList &dataList)
     }
 }
 
-void oeaware::NetHardIrq::UpdateNetInfo(const DataList &dataList)
+void oeaware::NetHardIrq::UpdatePmuSampleInfo(const DataList &dataList)
 {
     std::string topicName = dataList.topic.topicName;
     PmuSamplingData *dataTmp = static_cast<PmuSamplingData *>(dataList.data[0]);
@@ -166,6 +169,8 @@ void oeaware::NetHardIrq::UpdateNetInfo(const DataList &dataList)
         netDataInterval += dataTmp->interval;
     } else if (topicName == "net:napi_gro_receive_entry") {
         UpdateQueueData(dataTmp->pmuData, dataTmp->len);
+    } else if (topicName == "cycles") {
+        UpdateCyclesData(dataTmp->pmuData, dataTmp->len);
     }
 }
 
@@ -180,12 +185,13 @@ void NetHardIrq::UpdateEnvInfo(const DataList &dataList)
 }
 
 void UpdateNetBaseInfo(std::unordered_map<std::string, EthQueInfo> &ethQueData,
-    const NetworkInterfaceData *data, int dataLen)
+    std::unordered_map<uint32_t, std::string> &ifIdxToName, const NetworkInterfaceData *data, int dataLen)
 {
     for (int i = 0; i < dataLen; i++) {
         std::string dev = std::string(data[i].name);
         ethQueData[dev].dev = dev;
         ethQueData[dev].operstate = data[i].operstate;
+        ifIdxToName[data[i].ifindex] = dev;
     }
 }
 
@@ -200,19 +206,33 @@ void UpdateNetDriverInfo(std::unordered_map<std::string, EthQueInfo> &ethQueData
     }
 }
 
+void UpdateThreadNumaInfo(std::unordered_map<uint32_t, ThreadNumaInfo> &threadNumaInfo,
+    const NetThreadQueData *data, int dataLen)
+{
+    for (int i = 0; i < dataLen; ++i) {
+        int tid = data[i].tid;
+        auto &tmp = threadNumaInfo[tid];
+        tmp.queRxTimes[data[i].ifIndex][data[i].queueId] += data[i].times;
+    }
+}
+
 void NetHardIrq::UpdateNetIntfInfo(const DataList &dataList)
 {
     std::string instanceName = dataList.topic.instanceName;
     if (instanceName != OE_NET_INTF_INFO) {
         return;
     }
-    std::string topicName = dataList.topic.topicName;
+    const std::string topicName = dataList.topic.topicName;
+    const std::string params = dataList.topic.params;
     if (topicName == OE_NETWORK_INTERFACE_BASE_TOPIC) {
         const NetIntfBaseDataList *dataTmp = static_cast<NetIntfBaseDataList *>(dataList.data[0]);
-        UpdateNetBaseInfo(ethQueData, dataTmp->base, dataTmp->count);
+        UpdateNetBaseInfo(ethQueData, ifIdxToName, dataTmp->base, dataTmp->count);
     } else if (topicName == OE_NETWORK_INTERFACE_DRIVER_TOPIC) {
         const NetIntfDriverDataList *dataTmp = static_cast<NetIntfDriverDataList *>(dataList.data[0]);
         UpdateNetDriverInfo(ethQueData, dataTmp->driver, dataTmp->count);
+    } else if (topicName == OE_NET_THREAD_QUE_DATA && params == OE_PARA_THREAD_RECV_QUE_CNT) {
+        const NetThreadQueDataList *dataTmp = static_cast<NetThreadQueDataList *>(dataList.data[0]);
+        UpdateThreadNumaInfo(threadNumaInfo, dataTmp->queData, dataTmp->count);
     }
 }
 
@@ -271,6 +291,23 @@ void NetHardIrq::UpdateThreadData(const PmuData *data, int dataLen)
     }
 }
 
+void NetHardIrq::UpdateCyclesData(const PmuData *data, int dataLen)
+{
+    if (!envInit) {
+        return;
+    }
+    for (int i = 0; i < dataLen; ++i) {
+        int tid = data[i].tid;
+        auto &tmpData = threadNumaInfo[tid];
+        if (tmpData.cyclesNumaRatio.empty()) {
+            tmpData.cyclesNumaRatio.resize(numaNum, 0);
+        }
+        int numa = cpu2Numa[data[i].cpu];
+        tmpData.cyclesNumaRatio[numa] += data[i].period;
+        tmpData.cyclesSum += data[i].period;
+    }
+}
+
 void NetHardIrq::AddIrqToQueueInfo()
 {
     for (auto &item : netQueue) {
@@ -309,6 +346,10 @@ void NetHardIrq::ClearInvalidQueueInfo()
         auto &queueMap = devItem->second;
         for (auto queueItem = queueMap.begin(); queueItem != queueMap.end(); ) {
             if (queueItem->second.irqId == INVAILD_IRQ_ID) {
+                AddLog([&]() {
+                    return "ClearInvalidQueueInfo" + devItem->first +
+                        ": " + std::to_string(queueItem->second.queueId);
+                    });
                 queueItem = queueMap.erase(queueItem);
             } else {
                 ++queueItem;
@@ -397,7 +438,11 @@ void NetHardIrq::MigrateHardIrq()
         /* 1. different interrupts should be allocated to different cores as much as possible
            2. interrupt priority binding on cores with low CPU utilization */
         int preferredCpu = sortedList[newBindCnt[preferredNode] % numaNum].cpu; // this may cause bind to the same core
-        if (IrqSetSmpAffinity(preferredCpu, std::to_string(unit.irqId))) {
+        int err = IrqSetSmpAffinity(unit.irqId, std::to_string(preferredCpu));
+        if (err) {
+            WARN(logger, "MigrateHardIrq set irq affinity failed, irqId: " << unit.irqId << ", preferredCpu: "
+                << preferredCpu << ", err: " << err);
+        } else {
             newBindCnt[preferredNode]++;
             AddLog([&]() {
                 return ", set irq from core " + (unit.lastBindCore == -1 ?
@@ -492,10 +537,58 @@ void NetHardIrq::MatchThreadAndQueue()
     queueData.clear();
 }
 
+void NetHardIrq::MatchThreadQueAndNuma()
+{
+    for (const auto &thr : threadNumaInfo) {
+        const auto &data = thr.second;
+        if (data.queRxTimes.empty()) {
+            continue; // skip threads without net packets recv
+        }
+        std::vector<double> ratio(numaNum);
+        AddLog([&]() {
+            return "MatchThreadQueAndNuma: thread:" + std::to_string(thr.first) +
+                ", cycles: " + std::to_string(thr.second.cyclesSum) + ", numa ratio: ";
+            });
+        for (size_t i = 0; i < numaNum; i++) {
+            ratio[i] = (double)thr.second.cyclesNumaRatio[i] / thr.second.cyclesSum;
+            AddLog([&]() { return std::to_string(ratio[i]) + " "; });
+        }
+        AddLog([&]() { return "\n"; });
+        for (const auto &devData : data.queRxTimes) {
+            const auto ifIndex = devData.first;
+            if (ifIdxToName.count(ifIndex) == 0 || ifIdxToName[ifIndex].empty()) {
+                continue; // skip invalid ifIndex
+            }
+            const auto devName = ifIdxToName[ifIndex];
+            for (const auto &queData : devData.second) {
+                auto queId = queData.first;
+                uint64_t rxTimes = queData.second;
+                QueueInfo &info = netQueue[devName][queId];
+                if (info.numaRxTimes.size() < numaNum) {
+                    info.numaRxTimes.resize(numaNum, 0);
+                }
+                AddLog([&]() {
+                    return "MatchThreadQueAndNuma: " + devName + ", queId " + std::to_string(queId) +
+                        ", rxTimes " + std::to_string(rxTimes) + ", Numa Rx: ";
+                    });
+                for (size_t n = 0; n < numaNum; ++n) {
+                    info.numaRxTimes[n] += rxTimes * ratio[n];
+                    AddLog([&]() { return std::to_string(info.numaRxTimes[n]) + " "; });
+                }
+                AddLog([&]() { return "\n"; });
+            }
+        }
+    }
+    AddLog([&]() {
+        return "MatchThreadQueAndNuma: threadNumaInfo size "
+            + std::to_string(threadNumaInfo.size()) + " netQueue size " + std::to_string(netQueue.size()) + "\n";
+        });
+}
+
 void NetHardIrq::UpdateData(const DataList &dataList)
 {
     UpdateSystemInfo(dataList);
-    UpdateNetInfo(dataList);
+    UpdatePmuSampleInfo(dataList);
     UpdateEnvInfo(dataList);
     UpdateNetIntfInfo(dataList);
 }
@@ -506,8 +599,7 @@ oeaware::Result NetHardIrq::Enable(const std::string &param)
     irqbalanceStatus = false;
     Init();
     if (!ResolveCmd(param)) {
-        ShowHelp();
-        return oeaware::Result(FAILED, "NetHardIrq resolve cmd failed");
+        return oeaware::Result(FAILED, "NetHardIrq resolve cmd failed \n" + GetHelp());
     }
     if (!conf.InitConf(HARDIRQ_CONFIG_PATH)) {
         return oeaware::Result(FAILED, "read " + HARDIRQ_CONFIG_PATH + " failed.");
@@ -520,17 +612,33 @@ oeaware::Result NetHardIrq::Enable(const std::string &param)
     }
     if (irqbalanceStatus) {
         ServiceControl("irqbalance", "stop");
+        INFO(logger, "irqbalance stop when NetHardIrq enable");
+    }
+    subscribeTopics.clear();
+    subscribeTopics.emplace_back(oeaware::Topic{ OE_ENV_INFO, "static", "" });
+    subscribeTopics.emplace_back(oeaware::Topic{ OE_ENV_INFO, "cpu_util", "" });
+    subscribeTopics.emplace_back(oeaware::Topic{ OE_NET_INTF_INFO, OE_NETWORK_INTERFACE_BASE_TOPIC, "operstate_up" });
+    subscribeTopics.emplace_back(oeaware::Topic{ OE_NET_INTF_INFO, OE_NETWORK_INTERFACE_DRIVER_TOPIC, "operstate_up" });
+    if (highNoiseSample) {
+        subscribeTopics.emplace_back(oeaware::Topic{ OE_PMU_SAMPLING_COLLECTOR, "skb:skb_copy_datagram_iovec", "" });
+        subscribeTopics.emplace_back(oeaware::Topic{ OE_PMU_SAMPLING_COLLECTOR, "net:napi_gro_receive_entry", "" });
+    } else {
+        subscribeTopics.emplace_back(oeaware::Topic{ OE_NET_INTF_INFO, OE_NET_THREAD_QUE_DATA,
+            OE_PARA_THREAD_RECV_QUE_CNT });
+        subscribeTopics.emplace_back(oeaware::Topic{ OE_PMU_SAMPLING_COLLECTOR, "cycles", "" });
     }
     for (auto &topic : subscribeTopics) {
         Subscribe(topic);
     }
-    
+
+    debugLog += " highNoiseSample is " + std::to_string(highNoiseSample) + "\n";
     return oeaware::Result(OK);
 }
 
 void NetHardIrq::Disable()
 {
     if (irqbalanceStatus) {
+        INFO(logger, "irqbalance start when NetHardIrq disbale");
         ServiceControl("irqbalance", "start");
     }
     for (auto &topic : subscribeTopics) {
@@ -540,14 +648,16 @@ void NetHardIrq::Disable()
         if (!info.second.isTuned) {
             continue;
         }
-        IrqSetSmpAffinity(info.first, info.second.originAffinity);
+        int err = IrqSetSmpAffinity(info.first, info.second.originAffinity);
         INFO(logger, "Restore IRQ " << info.first << " affinity from "
-            << info.second.lastAffinity << " to " << info.second.originAffinity);
+            << info.second.lastAffinity << " to " << info.second.originAffinity << ", result " << strerror(err));
     }
     envInit = false;
     cpu2Numa.clear();
     irqInfo.clear();
     netQueue.clear();
+    subscribeTopics.clear();
+    highNoiseSample = false;
 }
 
 void NetHardIrq::PublishData()
@@ -594,7 +704,11 @@ void NetHardIrq::Run()
         return;
     }
     CalCpuUtil();
-    MatchThreadAndQueue();
+    if (highNoiseSample) {
+        MatchThreadAndQueue();
+    } else {
+        MatchThreadQueAndNuma();
+    }
     conf.GetEthQueData(ethQueData, conf.GetQueRegex());
     Tune();
     ResetNetQueue();
@@ -606,4 +720,5 @@ void NetHardIrq::Run()
         INFO(logger, debugLog);
     }
     debugLog = "";
+    threadNumaInfo.clear();
 }

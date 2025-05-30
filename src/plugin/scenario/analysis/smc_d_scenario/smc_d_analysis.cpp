@@ -199,6 +199,8 @@ void *SmcDAnalysis::GetResult()
     bool isSilence = prevEstablishedCount == 0;
     bool isHighFlow = netFlow >= netFlowThreshold;
     bool isSmcDUsable = totalEstablishedRate < changeRateThreshold && totalCloseWaitRate < changeRateThreshold;
+    int percentage = 100;
+    double totalEstablishedRatePercentage = totalEstablishedRate * percentage;
     std::vector<std::vector<std::string>> metrics;
     std::string conclusion;
     std::vector<std::string> suggestionItem;
@@ -206,7 +208,7 @@ void *SmcDAnalysis::GetResult()
         conclusion = conclusionNoSupport;
     } else if (isSilence) {
         metrics.emplace_back(std::vector<std::string>{
-            smcDTcpChangeRate, "0", "low"
+            smcDTcpChangeRate, "0%", "low"
         });
         metrics.emplace_back(std::vector<std::string>{
             loNetFlow, std::to_string(netFlow)+"(MB/s)", isHighFlow ? "high" : "low"
@@ -214,7 +216,7 @@ void *SmcDAnalysis::GetResult()
         conclusion = conclusionSilent;
     } else if (!isHighFlow) {
         metrics.emplace_back(std::vector<std::string>{
-            smcDTcpChangeRate, std::to_string(totalEstablishedRate), isSmcDUsable ? "low" : "high"
+            smcDTcpChangeRate, std::to_string(totalEstablishedRatePercentage) + "%", isSmcDUsable ? "low" : "high"
         });
         metrics.emplace_back(std::vector<std::string>{
             loNetFlow, std::to_string(netFlow)+"(MB/s)", isHighFlow ? "high" : "low"
@@ -222,7 +224,7 @@ void *SmcDAnalysis::GetResult()
         conclusion = conclusionLowFlow;
     } else {
         metrics.emplace_back(std::vector<std::string>{
-            smcDTcpChangeRate, std::to_string(totalEstablishedRate), isSmcDUsable ? "low" : "high"
+            smcDTcpChangeRate, std::to_string(totalEstablishedRatePercentage) + "%", isSmcDUsable ? "low" : "high"
         });
         metrics.emplace_back(std::vector<std::string>{
             loNetFlow, std::to_string(netFlow)+"(MB/s)", isHighFlow ? "high" : "low"

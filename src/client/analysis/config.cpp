@@ -34,7 +34,7 @@ void Config::PrintHelp()
     usage += "   --pid                      set the pid to be analyzed.\n";
     usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
     usage += "   --smc-change-rate              set smc connections change rate threshold.\n";
-    usage += "   --smc-lonet-flow              set smc local net flow threshold.\n";
+    usage += "   --smc-localnet-flow              set smc local net flow threshold.\n";
     usage += "   --host-cpu-usage-threshold                  set host cpu usage threshold.\n";
     usage += "   --docker-cpu-usage-threshold                  set docker cpu usage threshold.\n";
     std::cout << usage;
@@ -80,6 +80,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 l1MissThreshold = atof(optarg);
+                if (l1MissThreshold < 0 || l1MissThreshold > THRESHOLD_UP) {
+                    std::cerr << "Warn: analysis config 'hugepage:l1_miss_threshold(" << optarg <<
+                    ")' value must be [0, 100].\n";
+                    PrintHelp();
+                    return false;
+                }
                 l1MissThresholdSet = true;
                 break;
             case L2_MISS_THRESHOLD:
@@ -89,6 +95,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 l2MissThreshold = atof(optarg);
+                if (l2MissThreshold < 0 || l2MissThreshold > THRESHOLD_UP) {
+                    std::cerr << "Warn: analysis config 'hugepage:l2_miss_threshold(" << optarg <<
+                    ")' value must be [0, 100].\n";
+                    PrintHelp();
+                    return false;
+                }
                 l2MissThresholdSet = true;
                 break;
             case OUT_PATH: {
@@ -109,23 +121,41 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 dynamicSmtThreshold = atof(optarg);
+                if (dynamicSmtThreshold < 0 || dynamicSmtThreshold > THRESHOLD_UP) {
+                    std::cerr << "Warn: analysis config 'dynamic_smt:threshold(" << optarg <<
+                    ")' value must be [0, 100].\n";
+                    PrintHelp();
+                    return false;
+                }
                 dynamicSmtThresholdSet = true;
                 break;
             case PID:
-                if (!oeaware::IsNum(optarg)) {
+                if (!oeaware::IsInteger(optarg)) {
                     std::cerr << "Error: Invalid pid: '" << optarg << "'\n";
                     PrintHelp();
                     return false;
                 }
                 pid = atoi(optarg);
+                if (pid < 0) {
+                    std::cerr << "Warn: analysis config 'pid(" << optarg <<
+                    ")' value must be a non-negative integer.\n";
+                    PrintHelp();
+                    return false;
+                }
                 break;
             case NUMA_THREAD_THRESHOLD:
-                if (!oeaware::IsNum(optarg)) {
+                if (!oeaware::IsInteger(optarg)) {
                     std::cerr << "Error: Invalid numa thread threshold: '" << optarg << "'\n";
                     PrintHelp();
                     return false;
                 }
                 numaThreadThreshold = atoi(optarg);
+                if (numaThreadThreshold < 0) {
+                    std::cerr << "Warn: analysis config 'numa_analysis:numaThreadThreshold(" << optarg <<
+                    ")' value must be a non-negative integer.\n";
+                    PrintHelp();
+                    return false;
+                }
                 numaThreadThresholdSet = true;
                 break;
             case SMC_CHANGE_RATE:
@@ -135,6 +165,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 smcChangeRate = atof(optarg);
+                if (smcChangeRate < 0) {
+                    std::cerr << "Warn: analysis config 'smc_d_analysis:smcChangeRate(" << optarg <<
+                    ")' value must be  non-negative integer.\n";
+                    PrintHelp();
+                    return false;
+                }
                 smcChangeRateSet = true;
                 break;
             case SMC_LONET_FLOW:
@@ -144,6 +180,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 smcLoNetFlow = atoi(optarg);
+                 if (smcLoNetFlow < 0) {
+                    std::cerr << "Warn: analysis config 'smc_d_analysis:smcLoNetFlow(" << optarg <<
+                    ")' value must be  non-negative integer.\n";
+                    PrintHelp();
+                    return false;
+                }
                 smcLoNetFlowSet = true;
                 break;
             case HOST_CPU_USAGE_THRESHOLD:
@@ -153,6 +195,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 hostCpuUsageThreshold = atof(optarg);
+                if (hostCpuUsageThreshold < 0 || hostCpuUsageThreshold > THRESHOLD_UP) {
+                    std::cerr << "Warn: analysis config 'docker_coordination_burst:host_cpu_usage_threshold(" <<
+                    optarg << ")' value must be a [0, 100].\n";
+                    PrintHelp();
+                    return false;
+                }
                 hostCpuUsageThresholdSet = true;
                 break;
             case DOCKER_CPU_USAGE_THRESHOLD:
@@ -162,6 +210,12 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 dockerCpuUsageThreshold = atof(optarg);
+                if (dockerCpuUsageThreshold < 0 || dockerCpuUsageThreshold > THRESHOLD_UP) {
+                    std::cerr << "Warn: analysis config 'docker_coordination_burst:dockerCpuUsageThreshold(" <<
+                    optarg << ")' value must be a [0, 100].\n";
+                    PrintHelp();
+                    return false;
+                }
                 dockerCpuUsageThresholdSet = true;
                 break;
             default:
@@ -303,7 +357,7 @@ void Config::LoadNumaConfig(const YAML::Node &config)
     if (numa_analysis["thread_threshold"]) {
         std::string thresholdString = numa_analysis["thread_threshold"].as<std::string>();
         if (!oeaware::IsInteger(thresholdString)) {
-            std::cerr << "Warn: analysis config 'smc_d_analysis:thread_threshold(" << thresholdString <<
+            std::cerr << "Warn: analysis config 'numa_analysis:thread_threshold(" << thresholdString <<
                 ")' value must be a integer.\n";
             return;
         } else {
@@ -311,7 +365,7 @@ void Config::LoadNumaConfig(const YAML::Node &config)
         }
     }
     if (threshold < 0) {
-        std::cerr << "Warn: analysis config 'smc_d_analysis:thread_threshold(" << threshold <<
+        std::cerr << "Warn: analysis config 'numa_analysis:thread_threshold(" << threshold <<
             ")' value must be a non-negative integer.\n";
         return;
     }
@@ -343,15 +397,15 @@ void Config::LoadSmcDConfig(const YAML::Node &config)
             }
         }
     }
-    if (smc_d_analysis["lo_net_flow"]) {
-        std::string flowString = smc_d_analysis["lo_net_flow"].as<std::string>();
+    if (smc_d_analysis["local_net_flow"]) {
+        std::string flowString = smc_d_analysis["local_net_flow"].as<std::string>();
         if (!oeaware::IsNum(flowString)) {
-            std::cerr << "Warn: analysis config 'smc_d_analysis:lo_net_flow(" << flowString <<
+            std::cerr << "Warn: analysis config 'smc_d_analysis:local_net_flow(" << flowString <<
                 ")' value must be a number.\n";
         } else {
-            loNetFlow = smc_d_analysis["lo_net_flow"].as<double>();
+            loNetFlow = smc_d_analysis["local_net_flow"].as<double>();
             if (loNetFlow < 0) {
-                std::cerr << "Warn: analysis config 'smc_d_analysis:lo_net_flow(" << loNetFlow <<
+                std::cerr << "Warn: analysis config 'smc_d_analysis:local_net_flow(" << loNetFlow <<
                     ")' value must a non-negative number.\n";
             } else if (!smcLoNetFlowSet) {
                 smcLoNetFlow = loNetFlow;

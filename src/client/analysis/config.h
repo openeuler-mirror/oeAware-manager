@@ -132,7 +132,7 @@ private:
         {"pid", required_argument, nullptr, PID},
         {"numa-thread-threshold", required_argument, nullptr, NUMA_THREAD_THRESHOLD},
         {"smc-change-rate", required_argument, nullptr, SMC_CHANGE_RATE},
-        {"smc-lonet-flow", required_argument, nullptr, SMC_LONET_FLOW},
+        {"smc-localnet-flow", required_argument, nullptr, SMC_LONET_FLOW},
         {"host-cpu-usage-threshold", required_argument, nullptr, HOST_CPU_USAGE_THRESHOLD},
         {"docker-cpu-usage-threshold", required_argument, nullptr, DOCKER_CPU_USAGE_THRESHOLD},
         {nullptr, 0, nullptr, 0}

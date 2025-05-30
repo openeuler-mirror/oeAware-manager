@@ -10,7 +10,7 @@ numa_analysis:
 
 smc_d_analysis:
   change_rate: 0.1
-  lo_net_flow: 100 # MB/S
+  local_net_flow: 100 # MB/S
 
 docker_coordination_burst:
   host_cpu_usage_threshold: 45

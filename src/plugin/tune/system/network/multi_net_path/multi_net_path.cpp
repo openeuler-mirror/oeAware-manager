@@ -48,11 +48,10 @@ oeaware::Result MultiNetPath::Enable(const std::string &param)
     irqbalanceStatus = false;
 
     if (!ResolveCmd(param)) {
-        ShowHelp();
-        return oeaware::Result(FAILED, "param resolve failed");
+        return oeaware::Result(FAILED, "param resolve failed\n" + GetHelp());
     }
     if (!CheckParam()) {
-        return oeaware::Result(FAILED, "param check failed");
+        return oeaware::Result(FAILED, "param check failed" + GetHelp());
     }
     // confilct with irqbalance, disable it before insert ko
     if (ServiceIsActive("irqbalance", isActive)) {
@@ -104,13 +103,15 @@ bool oeaware::MultiNetPath::CheckParam()
     return result;
 }
 
-void oeaware::MultiNetPath::ShowHelp()
+std::string oeaware::MultiNetPath::GetHelp()
 {
-    WARN(logger, "command example: oeawarectl -e " << name
-        << " -ifname eth0#eth1 -appname redis-server -matchip 1 -mode 0");
+
+    std::string output;
+    output += "Usage : oeawarectl -e " + name + " [options] \n";
     for (const auto &item : cmdHelp) {
-        WARN(logger, item.first << " : " << item.second);
+        output +=  item.second + " \n";
     }
+    return output;
 }
 
 bool oeaware::MultiNetPath::InsertOeNetCls()

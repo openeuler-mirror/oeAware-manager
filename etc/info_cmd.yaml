@@ -38,3 +38,23 @@ InfoCmd:
   - instance: docker_cpu_burst
     description: "This instance enables CPU Burst functionality, which provides temporary additional CPU resources to containers during sudden spikes in load."
     effect: "By dynamically allocating extra CPU resources during high demand periods, this feature reduces the impact of CPU constraints on application performance."
+
+  - instance: multi_net_path_tune
+    description: "This instance focuses on configuring and optimizing multiple network paths. "
+    effect: "Ensures low-latency network processing by binding NIC queues to the service's NUMA node,avoiding cross-NUMA interference and improving performance isolation."
+
+  - instance: binary_tune
+    description: "Bind the special binary running in the container to the physical core."
+    effect: "Ensures dedicated CPU resources for the application, reducing context switching."
+
+  - instance: numa_sched_tune
+    description: "Enable NUMA-aware scheduling to keep threads on the same NUMA node throughout their lifecycle."
+    effect: "Reduces cross-NUMA memory access overhead, improves cache hit rate, data prefetching, and TLB hit ratio, while reducing migration costs."
+
+  - instance: realtime_tune
+    description: "Set timer migration off and disable real-time scheduling throttling"
+    effect: "Reduces timer-related interrupts on non-target CPUs and allows real-time threads to run without CPU bandwidth restrictions."
+
+  - instance: docker_burst
+    description: "Dynamically reallocate idle CPU resources from underutilized containers or host to heavily loaded ones to improve overall performance."
+    effect: "Improves resource utilization and application performance by balancing CPU load across containers and the host."

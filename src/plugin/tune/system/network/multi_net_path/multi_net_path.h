@@ -35,16 +35,23 @@ private:
     std::string appname = "redis-server";
     int matchIp = invaildParam; // ko inner default is 1
     int mode = invaildParam;
-    std::unordered_map<std::string, std::string> cmdHelp = {
-        {"ifname", "Configure multiple network interfaces, separated by # "},
-        {"appname", "Configure the name of the network process, default is redis-server, all_app means all processes"},
-        {"match_ip", "Configure whether to match the IP address, 0: not match, 1: match(default)"},
-        {"mode", "Configure the mode of the network process, can config 0(defaule) and 1"}
+    std::map<std::string, std::string> cmdHelp = {
+        {"ifname", std::string("") +
+         "    -ifname <intf_list>         configure multiple network interfaces, <intf_list> separated by # "},
+        {"appname", std::string("") +
+         "    -appname <command>          configure the name of the network process, <command> should be: \n" +
+         "                                /proc/$pid/comm        specific process name,default is redis-server \n"
+         "                                \"all_app\"              means all processes"},
+        {"matchip", std::string("") +
+         "    -matchip <flag>             configure whether to match the ip address, <flag> is 0 or 1," +
+         " 1 means match, 0 means not match, default is 1"},
+        {"mode",
+         "    -mode <flag>                configure the mode of the network process, can config 0(defaule) and 1\n"},
     };
     bool CheckLegal(const std::string &cmd);
     bool ResolveCmd(const std::string &cmd);
     bool CheckParam();
-    void ShowHelp();
+    std::string GetHelp();
     bool InsertOeNetCls();
 };
 

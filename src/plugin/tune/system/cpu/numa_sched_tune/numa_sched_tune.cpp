@@ -95,6 +95,7 @@ oeaware::Result NumaSchedTune::Enable(const std::string &param)
 {
     (void)param; // no use param
 
+    schedFeatues.clear();
     oeaware::ReadSchedFeatures(schedFeaturePath, schedFeatues);
     if (!IsSupportNumaSched()) {
         ERROR(logger, "[NUMA_SCHED] not support numa sched feature");
@@ -133,6 +134,7 @@ oeaware::Result NumaSchedTune::Enable(const std::string &param)
 void NumaSchedTune::Disable()
 {
     if (isOriginalEnabled) {
+        isOriginalEnabled = false;
         return;
     }
 

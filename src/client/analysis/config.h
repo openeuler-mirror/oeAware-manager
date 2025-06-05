@@ -34,6 +34,7 @@ constexpr double HOST_CPU_USAGE_THRESHOLD_DEFAULT = 45.0;
 constexpr double DOCKER_CPU_USAGE_THRESHOLD_DEFAULT = 95.0;
 
 const int THRESHOLD_UP = 100;
+const int NUMA_THREAD_THRESHOLD_UP = 10000;
 class Config {
 public:
     bool Init(int argc, char **argv);

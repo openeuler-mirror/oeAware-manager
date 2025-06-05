@@ -16,6 +16,16 @@
 #include <sstream>
 #include "config.h"
 
+static bool IsValidNumaThreadThreshold(const int threadNum)
+{
+    if (threadNum <= 0 || threadNum > NUMA_THREAD_THRESHOLD_UP) {
+        std::cerr << "Warn: analysis config 'numa_analysis:numaThreadThreshold(" << threadNum <<
+        ")' value must be in [1, 10000].\n";
+        return false;
+    }
+    return true;
+}
+
 void Config::PrintHelp()
 {
     std::string usage = "";
@@ -150,9 +160,7 @@ bool Config::Init(int argc, char **argv)
                     return false;
                 }
                 numaThreadThreshold = atoi(optarg);
-                if (numaThreadThreshold < 0) {
-                    std::cerr << "Warn: analysis config 'numa_analysis:numaThreadThreshold(" << optarg <<
-                    ")' value must be a non-negative integer.\n";
+                if (!IsValidNumaThreadThreshold(numaThreadThreshold)) {
                     PrintHelp();
                     return false;
                 }
@@ -364,9 +372,7 @@ void Config::LoadNumaConfig(const YAML::Node &config)
             threshold = numa_analysis["thread_threshold"].as<int>();
         }
     }
-    if (threshold < 0) {
-        std::cerr << "Warn: analysis config 'numa_analysis:thread_threshold(" << threshold <<
-            ")' value must be a non-negative integer.\n";
+    if (!IsValidNumaThreadThreshold(threshold)) {
         return;
     }
     if (!numaThreadThresholdSet) {

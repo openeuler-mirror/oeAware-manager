@@ -25,12 +25,12 @@
 #include <linux/if.h>
 
 struct NetIntfBaseInfo {
+    int ifindex = 0;
     std::string name = "";
     int operstate = IF_OPER_UNKNOWN;
-    int ifindex = 0;
 };
 
 std::unordered_set<std::string> GetNetInterface();
 bool ReadEthtoolDrvinfo(const std::string &name, struct ethtool_drvinfo &drvinfo);
-void GetNetIntfBaseInfo(const std::string &name, NetIntfBaseInfo &info);
+int GetOperState(const std::string &name);
 #endif

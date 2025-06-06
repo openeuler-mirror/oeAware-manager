@@ -68,7 +68,7 @@ private:
     };
     std::vector<std::string> topicStr = { OE_NETWORK_INTERFACE_BASE_TOPIC,
         OE_NETWORK_INTERFACE_DRIVER_TOPIC, OE_LOCAL_NET_AFFINITY, OE_NET_THREAD_QUE_DATA };
-    std::unordered_map<std::string, NetIntfBaseInfo> netIntfBaseInfo; // intf to share info
+    std::unordered_map<int, NetIntfBaseInfo> netIntfBaseInfo; // key is ifindex
     std::unordered_map<std::string, NetIntTopic> netTopicInfo; // topic name to topic info
     std::unordered_map<std::string, bool> debugCtl;
     void InitTopicInfo(const std::string &name);
@@ -85,7 +85,7 @@ private:
     struct NetFlowCtl {
         // ebpf net comm
         void *skel = nullptr;
-        std::unordered_map<std::string, NetDevHook> netDevHooks;
+        std::unordered_map<int, NetDevHook> netDevHooks; // key is ifindex
         std::unordered_set<std::string> openTopic;
         // local net process info
         std::unordered_map<SockKey, uint64_t> lastSockFlow;

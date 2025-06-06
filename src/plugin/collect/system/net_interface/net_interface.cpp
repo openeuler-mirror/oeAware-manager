@@ -141,11 +141,12 @@ void NetInterface::UpdateData(const DataList &dataList)
     (void)dataList;
 }
 
-static void UpdateNetIntfBaseInfo(std::unordered_map<std::string, NetIntfBaseInfo> &info)
+static void UpdateNetIntfBaseInfo(std::unordered_map<int, NetIntfBaseInfo> &info)
 {
     std::unordered_set<std::string> netIntf = GetNetInterface();
-    for (auto &name : netIntf) {
-        GetNetIntfBaseInfo(name, info[name]);
+    for (const auto &name : netIntf) {
+        int ifindex = if_nametoindex(name.c_str());
+        info[ifindex] = NetIntfBaseInfo{ .ifindex = ifindex, .name = name, .operstate = GetOperState(name) };
     }
 }
 
@@ -354,11 +355,12 @@ void NetInterface::PublishNetQueueInfo(const std::string &params, const int &int
 
 bool NetInterface::AttachTcProgram(struct net_flow_kernel *obj, std::string name, int ifindex)
 {
-    if (netFlowCtl.netDevHooks.count(name) != 0) {
+    // warning: don't count(name), because the nic may have the same name after being deleted
+    if (netFlowCtl.netDevHooks.count(ifindex) != 0) {
         return true;
     }
     // add attach filter
-    if (netIntfBaseInfo[name].operstate == IF_OPER_DOWN) {
+    if (netIntfBaseInfo[ifindex].operstate == IF_OPER_DOWN) {
         return true;
     }
 
@@ -382,7 +384,7 @@ bool NetInterface::AttachTcProgram(struct net_flow_kernel *obj, std::string name
         return false;
     }
     NetDevHook hook = { .tcHook = tc_hook, .tcOpts = tc_opts, .ifindex = ifindex };
-    netFlowCtl.netDevHooks.emplace(name, hook);
+    netFlowCtl.netDevHooks.emplace(ifindex, hook);
     if (debugCtl[OE_PARA_LOC_NET_AFFI_USER_DEBUG] || debugCtl[OE_PARA_NET_RECV_QUE_USER_DEBUG]) {
         INFO(logger, "NetInterface::AttachTcProgram Attach TC program to " << name << ": " << ifindex);
     }

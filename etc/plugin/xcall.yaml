@@ -1,7 +1,7 @@
 #[process name]:
-#    - xcall_1: syscall number1,syscall number2......
+#    - xcall_1: syscall number1,syscall number2...... 
+#    - xcall_2: syscall number1,...   now only support epol_wait
 #for example
 #redis-server:
-#    - xcall_1: 23,24,166,260,220,435,64,63,79,80,57,56,62,29,134,59,214,135,25,222,172,173,174,175,176,177,178,179,226,215
-redis-server:
-    - xcall_1: 23,24,166,260,220,435,64,63,79,80,57,56,62,29,134,59,214,135,25,222,172,173,174,175,176,177,178,179,226,215
+#    - xcall_1: 98,128,63,64,22,208,57,56,25,21,202,172,233
+#    - xcall_2: 22

@@ -32,9 +32,11 @@ public:
 private:
     int ReadConfig(const std::string &path);
     int WriteSysParam(const std::string &path, const std::string &value);
+    void EnablePrefetchCpu();
     const int defaultPeriod = 1000;
     const int defaultPriority = 2;
     std::string configPath;
+    std::unordered_set<std::string> xcallType{"xcall_1", "xcall_2"};
     std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> xcallTune;
     std::unordered_map<std::string, std::unordered_set<int>> threadId;
     std::unordered_map<std::string, std::vector<std::string>> openedXcall;

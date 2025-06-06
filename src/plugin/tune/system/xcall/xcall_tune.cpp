@@ -11,9 +11,11 @@
  ******************************************************************************/
 #include "xcall_tune.h"
 #include <iostream>
+#include <numa.h>
 #include <yaml-cpp/yaml.h>
 #include "oeaware/data/thread_info.h"
 #include "oeaware/utils.h"
+
 
 static const std::string XCALL_CONFIG_PATH = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/xcall.yaml";
 XcallTune::XcallTune()
@@ -65,7 +67,7 @@ int XcallTune::ReadConfig(const std::string &path)
             for (auto p : item) {
                 std::string xcallName = p.first.as<std::string>();
                 std::string xcallEvent = p.second.as<std::string>();
-                if (xcallName != "xcall_1") {
+                if (!xcallType.count(xcallName)) {
                     WARN(logger, "xcall config('" << xcallName << "') error.");
                     return -1;
                 }
@@ -78,6 +80,41 @@ int XcallTune::ReadConfig(const std::string &path)
     }
     sysFile.close();
     return 0;
+}
+
+static std::string ReadCpuList(const std::string &path)
+{
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return "";
+    }
+    std::string content;
+    std::getline(file, content);
+    return content;
+}
+
+static std::vector<int> GetNumaCpuRange(int i)
+{
+    std::string path = "/sys/devices/system/node/node" + std::to_string(i) + "/cpulist";
+    auto cpuList = ReadCpuList(path);
+    std::istringstream iss(cpuList);
+    std::string range;
+    std::getline(iss, range);
+    return oeaware::ParseRange(range);
+}
+
+void XcallTune::EnablePrefetchCpu()
+{
+    // Now only support 4 numas
+    int sysNumaNum = numa_num_configured_nodes();
+    int supportNumaNum = 4;
+    for (int i = 0; i < supportNumaNum && i < sysNumaNum; ++i) {
+        auto p = GetNumaCpuRange(i);
+        if (!p.empty()) {
+            // Each numa uses one core for prefetching.
+            WriteSysParam("/proc/sys/kernel/xcall_numa" + std::to_string(i) + "_cpumask", std::to_string(p[0]));
+        }
+    }
 }
 
 oeaware::Result XcallTune::Enable(const std::string &param)
@@ -107,6 +144,7 @@ oeaware::Result XcallTune::Enable(const std::string &param)
     if (ret < 0) {
         return oeaware::Result(FAILED, "config path '" + configPath + "' error.");
     }
+    EnablePrefetchCpu();
     Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
     return oeaware::Result(OK);
 }
@@ -122,6 +160,9 @@ void XcallTune::Disable()
             WriteSysParam(p.first, "!"+value);
         }
     }
+    openedXcall.clear();
+    xcallTune.clear();
+    threadId.clear();
 }
 
 int XcallTune::WriteSysParam(const std::string &path, const std::string &value)
@@ -161,7 +202,7 @@ void XcallTune::Run()
                 continue;
             }
             for (auto v : xcallTune[item.first]) {
-                if (v.first != "xcall_1") {
+                if (!xcallType.count(v.first)) {
                     continue;
                 }
                 if (!oeaware::IsInteger(v.second)) {
@@ -172,12 +213,25 @@ void XcallTune::Run()
                     WARN(logger, "syscall number range [0, 294], [403, 469], but " << v.second);
                     continue;
                 }
-                if (WriteSysParam(path, v.second) == 0) {
-                    openedXcall[path].emplace_back(v.second);
-                    INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second <<
-                            "}.");
-                } else {
-                    WARN(logger, "xcall applied failed, path: " << path << ".");
+                if (v.first == "xcall_1") {
+                    if (WriteSysParam(path, v.second) == 0) {
+                        openedXcall[path].emplace_back(v.second);
+                        INFO(logger, "xcall applied, {path: " << path << ", type: xcall_1, value: " << v.second <<
+                                "}.");
+                    } else {
+                        WARN(logger, "xcall applied failed, {path: " << path << ", type: xcall_2, value: " <<
+                                v.second << "}.");
+                    }
+                } else if (v.first == "xcall_2") {
+                    std::string value = "@" + v.second;
+                    if (WriteSysParam(path, value) == 0) {
+                        openedXcall[path].emplace_back(v.second);
+                        INFO(logger, "xcall pretetch applied, {path: " << path << ", type: xcall_2, value: " <<
+                            v.second << "}.");
+                    } else {
+                        WARN(logger, "xcall pretetch applied failed, path: {" << path << ", type: xcall_2, value: " <<
+                            v.second << "}.");
+                    }
                 }
             }
         }

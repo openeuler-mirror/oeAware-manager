@@ -76,9 +76,3 @@ int GetOperState(const std::string &name)
     return type;
 }
 
-void GetNetIntfBaseInfo(const std::string &name, NetIntfBaseInfo &info)
-{
-    info.name = name;
-    info.operstate = GetOperState(name);
-    info.ifindex = if_nametoindex(name.c_str());
-}

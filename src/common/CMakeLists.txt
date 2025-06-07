@@ -11,7 +11,7 @@ add_library(${PROJECT_NAME}
             ${SOURCE}
 )
 
-target_link_libraries(${PROJECT_NAME} log4cplus)
+target_link_libraries(${PROJECT_NAME} log4cplus bpf)
 target_link_libraries(${PROJECT_NAME} yaml-cpp)
 target_link_libraries(${PROJECT_NAME} curl boundscheck)
 

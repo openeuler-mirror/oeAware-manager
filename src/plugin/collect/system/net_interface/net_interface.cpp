@@ -21,6 +21,7 @@
 
 constexpr int UINT32_BIT_LEN = 32;
 constexpr uint64_t UINT32_MASK = 0xFFFFFFFFULL;
+constexpr uint64_t TIME_STR_LEN = 20;
 // Used to uniquely determine the packet receiving information of an interrupt on a thread
 struct ThreadQueKey {
     uint32_t tid;
@@ -549,7 +550,7 @@ void NetInterface::CloseNetFlow(const std::string &topicName)
         DECLARE_LIBBPF_OPTS(bpf_tc_opts, opts,
             .handle = hook.tcOpts.handle,
             .priority = hook.tcOpts.priority);
-
+        opts.flags = opts.prog_fd = opts.prog_id = 0;
         int ret = bpf_tc_detach(&hook.tcHook, &opts);
         if (ret) {
             ERROR(logger, "Failed to detach TC from " << hook.tcHook.ifindex << ", ret: " << ret);
@@ -568,4 +569,8 @@ void NetInterface::CloseNetFlow(const std::string &topicName)
         net_flow_kernel__destroy(obj);
         netFlowCtl.skel = nullptr;
     }
+
+    netFlowCtl.lastQueTimes.clear();
+    netFlowCtl.lastQueLen.clear();
+    netFlowCtl.lastSockFlow.clear();
 }

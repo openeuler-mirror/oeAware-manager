@@ -53,6 +53,7 @@ private:
         log4cplus::WARN_LOG_LEVEL, log4cplus::ERROR_LOG_LEVEL, log4cplus::FATAL_LOG_LEVEL};
 };
 std::string LogText(const std::string &text);
+void RedirectBpfLog();
 }
 
 #endif

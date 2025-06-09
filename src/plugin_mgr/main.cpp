@@ -39,6 +39,8 @@ int main(int argc, char **argv)
         ERROR(logger, "Sig Error!");
         exit(EXIT_FAILURE);
     }
+    // issues ICDCVK
+    oeaware::RedirectBpfLog();
     std::shared_ptr<oeaware::Config> config = std::make_shared<oeaware::Config>();
     int argCnt = 2;
     if (argc < argCnt) {

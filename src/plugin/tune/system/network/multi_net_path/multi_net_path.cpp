@@ -39,6 +39,7 @@ void MultiNetPath::CloseTopic(const oeaware::Topic &topic)
 
 void MultiNetPath::UpdateData(const DataList &dataList)
 {
+    (void)dataList;
     // todo : low load update net and check
 }
 

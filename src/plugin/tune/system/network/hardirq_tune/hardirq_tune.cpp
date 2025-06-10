@@ -549,7 +549,7 @@ void NetHardIrq::MatchThreadQueAndNuma()
             return "MatchThreadQueAndNuma: thread:" + std::to_string(thr.first) +
                 ", cycles: " + std::to_string(thr.second.cyclesSum) + ", numa ratio: ";
             });
-        for (size_t i = 0; i < numaNum; i++) {
+        for (size_t i = 0; i < thr.second.cyclesNumaRatio.size(); i++) {
             ratio[i] = (double)thr.second.cyclesNumaRatio[i] / thr.second.cyclesSum;
             AddLog([&]() { return std::to_string(ratio[i]) + " "; });
         }

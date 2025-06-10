@@ -64,7 +64,10 @@ private:
     struct ring_buffer *rb = nullptr;
     static std::vector<struct thread_event*> threadEvents;
 
-    static int handle_event(void *ctx, void *data, size_t size) {
+    static int handle_event(void *ctx, void *data, size_t size)
+    {
+        (void)ctx;
+        (void)size;
         struct thread_event *event = (struct thread_event *)data;
         ThreadCollector::threadEvents.push_back(event);
         return 0;

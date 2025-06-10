@@ -283,7 +283,7 @@ void BinaryTune::FindSpecialBin(std::map<int32_t, int64_t> &dockerCpuOnNuma,
                 break;
             }
         }
-        if (cpus.size() != (cpuCoreNum / numaNum)) {
+        if (cpus.size() != static_cast<size_t>(cpuCoreNum / numaNum)) {
             isFullNuma = false;
         }
 

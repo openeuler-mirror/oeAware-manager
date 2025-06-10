@@ -50,7 +50,7 @@ private:
     void BindNuma(int32_t numaNode,
                   std::map<int32_t, std::vector<int32_t>> &threadWaitTuneByNuma);
     void BindAllCores(const std::vector<int32_t> &threads);
-    int ReadConfig(const std::string &path);
+    bool ReadConfig(const std::string &path);
     void ParseBinaryElf(const std::string &filePath, int32_t &policy);
     std::vector<oeaware::Topic> subscribeTopics{};
     bool envInit = false;

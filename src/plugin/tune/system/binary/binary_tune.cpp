@@ -32,25 +32,29 @@ bool IsSmtEnable()
     return content == "1";
 }
 
-int BinaryTune::ReadConfig(const std::string &path)
+bool BinaryTune::ReadConfig(const std::string &path)
 {
     std::ifstream configFile(path);
     if (!configFile.is_open()) {
         WARN(logger, "binary_tune.yaml open failed.");
-        return -1;
+        return false;
     }
     YAML::Node node = YAML::LoadFile(path);
     if (!node.IsMap()) {
         WARN(logger, "binary_tune.yaml format error.");
-        return -1;
+        return false;
     }
     for (auto item : node) {
         std::string name = item.first.as<std::string>();
-        auto policy = item.second.as<int32_t>();
-        configBinary[name] = policy;
+        try {
+            auto policy = item.second.as<int32_t>();
+            configBinary[name] = policy;
+        } catch (...) {
+            WARN(logger, "Value for binary '" << name << "' is not a valid integer.");
+            return false;
+        }
     }
-    configFile.close();
-    return 0;
+    return true;
 }
 
 BinaryTune::BinaryTune()
@@ -146,7 +150,10 @@ oeaware::Result BinaryTune::Enable(const std::string &param)
         return oeaware::Result(FAILED);
     }
     configBinary.clear();
-    ReadConfig(configPath);
+    if (!ReadConfig(configPath)) {
+        configBinary.clear();
+        WARN(logger, "read " << configPath << " failed. run without config.");
+    }
     for (auto &topic : subscribeTopics) {
         Subscribe(topic);
     }

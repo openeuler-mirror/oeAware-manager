@@ -177,7 +177,9 @@ static int handler_smc(int ifd)
 {
     long ret;
     struct socket *sock;
-
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
+    int tmperr;
+#endif
     struct fd f = fdget(ifd);
     if (!f.file) {
         fdput(f);
@@ -185,12 +187,10 @@ static int handler_smc(int ifd)
     }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
-    int tmperr;
     sock = sock_from_file(f.file, &tmperr);
 #else
     sock = sock_from_file(f.file);
 #endif
-
     if (sock) {
         struct sock *sk = sock->sk;
         if (sk) {
@@ -347,23 +347,28 @@ static int __kprobes handle_tcp_fin(struct kprobe *p, struct pt_regs *regs)
 
 static int __kprobes handler_connect_file(struct kprobe *p, struct pt_regs *regs)
 {
+    struct socket *sock;
+    u16 dst_port;
+    struct file *file;
+    struct sockaddr_storage *address;
+    int ret;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
+    int tmperr;
+#endif
     if (!net_tcp2smc) {
         return 0;
     }
-    struct socket *sock;
-    u16 dst_port;
-    struct file *file = REGS_PARM1(regs);
+    file = (struct file *)(uintptr_t)REGS_PARM1(regs);
     if (file == NULL) {
         return 0;
     }
 
-    struct sockaddr_storage *address = REGS_PARM2(regs);
+    address = (struct sockaddr_storage *)(uintptr_t)REGS_PARM2(regs);
     if (address == NULL) {
         return 0;
     }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(5, 10, 0)
-    int tmperr;
     sock = sock_from_file(file, &tmperr);
 #else
     sock = sock_from_file(file);
@@ -386,7 +391,7 @@ static int __kprobes handler_connect_file(struct kprobe *p, struct pt_regs *regs
                 if (!check_port(dst_port)) {
                     return 0;
                 }
-                int ret = tcp_setsockopt(sk, SOL_TCP, TCP_ULP, KERNEL_SOCKPTR("smc"), sizeof("smc"));
+                ret = tcp_setsockopt(sk, SOL_TCP, TCP_ULP, KERNEL_SOCKPTR("smc"), sizeof("smc"));
                 if (ret) {
                     printk(KERN_INFO "kprobe: connect failed to set smc failed error id : %d\n", ret);
                 }

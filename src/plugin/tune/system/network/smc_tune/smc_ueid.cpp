@@ -29,7 +29,7 @@ static int HandleGenUeidReply(struct nl_msg *msg, void *arg)
     struct nlattr *attrs[SMC_ACC_NLA_EID_TABLE_ENTRY + 1];
     struct nlmsghdr *hdr = nlmsg_hdr(msg);
     int rc               = NL_OK;
-    (void *)arg;
+    (void)arg;
     if (genlmsg_parse(hdr, 0, attrs, SMC_ACC_NLA_EID_TABLE_ENTRY, (struct nla_policy *)smc_gen_ueid_policy) < 0) {
         SMCLOG_ERROR(" invalid data returned: smc_gen_ueid_policy");
         nl_msg_dump(msg, stderr);

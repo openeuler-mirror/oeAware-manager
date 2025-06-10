@@ -96,7 +96,7 @@ private:
     const int slidingWinLen = 200; // for match que and thread info
     bool irqbalanceStatus = false; // irqbalance status before tune
     int netDataInterval = 0; // unit ms
-    int numaNum = 0;
+    unsigned int numaNum = 0;
     std::vector<int> cpu2Numa;
     std::unordered_map<uint32_t, std::string> ifIdxToName;
     bool envInit = false;

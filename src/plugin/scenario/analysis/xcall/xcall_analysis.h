@@ -11,6 +11,7 @@
  ******************************************************************************/
 #ifndef XCALL_ANALYSIS_H
 #define XCALL_ANALYSIS_H
+#include <unordered_set>
 #include <oeaware/interface.h>
 #include <oeaware/data/analysis_data.h>
 
@@ -43,11 +44,10 @@ private:
         double cpuSys = 0;
         std::string pName;
         std::chrono::time_point<std::chrono::steady_clock> beginTime;
-        std::string res;
-        std::mutex resMutex;
     };
     void Analysis(const XcallTopic &xcallTopic);
     void OutXcallConfig(int pid, const std::string &pName);
+    void CreateXcallYaml(int pid, const std::string &pName, const std::vector<XcallInfo> &vec);
     std::vector<std::string> topicStrs{"xcall"};
     std::unordered_map<std::string, XcallTopic> topicStatus;
     std::unordered_map<std::string, int> syscallTable;
@@ -57,6 +57,7 @@ private:
     double threshold = 5;
     double cpuSystemUsage = 0;
     int topNum = 5;
+    const std::unordered_set<std::string> pretetchSyscalls{"epoll_pwait"};
 };
 }
 #endif

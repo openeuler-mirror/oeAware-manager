@@ -30,7 +30,7 @@ public:
     void Disable() override;
     void Run() override;
 private:
-    int ReadConfig(const std::string &path);
+    oeaware::Result ReadConfig(const std::string &path);
     int WriteSysParam(const std::string &path, const std::string &value);
     void EnablePrefetchCpu();
     const int defaultPeriod = 1000;

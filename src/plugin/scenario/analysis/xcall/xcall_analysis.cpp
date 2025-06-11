@@ -79,20 +79,53 @@ void XcallAnalysis::Disable()
     }
 }
 
-void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
+void XcallAnalysis::CreateXcallYaml(int pid, const std::string &pName, const std::vector<XcallInfo> &vec)
 {
     std::string path = DEFAULT_PLUGIN_CONFIG_PATH + "/xcall" + "-" + std::to_string(pid) + ".yaml";
     std::ofstream file(path);
     if (!file.is_open()) {
         return;
     }
+    file << pName << ":\n";
+    file << "- xcall_1: ";
+    int num = topNum;
+    std::vector<int> xcall2;
+    bool first = true;
+    for (size_t i = 0; num > 0 && i < vec.size(); ++i, --num) {
+        if (!syscallTable.count(vec[i].callName)) {
+            WARN(logger, "syscall " << vec[i].callName << " not found in syscall table.");
+            continue;
+        }
+        if (!first) {
+            file << ",";
+        }
+        first = false;
+        file << syscallTable[vec[i].callName];
+        if (pretetchSyscalls.count(vec[i].callName)) {
+            xcall2.emplace_back(syscallTable[vec[i].callName]);
+        }
+    }
+    if (!xcall2.empty()) {
+        file << "\n- xcall_2: ";
+        for (size_t i = 0; i < xcall2.size(); ++i) {
+            file << xcall2[i];
+            if (i != xcall2.size() - 1) {
+                file << ",";
+            }
+        }
+    }
+    file.close();
+}
+
+void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
+{
     std::ifstream straceFile("/tmp/strace.txt");
     if (!straceFile.is_open()) {
         WARN(logger, "/tmp/strace.txt is not exist.");
         return;
     }
     std::string line;
-    int skipLine = 2;
+    size_t skipLine = 2;
     std::vector<XcallInfo> vec;
     while (getline(straceFile, line)) {
         // Skip the first two lines.
@@ -115,19 +148,15 @@ void XcallAnalysis::OutXcallConfig(int pid, const std::string &pName)
         vec.emplace_back(XcallInfo{calls, time, callName});
     }
     // Skip the last two lines.
-    vec.pop_back();
-    vec.pop_back();
+    skipLine = 2;
+    if (vec.size() >= skipLine) {
+        vec.pop_back();
+        vec.pop_back();
+    }
     sort(vec.begin(), vec.end(), [](const XcallInfo &x1, const XcallInfo &x2) {
         return x1.time > x2.time;
     });
-    file << pName << ":\n";
-    file << "- xcall_1: ";
-    int num = topNum;
-    for (size_t i = 0; num > 0 && i < vec.size(); ++i, --num) {
-        if (i) file << ",";
-        file << syscallTable[vec[i].callName];
-    }
-    file.close();
+    CreateXcallYaml(pid, pName, vec);
 }
 
 static void Strace(int time, int pid)
@@ -142,12 +171,6 @@ static void Strace(int time, int pid)
     if (status == -1) {
         return;
     }
-}
-
-void XcallAnalysis::SetTopicResult(const std::string &type, const std::string &res)
-{
-    std::lock_guard<std::mutex> lock(topicStatus[type].resMutex);
-    topicStatus[type].res = res;
 }
 
 static void GetNameFromPid(int pid, std::string &name)

@@ -31,22 +31,22 @@ void Config::PrintHelp()
     std::string usage = "";
     usage += "usage: oeawarectl analysis [options]...\n";
     usage += "  options\n";
-    usage += "   -t|--time <s>              set analysis duration in seconds(default " +
+    usage += "   -t|--time <s>                    set analysis duration in seconds(default " +
              std::to_string(analysisTime) + "s), range from " + std::to_string(minAnalyzeTime) +
              " to " + std::to_string(maxAnalyzeTime) + ".\n";
-    usage += "   -r|--realtime              show real time report.\n";
-    usage += "   -v|--verbose               show verbose information.\n";
-    usage += "   -h|--help                  show this help message.\n";
-    usage += "   --l1-miss-threshold                  set l1 tlbmiss threshold.\n";
-    usage += "   --l2-miss-threshold                  set l2 tlbmiss threshold.\n";
-    usage += "   --out-path                           set the path of the analysis report.\n";
-    usage += "   --dynamic-smt-threshold              set dynamic smt cpu threshold.\n";
-    usage += "   --pid                      set the pid to be analyzed.\n";
-    usage += "   --numa-thread-threshold              set numa sched thread creation threshold.\n";
-    usage += "   --smc-change-rate              set smc connections change rate threshold.\n";
+    usage += "   -r|--realtime                    show real time report.\n";
+    usage += "   -v|--verbose                     show verbose information.\n";
+    usage += "   -h|--help                        show this help message.\n";
+    usage += "   --l1-miss-threshold              set l1 tlbmiss threshold.\n";
+    usage += "   --l2-miss-threshold              set l2 tlbmiss threshold.\n";
+    usage += "   --out-path                       set the path of the analysis report.\n";
+    usage += "   --dynamic-smt-threshold          set dynamic smt cpu threshold.\n";
+    usage += "   --pid                            set the pid to be analyzed.\n";
+    usage += "   --numa-thread-threshold          set numa sched thread creation threshold.\n";
+    usage += "   --smc-change-rate                set smc connections change rate threshold.\n";
     usage += "   --smc-localnet-flow              set smc local net flow threshold.\n";
-    usage += "   --host-cpu-usage-threshold                  set host cpu usage threshold.\n";
-    usage += "   --docker-cpu-usage-threshold                  set docker cpu usage threshold.\n";
+    usage += "   --host-cpu-usage-threshold       set host cpu usage threshold.\n";
+    usage += "   --docker-cpu-usage-threshold     set docker cpu usage threshold.\n";
     std::cout << usage;
 }
 
@@ -139,20 +139,16 @@ bool Config::Init(int argc, char **argv)
                 }
                 dynamicSmtThresholdSet = true;
                 break;
-            case PID:
-                if (!oeaware::IsInteger(optarg)) {
-                    std::cerr << "Error: Invalid pid: '" << optarg << "'\n";
+            case PID: {
+                std::string path = "/proc/" + std::string(optarg);
+                if (!oeaware::FileExist(path)) {
+                    std::cerr << "Error: Invalid pid: '" << optarg << "'.\n";
                     PrintHelp();
                     return false;
                 }
                 pid = atoi(optarg);
-                if (pid < 0) {
-                    std::cerr << "Warn: analysis config 'pid(" << optarg <<
-                    ")' value must be a non-negative integer.\n";
-                    PrintHelp();
-                    return false;
-                }
                 break;
+            }
             case NUMA_THREAD_THRESHOLD:
                 if (!oeaware::IsInteger(optarg)) {
                     std::cerr << "Error: Invalid numa thread threshold: '" << optarg << "'\n";

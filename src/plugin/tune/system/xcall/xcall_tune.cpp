@@ -50,36 +50,43 @@ void XcallTune::UpdateData(const DataList &dataList)
     }
 }
 
-int XcallTune::ReadConfig(const std::string &path)
+oeaware::Result XcallTune::ReadConfig(const std::string &path)
 {
     std::ifstream sysFile(path);
     if (!sysFile.is_open()) {
-        WARN(logger, "xcall config open failed.");
-        return -1;
+        return oeaware::Result(FAILED, "xcall config open failed.");
     }
-    YAML::Node node = YAML::LoadFile(path);
-    if (!node.IsMap()) {
-        return -1;
-    }
-    for (auto item : node) {
-        std::string threadName = item.first.as<std::string>();
-        for (auto item : item.second) {
-            for (auto p : item) {
-                std::string xcallName = p.first.as<std::string>();
-                std::string xcallEvent = p.second.as<std::string>();
-                if (!xcallType.count(xcallName)) {
-                    WARN(logger, "xcall config('" << xcallName << "') error.");
-                    return -1;
+    try {
+        YAML::Node node = YAML::LoadFile(path);
+        if (!node.IsMap()) {
+            return oeaware::Result(FAILED, "xcall config format error.");
+        }
+        for (auto item : node) {
+            std::string threadName = item.first.as<std::string>();
+            if (!item.second.IsSequence()) {
+                return oeaware::Result(FAILED, "xcall config('" + threadName + "') error.");
+            }
+            for (auto it : item.second) {
+                if (!it.IsMap()) {
+                    return oeaware::Result(FAILED, "xcall config('" + threadName + "') error.");
                 }
-                auto events = oeaware::SplitString(xcallEvent, ",");
-                for (auto &event: events) {
-                    xcallTune[threadName].emplace_back(std::make_pair(xcallName, event));
+                for (auto p : it) {
+                    std::string xcallName = p.first.as<std::string>();
+                    std::string xcallEvent = p.second.as<std::string>();
+                    if (!xcallType.count(xcallName)) {
+                        return oeaware::Result(FAILED, "xcall config('" + xcallName + "') error.");
+                    }
+                    auto events = oeaware::SplitString(xcallEvent, ",");
+                    for (auto &event: events) {
+                        xcallTune[threadName].emplace_back(std::make_pair(xcallName, event));
+                    }
                 }
             }
         }
+    } catch (const YAML::Exception &e) {
+        return oeaware::Result(FAILED, "xcall config parse failed, " + std::string(e.what()));
     }
-    sysFile.close();
-    return 0;
+    return oeaware::Result(OK);
 }
 
 static std::string ReadCpuList(const std::string &path)
@@ -140,9 +147,9 @@ oeaware::Result XcallTune::Enable(const std::string &param)
     } else {
         configPath = XCALL_CONFIG_PATH;
     }
-    int ret = ReadConfig(configPath);
-    if (ret < 0) {
-        return oeaware::Result(FAILED, "config path '" + configPath + "' error.");
+    auto ret = ReadConfig(configPath);
+    if (ret.code < 0) {
+        return ret;
     }
     EnablePrefetchCpu();
     Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});

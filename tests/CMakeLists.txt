@@ -54,7 +54,7 @@ target_include_directories(table_test PUBLIC
 )
 
 target_link_libraries(serialize_test PRIVATE common GTest::gtest_main)
-target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus)
+target_link_libraries(logger_test PRIVATE GTest::gtest_main log4cplus bpf)
 target_link_libraries(safe_queue_test PRIVATE GTest::gtest_main)
 target_link_libraries(pmu_count_test PRIVATE GTest::gtest_main)
 target_link_libraries(utils_test PRIVATE common GTest::gtest_main)

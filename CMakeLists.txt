@@ -40,6 +40,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_counting_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_plugin.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/docker_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/analysis_data.h"
+    "${CMAKE_SOURCE_DIR}/include/oeaware/data/net_hardirq_tune_data.h"
     DESTINATION "${CMAKE_BINARY_DIR}/output/include/oeaware/data")
 endif()
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/kernel_data.h"

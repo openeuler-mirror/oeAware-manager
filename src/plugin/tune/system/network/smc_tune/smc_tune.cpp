@@ -16,7 +16,7 @@
 #include "smc_ueid.h"
 
 #define SMC_OP SmcOperator::getInstance()
-using namespace oeaware;
+namespace oeaware {
 static const std::string SMC_CONFIG_PATH = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/smc_acc.yaml";
 int log_level = 0;
 SmcTune::SmcTune()
@@ -49,13 +49,18 @@ void SmcTune::UpdateData(const DataList &dataList)
 oeaware::Result SmcTune::Enable(const std::string &param)
 {
     (void)param;
-    if (ReadConfig(SMC_CONFIG_PATH) < 0) {
-        return oeaware::Result(FAILED);
+    auto ret = ReadConfig(SMC_CONFIG_PATH);
+    if (ret.code != OK) {
+        return ret;
     }
     SMC_OP->SetShortConnection(shortConnection);
     SMC_OP->InputPortList(blackPortList, whitePortList);
-    int ret = (SMC_OP->EnableSmcAcc() == EXIT_SUCCESS ? OK : FAILED);
-    return oeaware::Result(ret);
+    auto smcRet = (SMC_OP->EnableSmcAcc() == EXIT_SUCCESS ? OK : FAILED);
+    if (smcRet == OK) {
+        return Result(OK);
+    } else {
+        return Result(FAILED, "failed to enable smc acc, please check if the kernel module is loaded.");
+    }
 }
 
 void SmcTune::Disable()
@@ -76,29 +81,34 @@ void SmcTune::Run()
         WARN(logger, "failed to ReRunSmcAcc");
 }
 
-int oeaware::SmcTune::ReadConfig(const std::string &path)
+Result SmcTune::ReadConfig(const std::string &path)
 {
-    std::ifstream sysFile(path);
-
-    if (!sysFile.is_open()) {
-        WARN(logger, "smc_acc.yaml config open failed.");
-        return -1;
+    if (!FileExist(path)) {
+        return Result(FAILED, "smc_acc.yaml config file does not exist, {path:" + path + "}.");
     }
-    YAML::Node node = YAML::LoadFile(path);
-
-    blackPortList = node["black_port_list_param"] ? node["black_port_list_param"].as<std::string>() : "";
-
-    whitePortList = node["white_port_list_param"] ? node["white_port_list_param"].as<std::string>() : "";
-    auto s = node["short_connection"] ? node["short_connection"].as<std::string>() : "";
-    if (!oeaware::IsNum(s)) {
-        WARN(logger, "smc_acc.yaml 'short_connection' error.");
-        return -1;
+    try {
+        YAML::Node node = YAML::LoadFile(path);
+        if (!node.IsMap()) {
+            return Result(FAILED, "smc_acc.yaml config file format error.");
+        }
+        for (auto item : node) {
+            if (configStrs.find(item.first.as<std::string>()) == configStrs.end()) {
+                return Result(FAILED, "smc_acc.yaml config file has unknown key: " + item.first.as<std::string>());
+            }
+        }
+        blackPortList = node["black_port_list_param"] ? node["black_port_list_param"].as<std::string>() : "";
+        whitePortList = node["white_port_list_param"] ? node["white_port_list_param"].as<std::string>() : "";
+        auto s = node["short_connection"] ? node["short_connection"].as<std::string>() : "";
+        if (!oeaware::IsNum(s)) {
+            return Result(FAILED, "smc_acc.yaml 'short_connection' error.");
+        }
+        shortConnection = atoi(s.data());
+        if (shortConnection < 0 || shortConnection > 1) {
+            return Result(FAILED, "smc_acc.yaml 'short_connection' value invalid.");
+        }
+    } catch (const YAML::Exception &e) {
+        return Result(FAILED, "smc_acc.yaml config parse failed: " + std::string(e.what()));
     }
-    shortConnection = atoi(s.data());
-    if (shortConnection < 0 || shortConnection > 1) {
-        WARN(logger, "smc_acc.yaml 'short_connection' value invalid.");
-        return -1;
-    }
-    sysFile.close();
-    return 0;
+    return Result(OK);
+}
 }

@@ -12,6 +12,7 @@
 
 #ifndef OEAWARE_MANAGER_SMC_TUNE_H
 #define OEAWARE_MANAGER_SMC_TUNE_H
+#include <unordered_set>
 #include "oeaware/interface.h"
 
 namespace oeaware {
@@ -27,10 +28,13 @@ public:
     void Run() override;
 
 private:
-    int ReadConfig(const std::string &path);
+    Result ReadConfig(const std::string &path);
     std::string blackPortList;
     std::string whitePortList;
     int shortConnection = 1;
+    std::unordered_set<std::string> configStrs = {
+        "black_port_list_param", "white_port_list_param", "short_connection"
+    };
 };
 } // namespace oeaware
 #endif // OEAWARE_MANAGER_SMC_TUNE_H

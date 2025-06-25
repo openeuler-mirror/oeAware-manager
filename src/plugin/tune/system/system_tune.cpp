@@ -20,7 +20,9 @@
 #include "cpu/numa_sched_tune/numa_sched_tune.h"
 #include "preload/preload_tune.h"
 #include "binary/binary_tune.h"
+#ifdef BUILD_REALTIME
 #include "realtime/realtime_tune.h"
+#endif
 #ifdef BUILD_NETIRQ_TUNE
 #include "network/hardirq_tune/hardirq_tune.h"
 #endif
@@ -40,7 +42,9 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<PreloadTune>());
     interface.emplace_back(std::make_shared<BinaryTune>());
     interface.emplace_back(std::make_shared<NumaSchedTune>());
+#ifdef BUILD_REALTIME
     interface.emplace_back(std::make_shared<RealTimeTune>());
+#endif
 #ifdef BUILD_NETIRQ_TUNE
     interface.emplace_back(std::make_shared<NetHardIrq>());
 #endif

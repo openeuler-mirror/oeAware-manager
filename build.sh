@@ -10,9 +10,10 @@ build_kperf_by_src="ON"
 with_test="OFF"
 with_debug="OFF"
 with_asan="OFF"
+with_realtime="OFF" # enable realtime mode, default is OFF
 with_optimization="OFF"
 enable_ebpf="ON"
-params="kperfrpm,help,test,with_asan,with_optimization,debug,release,disable_ebpf"
+params="kperfrpm,help,test,with_asan,with_realtime,with_optimization,debug,release,disable_ebpf"
 function usage() {
     echo ""
     echo "usage: build.sh [OPTIONS] [ARGS]"
@@ -22,6 +23,7 @@ function usage() {
     echo "  -t |--test                   build tests case"
     echo "  --with_asan                  open AddressSanitizer compilation option"
     echo "  --with_optimization          open optimization compilation option"
+    echo "  --with_realtime              open realtime compilation option"
     echo "  --disable_ebpf               disable eBPF"
     echo "  --debug                      compile the debug version"
     echo "  --release                    compile the release version"
@@ -52,6 +54,10 @@ while true; do
             ;;
         --with_asan)
             with_asan="ON"
+            shift
+            ;;
+        --with_realtime)
+            with_realtime="ON"
             shift
             ;;
         --with_optimization)
@@ -102,5 +108,6 @@ fi
 
 cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
          -DWITH_TEST=${with_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
-         -DWITH_OPTIMIZATION=${with_optimization} -DENABLE_EBPF=${enable_ebpf}
+         -DWITH_OPTIMIZATION=${with_optimization} -DENABLE_EBPF=${enable_ebpf} \
+         -DWITH_REALTIME=${with_realtime}
 make -j$(nproc)

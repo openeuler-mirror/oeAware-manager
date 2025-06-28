@@ -15,22 +15,11 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <yaml-cpp/yaml.h>
+#include "oeaware/utils.h"
 #include "oeaware/data/env_data.h"
 #include "oeaware/data/thread_info.h"
 #include "oeaware/data/docker_data.h"
 #include "binary_tune.h"
-
-bool IsSmtEnable()
-{
-    std::string content;
-    std::ifstream inFile("/sys/devices/system/cpu/smt/active");
-    if (!inFile.is_open()) {
-        return false;
-    }
-    inFile >> content;
-    inFile.close();
-    return content == "1";
-}
 
 bool BinaryTune::ReadConfig(const std::string &path)
 {
@@ -145,7 +134,7 @@ void BinaryTune::UpdateData(const DataList &dataList)
 oeaware::Result BinaryTune::Enable(const std::string &param)
 {
     (void)param;
-    if (!IsSmtEnable()) {
+    if (!oeaware::IsSmtEnable()) {
         WARN(logger, "smt is not enable, open binary tune failed.");
         return oeaware::Result(FAILED);
     }

@@ -516,6 +516,18 @@ bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &feature
     return true;
 }
 
+bool IsSmtEnable()
+{
+    std::string content;
+    std::ifstream inFile("/sys/devices/system/cpu/smt/active");
+    if (!inFile.is_open()) {
+        return false;
+    }
+    inFile >> content;
+    inFile.close();
+    return content == "1";
+}
+
 void AnalysisResultItemFree(AnalysisResultItem *analysisResultItem)
 {
     if (analysisResultItem == nullptr) {

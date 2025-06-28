@@ -147,6 +147,10 @@ void DynamicSmtAnalysis::Analysis(const std::string &topicType)
 }
 bool DynamicSmtAnalysis::IsTuneSupport()
 {
+    if (!oeaware::IsSmtEnable()) {
+        return false;
+    }
+
     std::vector<std::string> features;
     std::string path;
     oeaware::ReadSchedFeatures(path, features);

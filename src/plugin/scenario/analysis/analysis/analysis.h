@@ -55,6 +55,17 @@ struct CollectDataInfo {
 };
 
 class Analysis {
+public:
+    Env &env = Env::GetInstance();
+    int GetPeriod();
+    void Init();
+    void UpdatePmu(const std::string &topicName, int dataLen, const PmuData *data, uint64_t interval);
+    void Analyze(bool isSummary);
+    const std::string &GetReport(bool isSummary)
+    {
+        return isSummary ? summaryReport : realtimeReport;
+    }
+    void Exit();
 private:
     SystemInfo sysInfo;
     std::vector<RecNetQueue> recNetQueue;
@@ -84,17 +95,6 @@ private:
     std::string GetNetInfoReport(const NetworkInfo &netInfo);
     std::string GetSuggestReport(const std::unordered_map<InstanceName, Instance> &tuneInstances);
     std::string GetSolutionReport(const std::unordered_map<InstanceName, Instance> &tuneInstances);
-public:
-    Env &env = Env::GetInstance();
-    int GetPeriod();
-    void Init();
-    void UpdatePmu(const std::string &topicName, int dataLen, const PmuData *data, uint64_t interval);
-    void Analyze(bool isSummary);
-    const std::string &GetReport(bool isSummary)
-    {
-        return isSummary ? summaryReport : realtimeReport;
-    }
-    void Exit();
 };
 
 #endif

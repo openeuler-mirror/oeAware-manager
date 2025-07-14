@@ -38,7 +38,7 @@ TEST(SafeQueue, WaitAndPop)
 {
     oeaware::SafeQueue<int> q;
     int x = 0;
-    auto future = std::async([&]() {
+    auto future = std::async([&q, &x]() {
         q.WaitAndPop(x);
     });
     auto status = future.wait_for(std::chrono::seconds(2));

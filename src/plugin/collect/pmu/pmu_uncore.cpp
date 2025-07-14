@@ -46,7 +46,7 @@ static int ReadSingleUncoreEvent(const char *hhaName, struct UncoreConfig *uncor
     char hhaPath[MAX_PATH_LEN] = {0};
 
     // Read cfg
-    snprintf_truncated_s(hhaPath, MAX_PATH_LEN, "%s/%s/", hhaName, eventName);
+    snprintf_truncated_s(hhaPath, sizeof(hhaPath), "%s/%s/", hhaName, eventName);
     
     strcpy_s(uncoreEvent->uncoreName, MAX_PATH_LEN, hhaPath);
 

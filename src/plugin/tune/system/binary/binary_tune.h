@@ -31,8 +31,13 @@ private:
     struct InternalContainer {
         InternalContainer() = default;
         InternalContainer(std::string name, int64_t period, int64_t quota, int64_t burst,
-                          std::string cpus, std::vector<int32_t> tasks):id(std::move(name)), cfsPeriodUs(period),
-                          cfsQuotaUs(quota), cfsBurstUs(burst), cpus(std::move(cpus)), tasks(std::move(tasks)) {
+            std::string cpus, std::vector<int32_t> tasks)
+            : id(std::move(name)),
+            cfsPeriodUs(period),
+            cfsQuotaUs(quota),
+            cfsBurstUs(burst),
+            cpus(std::move(cpus)),
+            tasks(std::move(tasks)) {
         }
         std::string id;
         int64_t cfsPeriodUs = 0;

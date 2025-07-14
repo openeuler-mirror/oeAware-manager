@@ -34,7 +34,7 @@ constexpr int SMC_MAX_EID_LEN = 32; /* Max length of eid */
 #define SMC_DISABLE 1
 
 /* SMC_GENL_FAMILY commands */
-enum {
+using SMC_ACC_NL_OPTS = enum {
     SMC_ACC_NL_GET_SYS_INFO = 1,
     SMC_ACC_NL_GET_LGR_SMCR,
     SMC_ACC_NL_GET_LINK_SMCR,
@@ -53,7 +53,7 @@ enum {
 };
 
 /* SMC_ACC_NL_UEID attributes */
-enum {
+using SMC_ACC_NLA_EID_ATTRS = enum {
     SMC_ACC_NLA_EID_TABLE_UNSPEC,
     SMC_ACC_NLA_EID_TABLE_ENTRY, /* string */
     __SMC_ACC_NLA_EID_TABLE_MAX,

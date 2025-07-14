@@ -265,10 +265,12 @@ bool TcpMessageHandler::HandleMessage(int fd)
 
 void TcpMessageHandler::Start()
 {
-    while (true) {
+    bool quit = false;
+    while (!quit) {
         Event event;
         recvData->WaitAndPop(event);
         if (event.opt == Opt::SHUTDOWN) {
+            quit = true;
             break;
         }
         if (event.opt != Opt::DATA) {
@@ -315,7 +317,7 @@ void TcpSocket::SaveConnection()
         return;
     }
     len -= offsetof(struct sockaddr_un, sun_path);
-    memcpy_s(name, maxNameLength, un.sun_path, len);
+    memcpy_s(name, sizeof(name), un.sun_path, len);
     name[len] = 0;
     bool isSdk = false;
     if (len > 0) {
@@ -376,15 +378,17 @@ void TcpSocket::Close()
 
 void TcpSocket::ServeAccept()
 {
-    std::thread t([&]() {
-        tcpMessageHandler.Start();
+    std::thread t([this]() {
+        this->tcpMessageHandler.Start();
     });
     t.detach();
     struct epoll_event evs[MAX_EVENT_SIZE];
     int sz = sizeof(evs) / sizeof(struct epoll_event);
-    while (true) {
+    bool quit = false;
+    while (!quit) {
         auto num = epoll->EventWait(evs, sz, -1);
         if (num <= 0 || tcpMessageHandler.shutdown) {
+            quit = true;
             break;
         }
         HandleEvents(evs, num);

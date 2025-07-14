@@ -202,7 +202,7 @@ bool InstanceRunHandler::HandleMessage()
 {
     std::shared_ptr<InstanceRunMessage> msg;
     bool shutdown = false;
-    while (true) {
+    while (!shutdown) {
         if (!this->RecvQueueTryPop(msg)) {
             break;
         }
@@ -246,9 +246,9 @@ bool InstanceRunHandler::HandleMessage()
             }
         }
         msg->NotifyOne();
-        if (shutdown) {
-            return false;
-        }
+    }
+    if (shutdown) {
+        return false;
     }
     return true;
 }
@@ -292,8 +292,10 @@ void InstanceRunHandler::Start()
 {
     INFO(logger, "instance schedule started!");
     const static uint64_t millisecond = 1000;
-    while (true) {
-        if (!HandleMessage()) {
+    bool quit = false;
+    while (!quit) {
+        quit = !HandleMessage();
+        if (quit) {
             INFO(logger, "instance schedule shutdown!");
             break;
         }

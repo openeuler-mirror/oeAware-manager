@@ -51,7 +51,6 @@ private:
     ~SmcOperator()
     {
     }
-    int act;
     int enable;
     struct nl_sock *sk;
     bool isInit;

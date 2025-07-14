@@ -130,16 +130,16 @@ int ArgParse::Init(int argc, char *argv[])
                 help = true;
                 break;
             case '?': {
-                std::string optString;
+                std::string errOpt;
                 if (optind == argc) {
-                    optString += argv[optind - 1];
+                    errOpt += argv[optind - 1];
                 } else {
-                    optString += argv[optind];
+                    errOpt += argv[optind];
                 }
-                if (!opts.count(optopt)) {
-                    ArgError("unknown option '" + optString  + "'.");
+                if (opts.count(optopt) == 0) {
+                    ArgError("unknown option '" + errOpt  + "'.");
                 } else {
-                    ArgError("option " + optString  + " requires an argument.");
+                    ArgError("option " + errOpt + " requires an argument.");
                 }
                 break;
             }

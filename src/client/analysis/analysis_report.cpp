@@ -110,12 +110,24 @@ void AnalysisReport::Init(Config &config)
     const int PARAM_INDEX = 2;
     for (auto &topic : topics) {
         char *insName = new char[topic[INS_NAME_INDEX].size() + 1];
-        strcpy_s(insName, topic[INS_NAME_INDEX].size() + 1, topic[INS_NAME_INDEX].data());
+        errno_t ret = strcpy_s(insName, topic[INS_NAME_INDEX].size() + 1, topic[INS_NAME_INDEX].data());
+        if (ret != EOK) {
+            std::cerr << "Error: insName strcpy_s failed with error code " << ret << std::endl;
+            return;
+        }
         char *topicName = new char[topic[TOPIC_NAME_INDEX].size() + 1];
-        strcpy_s(topicName, topic[TOPIC_NAME_INDEX].size() + 1, topic[TOPIC_NAME_INDEX].data());
+        ret = strcpy_s(topicName, topic[TOPIC_NAME_INDEX].size() + 1, topic[TOPIC_NAME_INDEX].data());
+        if (ret != EOK) {
+            std::cerr << "Error: topicName strcpy_s failed with error code " << ret << std::endl;
+            return;
+        }
         char *param = new char[topic[PARAM_INDEX].size() + 1];
-        strcpy_s(param, topic[PARAM_INDEX].size() + 1, topic[PARAM_INDEX].data());
-        CTopic cTopic{insName, topicName, param};
+        ret = strcpy_s(param, topic[PARAM_INDEX].size() + 1, topic[PARAM_INDEX].data());
+        if (ret != EOK) {
+            std::cerr << "Error: param strcpy_s failed with error code " << ret << std::endl;
+            return;
+        }
+        CTopic cTopic{ insName, topicName, param };
         OeSubscribe(&cTopic, CallBack);
         delete []insName;
         delete []topicName;

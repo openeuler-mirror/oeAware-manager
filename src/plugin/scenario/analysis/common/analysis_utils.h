@@ -16,6 +16,7 @@
 #include <securec.h>
 #include "oeaware/data/analysis_data.h"
 namespace oeaware {
+const int MAX_ANALYSIS_ITEMS = 10000;
 const int PERCENTAGE_FACTOR = 100;
 const int DYNAMIC_SMT_THRESHOLD = 40;
 const int THP_THRESHOLD1 = 5;

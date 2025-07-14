@@ -10,7 +10,7 @@
 * g++ read_proc_stat.cpp  -o read_proc_stat -lboundscheck -O2
 * ./read_proc_stat 4 1000
 */
-typedef enum {
+using EnvCpuUtilType = enum {
     CPU_USER,
     CPU_NICE,
     CPU_SYSTEM,
@@ -23,7 +23,7 @@ typedef enum {
     CPU_GNICE,
     CPU_TIME_SUM,  // sum of all above
     CPU_UTIL_TYPE_MAX,
-} EnvCpuUtilType;
+};
 
 // 生成随机 CPU 时间数据
 bool UpdateProcStat(const std::string &statpath, int cpuNum, std::vector<std::vector<uint64_t>> &cpuTime)

@@ -19,9 +19,6 @@
 
 
 class Env {
-private:
-    Env() = default;
-    ~Env() = default;
 public:
     static Env &GetInstance()
     {
@@ -44,6 +41,9 @@ public:
     int diffDistance;
     bool Init();
     void InitDistance();
+private:
+    Env() = default;
+    ~Env() = default;
 };
 
 #endif

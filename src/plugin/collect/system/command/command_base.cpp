@@ -41,6 +41,7 @@ void PopenProcess::Popen(const std::string &cmd)
         close(pipeFd[0]);
         dup2(pipeFd[1], STDOUT_FILENO);
         close(pipeFd[1]);
+        // 使用白名单检查命令是否合法，外部无法随意控制
         execl("/bin/bash", "bash", "-c", cmd.data(), nullptr);
         _exit(1);
     }

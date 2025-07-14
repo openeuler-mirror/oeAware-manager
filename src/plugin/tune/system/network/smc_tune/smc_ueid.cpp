@@ -12,6 +12,7 @@
 
 #include "smc_ueid.h"
 
+static const int SMC_CMD_MAX_LEN = 128;
 const struct nla_policy smc_gen_ueid_policy[SMC_ACC_NLA_EID_TABLE_MAX + 1] = {
     [SMC_ACC_NLA_EID_TABLE_UNSPEC] = {.type = NLA_UNSPEC},
     [SMC_ACC_NLA_EID_TABLE_ENTRY]  = {.type = NLA_NUL_STRING},
@@ -58,11 +59,11 @@ static inline bool IsValidCmd(const std::string& cmd)
     return false;
 }
 
-static int Exec(const char *cmd, size_t len)
+static int Exec(const std::string &cmd)
 {
     FILE *output;
-    char buffer[128];
-    if (len > sizeof(buffer)) {
+    char buffer[SMC_CMD_MAX_LEN];
+    if (cmd.length() > SMC_CMD_MAX_LEN) {
         SMCLOG_ERROR("Too many words");
     }
     int status;
@@ -71,30 +72,18 @@ static int Exec(const char *cmd, size_t len)
         SMCLOG_ERROR("Invalid command: " << cmd);
         return -1;
     }
-    output = popen(cmd, "r");
+    // 使用白名单检查命令是否合法，外部无法随意控制
+    output = popen(cmd.c_str(), "r");
     if (output == NULL) {
         return -1;
     }
+    // Discard all output to avoid blocking pipe
     while (fgets(buffer, sizeof(buffer), output) != NULL) {
     }
 
     status = pclose(output);
     SMCLOG_INFO(" command: " << cmd << ", status:" << WEXITSTATUS(status));
     return WEXITSTATUS(status);
-}
-
-static inline int SimpleExec(char *cmd, ...)
-{
-    char cmd_format[512];
-    va_list valist;
-
-    va_start(valist, cmd);
-    if (!vsprintf(cmd_format, cmd, valist)) {
-        SMCLOG_ERROR("get cmd format error.");
-        return -1;
-    }
-    va_end(valist);
-    return Exec(cmd_format, strlen(cmd_format));
 }
 
 int SmcOperator::InvokeUeid(int act)
@@ -144,8 +133,8 @@ int SmcOperator::RunSmcAcc()
     std::stringstream args;
 
     if (enable == SMC_DISABLE) {
-        if (!SimpleExec((char *)"lsmod | grep -w smc_acc")) {
-            rc = SimpleExec((char *)"rmmod smc_acc");
+        if (!Exec("lsmod | grep -w smc_acc")) {
+            rc = Exec("rmmod smc_acc");
             goto out;
         }
         goto out;
@@ -163,8 +152,9 @@ int SmcOperator::RunSmcAcc()
         rc = EXIT_FAILURE;
         goto out;
     }
-    if (SimpleExec((char *)"lsmod | grep -w smc_acc")) {
-        rc = SimpleExec((char *)"insmod  %s %s", SMC_ACC_KO_PATH, args.str().c_str());
+    if (Exec("lsmod | grep -w smc_acc")) {
+        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + args.str();
+        rc = Exec(cmd);
     }
 
 out:
@@ -174,11 +164,11 @@ out:
 int SmcOperator::CheckSmcKo()
 {
     int rc = EXIT_SUCCESS;
-    if (SimpleExec((char *)"lsmod | grep -w smc") == EXIT_FAILURE) {
+    if (Exec("lsmod | grep -w smc") == EXIT_FAILURE) {
         rc = EXIT_FAILURE;
         SMCLOG_ERROR("smc ko is not running");
     }
-    if (SimpleExec((char *)"lsmod | grep -w smc_acc") == EXIT_FAILURE) {
+    if (Exec("lsmod | grep -w smc_acc") == EXIT_FAILURE) {
         rc = EXIT_FAILURE;
         SMCLOG_ERROR("smc_acc ko is not running");
     }
@@ -271,8 +261,8 @@ int SmcOperator::ReRunSmcAcc()
     int rc = EXIT_SUCCESS;
     std::stringstream args;
 
-    if (!SimpleExec((char *)"lsmod | grep -w smc_acc")) {
-        rc = SimpleExec((char *)"rmmod smc_acc");
+    if (!Exec("lsmod | grep -w smc_acc")) {
+        rc = Exec("rmmod smc_acc");
     }
 
     if (!blackPortList.empty()) {
@@ -288,8 +278,9 @@ int SmcOperator::ReRunSmcAcc()
         rc = EXIT_FAILURE;
         goto out;
     }
-    if (SimpleExec((char *)"lsmod | grep -w smc_acc")) {
-        rc = SimpleExec((char *)"insmod  %s %s", SMC_ACC_KO_PATH, args.str().c_str());
+    if (Exec("lsmod | grep -w smc_acc")) {
+        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + args.str();
+        rc = Exec(cmd);
     }
 
 out:

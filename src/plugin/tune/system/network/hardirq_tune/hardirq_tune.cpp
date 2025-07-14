@@ -333,7 +333,7 @@ void NetHardIrq::UpdateThreadAndQueueInfo(const RecNetQueue &queData, const RecN
     int core = thrData.core;
     int node = cpu2Numa[core];
     QueueInfo &info = netQueue[queData.dev][queueId];
-    int size = info.numaRxTimes.size();
+    size_t size = info.numaRxTimes.size();
     if (size < numaNum) {
         info.numaRxTimes.resize(numaNum, 0);
     }

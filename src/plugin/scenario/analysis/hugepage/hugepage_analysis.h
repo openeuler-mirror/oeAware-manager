@@ -27,6 +27,27 @@ public:
 	void Disable() override;
 	void Run() override;
 private:
+#ifdef __riscv
+	struct TlbInfo {
+	    uint64_t dTlbLoads = 0;
+	    uint64_t dTlbMisses = 0;
+	    uint64_t iTlbLoads = 0;
+	    uint64_t iTlbMisses = 0;
+	    double DtlbMissRate() 
+		{
+	        return dTlbLoads == 0 ? 0 : 1.0 * dTlbMisses / dTlbLoads;
+	    }
+	    double ItlbMissRate() 
+		{
+	        return iTlbLoads == 0 ? 0 : 1.0 * iTlbMisses / iTlbLoads;
+	    }
+	    bool IsHighMiss(double threshold1, double threshold2) 
+		{
+	        return DtlbMissRate() * PERCENTAGE_FACTOR >= threshold1 ||
+	               ItlbMissRate() * PERCENTAGE_FACTOR >= threshold1;
+	    }
+	};
+#else
 	struct TlbInfo {
 		/* data */
 		uint64_t l1iTlbRefill = 0;
@@ -61,6 +82,7 @@ private:
 				L2iTlbMiss() * PERCENTAGE_FACTOR >= threshold2;
 		}
 	};
+#endif
 	struct TopicStatus {
 		bool isOpen = false;
 		bool isPublish = false;

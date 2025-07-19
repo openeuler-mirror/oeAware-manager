@@ -19,7 +19,7 @@ if (WITH_ASAN)
     enable_asan(${PROJECT_NAME})
 endif()
 
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|riscv64")
 target_link_directories(${PROJECT_NAME} PUBLIC
     ${LIB_KPERF_LIBPATH}
 )

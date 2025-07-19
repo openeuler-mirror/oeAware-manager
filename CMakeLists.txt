@@ -32,7 +32,7 @@ if (WITH_TEST)
     add_subdirectory(tests)
 endif()
 
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|riscv64")
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_counting_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_sampling_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_spe_data.h"
@@ -43,6 +43,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/pmu_counting_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/net_hardirq_tune_data.h"
     DESTINATION "${CMAKE_BINARY_DIR}/output/include/oeaware/data")
 endif()
+
 file(COPY "${CMAKE_SOURCE_DIR}/include/oeaware/data/kernel_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/command_data.h"
     "${CMAKE_SOURCE_DIR}/include/oeaware/data/thread_info.h"

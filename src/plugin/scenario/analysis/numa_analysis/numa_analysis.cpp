@@ -13,7 +13,8 @@
 #include <string>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
-#include "oeaware/logger.h"
+#include <log4cplus/log4cplus.h>
+#include <log4cplus/loglevel.h>
 #include "oeaware/utils.h"
 #include "analysis_utils.h"
 #include "oeaware/interface.h"

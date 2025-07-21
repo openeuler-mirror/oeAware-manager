@@ -18,11 +18,17 @@
 #include <oeaware/default_path.h>
 
 namespace oeaware {
-#define INFO(logger, fmt) LOG4CPLUS_INFO(logger, fmt)
-#define DEBUG(logger, fmt) LOG4CPLUS_DEBUG(logger, fmt)
-#define WARN(logger, fmt) LOG4CPLUS_WARN(logger, fmt)
-#define ERROR(logger, fmt) LOG4CPLUS_ERROR(logger, fmt)
-#define FATAL(logger, fmt) LOG4CPLUS_FATAL(logger, fmt)
+
+using OeLogLevel = enum {
+    OE_TRACE_LEVEL = 0,
+    OE_DEBUG_LEVEL,
+    OE_INFO_LEVEL,
+    OE_WARN_LEVEL ,
+    OE_ERROR_LEVEL,
+    OE_FATAL_LEVEL,
+    OE_MAX_LOG_LEVELS
+};
+
 class Logger {
 public:
     Logger(const Logger&) = delete;
@@ -36,8 +42,26 @@ public:
     void Register(const std::string &name);
     log4cplus::Logger Get(const std::string &name)
     {
+        if (loggers.count(name) == 0) {
+            Register(name);
+        }
         return loggers[name];
     }
+
+    bool ChangeAllLogLevel(const int level)
+    {
+        int len = sizeof(LOG_LEVELS) / sizeof(LOG_LEVELS[0]);
+        if (level < 0 || level >= len) {
+            return false;
+        }
+        int log4Level = LOG_LEVELS[level];
+        for (auto &it : loggers) {
+            it.second.setLogLevel(log4Level);
+        }
+        logLevel = log4Level;
+        return true;
+    }
+
 private:
     Logger() noexcept
     {
@@ -49,7 +73,7 @@ private:
     std::unordered_map<std::string, log4cplus::Logger> loggers;
     std::string logPath;
     int logLevel;
-    const int LOG_LEVELS[6] = {log4cplus::TRACE_LOG_LEVEL, log4cplus::DEBUG_LOG_LEVEL, log4cplus::INFO_LOG_LEVEL,
+    const int LOG_LEVELS[OE_MAX_LOG_LEVELS] = {log4cplus::TRACE_LOG_LEVEL, log4cplus::DEBUG_LOG_LEVEL, log4cplus::INFO_LOG_LEVEL,
         log4cplus::WARN_LOG_LEVEL, log4cplus::ERROR_LOG_LEVEL, log4cplus::FATAL_LOG_LEVEL};
 };
 std::string LogText(const std::string &text);

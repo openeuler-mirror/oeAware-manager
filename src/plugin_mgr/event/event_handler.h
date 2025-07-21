@@ -13,7 +13,7 @@
 #define PLUGIN_MGR_EVENT_EVENT_HANDLER_H
 #include "event.h"
 #include "memory_store.h"
-#include "oeaware/logger.h"
+#include "logger.h"
 #include "error_code.h"
 
 namespace oeaware {

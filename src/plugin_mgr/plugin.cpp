@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "plugin.h"
+#include "logger.h"
 
 namespace oeaware {
 const std::string Instance::pluginEnabled = "running";
@@ -34,7 +35,7 @@ void Plugin::SaveInstance(std::vector<std::shared_ptr<Interface>> &interfaceList
         std::shared_ptr<Instance> instance = std::make_shared<Instance>();
         std::string instanceName = interface->GetName();
         interface->SetRecvQueue(recvQueue);
-        interface->SetLogger(Logger::GetInstance().Get("Plugin"));
+        interface->SetLogger(Logger::GetInstance().Get(interface->GetName()));
         instance->interface = interface;
         for (auto &topic : interface->GetSupportTopics()) {
             instance->supportTopics[topic.topicName] = topic;

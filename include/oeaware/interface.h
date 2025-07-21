@@ -12,8 +12,10 @@
 #ifndef OEAWARE_INTERFACE_H
 #define OEAWARE_INTERFACE_H
 #include <oeaware/data_list.h>
-#include <oeaware/logger.h>
 #include <oeaware/safe_queue.h>
+#include <log4cplus/log4cplus.h>
+#include <log4cplus/loglevel.h>
+#include <oeaware/default_path.h>
 #include <oeaware/instance_run_message.h>
 
 namespace oeaware {
@@ -21,6 +23,13 @@ namespace oeaware {
 const int TUNE = 0b10000;
 const int SCENARIO = 0b01000;
 const int RUN_ONCE = 0b00010;
+
+#define TRACE(logger, fmt) LOG4CPLUS_TRACE(logger, fmt)
+#define INFO(logger, fmt) LOG4CPLUS_INFO(logger, fmt)
+#define DEBUG(logger, fmt) LOG4CPLUS_DEBUG(logger, fmt)
+#define WARN(logger, fmt) LOG4CPLUS_WARN(logger, fmt)
+#define ERROR(logger, fmt) LOG4CPLUS_ERROR(logger, fmt)
+#define FATAL(logger, fmt) LOG4CPLUS_FATAL(logger, fmt)
 
 class Interface {
 public:
@@ -73,6 +82,7 @@ protected:
     std::string version;
     std::string description;
     std::vector<Topic> supportTopics;
+    // not use logger before subclass constructor ends, because it's not assign a value before getInstance(name)
     log4cplus::Logger logger;
     int priority;
     int type;
@@ -93,7 +103,7 @@ protected:
     }
     void Publish(DataList &dataList, bool isFree = true)
     {
-        Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
+        Topic topic{ dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params };
         auto msg = std::make_shared<InstanceRunMessage>(RunType::PUBLISH_DATA,
             std::vector<std::string>{topic.GetType()});
         msg->isFree = isFree;
@@ -107,6 +117,6 @@ protected:
 private:
     std::shared_ptr<SafeQueue<std::shared_ptr<InstanceRunMessage>>> recvQueue;
 };
-}
+} // namespace oeaware
 
 #endif

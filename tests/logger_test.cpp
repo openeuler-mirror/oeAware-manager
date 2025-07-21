@@ -10,15 +10,49 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include <gtest/gtest.h>
-#include "oeaware/logger.h"
-
-TEST(Serialize, Logger)
+#include "logger.h"
+#include "oeaware/interface.h"
+bool LoggerTestLevelOutHelp(int level)
 {
-    oeaware::Logger::GetInstance().Init("./", 1);
-    oeaware::Logger::GetInstance().Register("test1");
-    auto logger = oeaware::Logger::GetInstance().Get("test1");
-    DEBUG(logger, "Debug world");
-    INFO(logger, "Hello world");
-    WARN(logger, "wrang world");
-    ERROR(logger, "Error world");
+    auto logger = oeaware::Logger::GetInstance().Get("LoggerTestLevelOut");
+    if (!oeaware::Logger::GetInstance().ChangeAllLogLevel(level)) {
+        std::cout << "Change log level to " << level << " failed" << std::endl;
+        return false;
+    }
+    
+    TRACE(logger, "Trace log output at level " << level);
+    DEBUG(logger, "Debug log output at level " << level);
+    INFO(logger, "Info log output at level " << level);
+    WARN(logger, "Warn log output at level " << level);
+    ERROR(logger, "Error log output at level " << level);
+    FATAL(logger, "Fatal log output at level " << level);
+    return true;
+}
+
+TEST(LoggerTestLevelOut, Logger)
+{
+    oeaware::Logger::GetInstance().Init("./", oeaware::OE_TRACE_LEVEL);
+    oeaware::Logger::GetInstance().Register("LoggerTestLevelOut");
+    bool ret = true;
+    std::cout << "LoggerTestLevelOut oeaware::OE_TRACE_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_TRACE_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_DEBUG_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_DEBUG_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_INFO_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_INFO_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_WARN_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_WARN_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_ERROR_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_ERROR_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_FATAL_LEVEL" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_FATAL_LEVEL);
+    EXPECT_EQ(ret, true);
+    std::cout << "LoggerTestLevelOut oeaware::OE_MAX_LOG_LEVELS" << std::endl;
+    ret = LoggerTestLevelOutHelp(oeaware::OE_MAX_LOG_LEVELS);
+    EXPECT_EQ(ret, false);
 }

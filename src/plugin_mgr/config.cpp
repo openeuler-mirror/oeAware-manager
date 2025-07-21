@@ -12,6 +12,7 @@
 #include "config.h"
 #include <iostream>
 #include <unistd.h>
+#include "logger.h"
 #include "oeaware/default_path.h"
 
 namespace oeaware {

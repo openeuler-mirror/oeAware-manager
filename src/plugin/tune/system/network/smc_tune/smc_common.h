@@ -15,7 +15,8 @@
 #define PF_SMC 43
 
 #include <net/if.h>
-#include "oeaware/logger.h"
+#include <log4cplus/log4cplus.h>
+#include <log4cplus/loglevel.h>
 
 
 constexpr int SMC_MAX_EID_LEN = 32; /* Max length of eid */

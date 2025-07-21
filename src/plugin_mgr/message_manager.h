@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <sys/epoll.h>
 #include <unistd.h>
-#include "oeaware/logger.h"
+#include "logger.h"
 #include "config.h"
 #include "event.h"
 #include "domain_socket.h"

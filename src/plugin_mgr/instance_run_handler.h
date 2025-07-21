@@ -13,8 +13,8 @@
 #define PLUGIN_MGR_INSTANCE_RUN_HANDLER_H
 #include <queue>
 #include <unordered_set>
+#include "logger.h"
 #include "event.h"
-#include "oeaware/logger.h"
 #include "memory_store.h"
 #include "data_register.h"
 #include "oeaware/instance_run_message.h"

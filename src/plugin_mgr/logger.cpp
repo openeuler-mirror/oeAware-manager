@@ -9,7 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
-#include "oeaware/logger.h"
+#include "logger.h"
 #include <iomanip>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -32,6 +32,9 @@ log4cplus::SharedAppenderPtr Logger::GenerateAppender(log4cplus::Appender *appen
 
 void Logger::Register(const std::string &name)
 {
+    if (loggers.find(name) != loggers.end()) {
+        return; // already registered
+    }
     auto logger = log4cplus::Logger::getInstance(name);
     logger.setLogLevel(logLevel);
     logger.addAppender(GenerateAppender(new log4cplus::ConsoleAppender()));

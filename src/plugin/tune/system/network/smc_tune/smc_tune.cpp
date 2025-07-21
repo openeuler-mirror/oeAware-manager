@@ -48,6 +48,7 @@ void SmcTune::UpdateData(const DataList &dataList)
 
 oeaware::Result SmcTune::Enable(const std::string &param)
 {
+    g_smcLogger = logger;
     (void)param;
     auto ret = ReadConfig(SMC_CONFIG_PATH);
     if (ret.code != OK) {

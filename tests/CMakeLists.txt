@@ -13,7 +13,7 @@ add_executable(serialize_test
 )
 
 add_executable(logger_test
-    ${SRC_DIR}/common/logger.cpp
+    ${SRC_DIR}/plugin_mgr/logger.cpp
     logger_test.cpp
 )
 
@@ -25,7 +25,7 @@ add_executable(pmu_count_test
     pmu_count_test.cpp
 )
 
-add_executable(utils_test 
+add_executable(utils_test
     utils_test.cpp
 )
 
@@ -51,6 +51,10 @@ target_include_directories( analysis_report_test PUBLIC
 
 target_include_directories(table_test PUBLIC
     ${SRC_DIR}/client/analysis
+)
+
+target_include_directories(logger_test PUBLIC
+    ${SRC_DIR}/plugin_mgr
 )
 
 target_link_libraries(serialize_test PRIVATE common GTest::gtest_main)

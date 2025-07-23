@@ -208,7 +208,7 @@ void *SmcDAnalysis::GetResult()
         conclusion = conclusionNoSupport;
     } else if (isSilence) {
         metrics.emplace_back(std::vector<std::string>{
-            smcDTcpChangeRate, "0%", "low"
+            smcDTcpChangeRate, "0%", isSmcDUsable ? "low" : "high"
         });
         metrics.emplace_back(std::vector<std::string>{
             loNetFlow, std::to_string(netFlow)+"(MB/s)", isHighFlow ? "high" : "low"

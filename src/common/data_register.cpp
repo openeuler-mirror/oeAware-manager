@@ -1,7 +1,7 @@
 #include "data_register.h"
 #include <securec.h>
 #include "oeaware/utils.h"
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv)
 #include "oeaware/data/pmu_counting_data.h"
 #include "oeaware/data/pmu_sampling_data.h"
 #include "oeaware/data/pmu_spe_data.h"
@@ -148,7 +148,7 @@ int ResultDeserialize(void *data, InStream &in)
     auto ret = strcpy_s(tmpData->payload, msg.size() + 1, msg.data());
     return ret;
 }
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv)
 void PmuBaseDataFree(void *data)
 {
     auto tmpData = static_cast<PmuCountingData*>(data);
@@ -1219,7 +1219,7 @@ void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 
 void Register::InitRegisterData()
 {
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv)
     RegisterData("pmu_counting_collector", RegisterEntry(PmuCountingDataSerialize, PmuCountingDataDeserialize,
         PmuBaseDataFree));
 

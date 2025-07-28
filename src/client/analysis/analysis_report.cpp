@@ -72,7 +72,32 @@ void AnalysisReport::Init(Config &config)
         std::cerr << "Warning: Failed to load configuration from " << configPath
                   << ", using default values." << std::endl;
     }
+#ifdef __riscv
+    std::string timeParam = "t:" + std::to_string(config.GetAnalysisTimeMs());
+    
+    std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
+    std::string threshold2 = "threshold2:" + std::to_string(config.GetL2MissThreshold());
+    AddAnalysisTopic("hugepage_analysis", "hugepage", {timeParam, threshold1, threshold2});
 
+    std::string smcthreshold1 = "threshold1:" + std::to_string(config.GetSmcChangeRate());
+    std::string smcthreshold2 = "threshold2:" + std::to_string(config.GetSmcLoNetFlow());
+    AddAnalysisTopic("smc_d_analysis", "smc_d", {timeParam, smcthreshold1, smcthreshold2});
+
+    std::string threshold = "threshold:" + std::to_string(config.GetDynamicSmtThreshold());
+    AddAnalysisTopic("dynamic_smt_analysis", "dynamic_smt", {timeParam, threshold});
+
+    std::string hostCpuUsage = "hostCpuUsageThreshold:" +
+                std::to_string(config.GetDockerCoordinationBurstHostCpuUsageThreshold());
+    std::string dockerCpuUsage = "dockerCpuUsageThreshold:" +
+                std::to_string(config.GetDockerCoordinationBurstDockerCpuUsageThreshold());
+    AddAnalysisTopic("docker_coordination_burst_analysis", "docker_coordination_burst",
+                     {timeParam, hostCpuUsage, dockerCpuUsage});
+
+    std::string threadThreshold = "threshold:" + std::to_string(config.GetNumaThreadThreshold());
+    AddAnalysisTopic("numa_analysis", "numa_analysis", {timeParam, threadThreshold});
+
+    AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
+#else
     std::string timeParam = "t:" + std::to_string(config.GetAnalysisTimeMs());
     std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
     std::string threshold2 = "threshold2:" + std::to_string(config.GetL2MissThreshold());
@@ -105,6 +130,7 @@ void AnalysisReport::Init(Config &config)
                                                  config.GetMicroArchTidNoCmpConfigStream();
     AddAnalysisTopic("microarch_tidnocmp_analysis", "microarch_tidnocmp",
                      {timeParam, microarchTidNoCmpConfigStream});
+#endif
     const int INS_NAME_INDEX = 0;
     const int TOPIC_NAME_INDEX = 1;
     const int PARAM_INDEX = 2;

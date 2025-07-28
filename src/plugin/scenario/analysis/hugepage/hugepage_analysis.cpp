@@ -29,6 +29,12 @@ HugePageAnalysis::HugePageAnalysis()
 	for (auto &topic : topicStrs) {
 		supportTopics.emplace_back(Topic{name, topic, ""});
 	}
+#ifdef __riscv
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "dTLB-loads", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "dTLB-load-misses", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "iTLB-loads", ""});
+    subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "iTLB-load-misses", ""} );
+#else
 	subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb", ""});
     subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1d_tlb_refill", ""});
     subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l1i_tlb", ""});
@@ -37,6 +43,7 @@ HugePageAnalysis::HugePageAnalysis()
     subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2d_tlb_refill", ""});
     subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb", ""});
     subscribeTopics.emplace_back(oeaware::Topic{OE_PMU_COUNTING_COLLECTOR, "l2i_tlb_refill", ""});
+#endif
 }
 
 Result HugePageAnalysis::Enable(const std::string &param)
@@ -99,6 +106,17 @@ void HugePageAnalysis::UpdateData(const DataList &dataList)
 			auto countingData = static_cast<PmuCountingData*>(dataList.data[0]);
 			for (int i = 0; i < countingData->len; ++i) {
 				uint64_t count = countingData->pmuData[i].count;
+#ifdef __riscv
+                if (topicName == "dTLB-loads") {
+                    p.second.tlbInfo.dTlbLoads += count;
+                } else if (topicName == "dTLB-load-misses") {
+                    p.second.tlbInfo.dTlbMisses += count;
+                } else if (topicName == "iTLB-loads") {
+                    p.second.tlbInfo.iTlbLoads += count;
+                } else if (topicName == "iTLB-load-misses") {
+                    p.second.tlbInfo.iTlbMisses += count;
+                }
+#else
 				if (topicName == "l1d_tlb") {
 					p.second.tlbInfo.l1dTlb += count;
 				} else if (topicName == "l1d_tlb_refill") {
@@ -116,6 +134,7 @@ void HugePageAnalysis::UpdateData(const DataList &dataList)
 				} else if (topicName == "l2i_tlb_refill") {
 					p.second.tlbInfo.l2iTlbRefill += count;
 				}
+#endif
 			}
 		}
 	}
@@ -154,6 +173,15 @@ void HugePageAnalysis::Analysis(const std::string &topicType)
     std::vector<int> type;
     std::vector<std::vector<std::string>> metrics;
     type.emplace_back(DATA_TYPE_MEMORY);
+#ifdef __riscv
+    metrics.emplace_back(std::vector<std::string>{"dtlb_miss", std::to_string(topicStatus[topicType].tlbInfo.DtlbMissRate() * 
+        PERCENTAGE_FACTOR) + "%",(topicStatus[topicType].tlbInfo.DtlbMissRate() * PERCENTAGE_FACTOR > 
+        topicStatus[topicType].threshold1 ? "high" : "low")});
+    type.emplace_back(DATA_TYPE_MEMORY);
+    metrics.emplace_back(std::vector<std::string>{"itlb_miss", std::to_string(topicStatus[topicType].tlbInfo.ItlbMissRate() * 
+        PERCENTAGE_FACTOR) + "%",(topicStatus[topicType].tlbInfo.ItlbMissRate() * PERCENTAGE_FACTOR > 
+        topicStatus[topicType].threshold1 ? "high" : "low")});
+#else
     metrics.emplace_back(std::vector<std::string>{"l1dtlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L1dTlbMiss() *
 		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L1dTlbMiss() * PERCENTAGE_FACTOR >
 		topicStatus[topicType].threshold1 ? "high" : "low")});
@@ -169,6 +197,7 @@ void HugePageAnalysis::Analysis(const std::string &topicType)
     metrics.emplace_back(std::vector<std::string>{"l2itlb_miss", std::to_string(topicStatus[topicType].tlbInfo.L2iTlbMiss() *
 		PERCENTAGE_FACTOR) + "%", (topicStatus[topicType].tlbInfo.L2iTlbMiss() * PERCENTAGE_FACTOR >
 		topicStatus[topicType].threshold2 ? "high" : "low")});
+#endif
     std::string conclusion;
     std::vector<std::string> suggestionItem;
     if (topicStatus[topicType].tlbInfo.IsHighMiss(topicStatus[topicType].threshold1, topicStatus[topicType].threshold2)) {

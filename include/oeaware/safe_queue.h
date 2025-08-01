@@ -21,7 +21,7 @@ namespace oeaware {
 template<typename T>
 class SafeQueue {
 public:
-    explicit SafeQueue(std::chrono::seconds timeout = std::chrono::seconds(2)):timeout(timeout) { }
+    explicit SafeQueue(std::chrono::seconds timeout = std::chrono::seconds(15)):timeout(timeout) { }
     void Push(T value)
     {
         std::unique_lock<std::mutex> lock(mutex);

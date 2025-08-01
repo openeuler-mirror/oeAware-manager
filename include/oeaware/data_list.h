@@ -34,6 +34,7 @@
 #define OE_UNIXBENCH_TUNE            "unixbench_tune"
 #define OE_DOCKER_CPU_BURST_TUNE     "docker_cpu_burst"
 #define OE_DOCKER_COORDINATION_BURST_TUNE     "docker_burst"
+#define OE_LOAD_BASED_SCHEDULING_TUNE    "load_based_scheduling_tune"
 #define OE_BINARY_TUNE               "binary_tune"
 #define OE_STEALTASK_TUNE            "stealtask_tune"
 #define OE_DYNAMICSMT_TUNE           "dynamic_smt_tune"

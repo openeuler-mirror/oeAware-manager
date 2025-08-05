@@ -261,4 +261,18 @@ void StopHandler::ResHandler(Message &msg)
     printf("oeaware stopped.\n");
 }
 
+void ReloadConfHandler::Handler(Message &msg)
+{
+    msg.opt = Opt::RELOAD_CONF;
+}
+
+void ReloadConfHandler::ResHandler(Message &msg)
+{
+    if (msg.opt == Opt::RESPONSE_OK) {
+        std::cout << "Reload config successfully." + msg.payload[0] + "\n";
+    } else {
+        std::cout << "Reload config failed, because " << msg.payload[0] << ".\n";
+    }
+}
+
 }

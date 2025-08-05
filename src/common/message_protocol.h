@@ -44,6 +44,7 @@ enum class Opt {
     RESPONSE_OK,
     RESPONSE_ERROR,
     SHUTDOWN,
+    RELOAD_CONF,
 };
 
 enum class MessageType {

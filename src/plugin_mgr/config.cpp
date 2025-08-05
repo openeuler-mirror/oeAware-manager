@@ -112,6 +112,39 @@ bool Config::Load(const std::string &path)
     return true;
 }
 
+bool Config::Reload(const std::string &path, std::string &err)
+{
+    YAML::Node node;
+    struct stat buffer;
+    if (stat(path.c_str(), &buffer) != 0) {
+        err = path + " config file not found";
+        return false;
+    }
+    try {
+        node = YAML::LoadFile(path);
+        if (!node.IsMap() || node["log_level"].IsNull()) {
+            err = "config file format error";
+            return false;
+        }
+
+        int level = node["log_level"].as<int>();;
+        if (level < 0 || level >= OE_MAX_LOG_LEVELS) {
+            err = "log level is out of range, must be in [0, "
+                + std::to_string(OE_MAX_LOG_LEVELS - 1) + "]";
+            return false;
+        } else {
+            this->logLevel = level;
+        }
+
+    }
+    catch (const YAML::Exception& e) {
+        std::cerr << e.what() << '\n';
+        err = "config file format error";
+        return false;
+    }
+    return true;
+}
+
 std::string GetPath()
 {
     return DEFAULT_PLUGIN_PATH;

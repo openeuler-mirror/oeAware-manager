@@ -56,6 +56,10 @@ public:
         }
         int log4Level = LOG_LEVELS[level];
         for (auto &it : loggers) {
+            // Main 是特殊的日志，永远是INFO级别
+            if (it.first == "Main") {
+                continue;
+            }
             it.second.setLogLevel(log4Level);
         }
         logLevel = log4Level;

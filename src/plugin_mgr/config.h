@@ -83,6 +83,7 @@ public:
         logLevel = log4cplus::INFO_LOG_LEVEL;
     }
     bool Load(const std::string &path);
+    bool Reload(const std::string &path, std::string &err);
     int GetLogLevel() const
     {
         return this->logLevel;

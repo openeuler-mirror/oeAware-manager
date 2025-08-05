@@ -25,6 +25,7 @@
 #include "event/publish_handler.h"
 #include "event/query_subscribe_graph.h"
 #include "event/info_cmd_handler.h"
+#include "event/reload_conf_handle.h"
 
 namespace oeaware {
 void PrintHelp()
@@ -62,6 +63,7 @@ void PluginManager::InitEventHandler(std::shared_ptr<SafeQueue<std::shared_ptr<I
     eventHandler[Opt::SUBSCRIBE] = std::make_shared<SubscribeHandler>(instanceRunHandler);
     eventHandler[Opt::UNSUBSCRIBE] = std::make_shared<UnsubscribeHandler>(instanceRunHandler);
     eventHandler[Opt::PUBLISH] = std::make_shared<PublishHandler>(instanceRunHandler);
+    eventHandler[Opt::RELOAD_CONF] = std::make_shared<ReloadConfHandler>(config);
 }
 
 void PluginManager::Init(std::shared_ptr<Config> config, EventQueue recvMessage, EventResultQueue sendMessage,

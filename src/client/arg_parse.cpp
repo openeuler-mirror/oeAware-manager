@@ -45,6 +45,7 @@ void ArgParse::PrintHelp()
            "    --list                  the list of supported plugins.\n"
            "    --info                  the list of InfoCmd plugins.\n"
            "    -i|--install [plugin]   install plugin from the list.\n"
+           "    --reload-conf           reload config file(now only support log level).\n"
            "    --help                  show this help message.\n";
 }
 
@@ -67,12 +68,13 @@ void ArgParse::InitOpts()
     longOptions.emplace_back(Option{"install", required_argument, NULL, 'i'});
     longOptions.emplace_back(Option{"list", no_argument, NULL, 'L'});
     longOptions.emplace_back(Option{"info", no_argument, NULL, 'I'});
+    longOptions.emplace_back(Option{"reload-conf", no_argument, NULL, 'Z'});
 }
 
 int ArgParse::InitCmd(int &cmd, int opt)
 {
     if (opt == 'l' || opt == 'r' || opt == 'q' || opt == 'Q' || opt == 'e' ||
-        opt == 'd' || opt == 'L' || opt == 'i' || opt == 'I') {
+        opt == 'd' || opt == 'L' || opt == 'i' || opt == 'I' || opt == 'Z') {
         if (cmd != -1) {
             ArgError("invalid option.");
             return -1;

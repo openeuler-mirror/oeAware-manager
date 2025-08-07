@@ -29,7 +29,7 @@ private:
     bool ReadKeyList(const std::string &fileName);
 
     const int awarePeriod{1000};
-    const std::string configPath{"/usr/lib64/oeAware-plugin/thread_scenario.conf"};
+    const std::string configPath{"/etc/oeAware/plugin/thread_scenario.conf"};
     std::vector<ThreadInfo> threadWhite;
     std::vector<ThreadInfo> tmpData;
     std::vector<std::string> keyList;

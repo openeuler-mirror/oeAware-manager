@@ -11,5 +11,3 @@ endif()
 
 set_target_properties(thread_scenario PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PLUGIN_OUTPUT_LIBRARY_DIRECTORY})
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/thread_scenario.conf"
-                      DESTINATION "${PLUGIN_OUTPUT_LIBRARY_DIRECTORY}")

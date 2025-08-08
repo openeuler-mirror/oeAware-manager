@@ -344,7 +344,7 @@ void Config::LoadHugepageConfig(const YAML::Node &config)
             if (l2 < 0 || l2 > THRESHOLD_UP) {
                 std::cerr << "Warn: analysis config 'hugepage:l1_miss_threshold(" << l2String <<
                     ")' value must be [0, 100].\n";
-            } else if (l2MissThresholdSet) {
+            } else if (!l2MissThresholdSet) {
                 l2MissThreshold = l2;
             }
         }

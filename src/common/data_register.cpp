@@ -1219,6 +1219,11 @@ void Register::RegisterData(const std::string &name, const RegisterEntry &entry)
 
 void Register::InitRegisterData()
 {
+#ifdef __riscv
+    RegisterData("hwprobe_analysis", RegisterEntry(AnalysisResultItemSerialize, AnalysisResultItemDeserialize,
+        AnalysisResultItemFree));
+#endif
+
 #if defined(__arm__) || defined(__aarch64__) || defined(__riscv)
     RegisterData("pmu_counting_collector", RegisterEntry(PmuCountingDataSerialize, PmuCountingDataDeserialize,
         PmuBaseDataFree));

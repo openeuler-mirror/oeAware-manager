@@ -17,13 +17,20 @@
 #include <securec.h>
 
 static int hhaNum = 0;
+static int l3cNum = 0;
 static struct UncoreConfig *uncoreRxOuter = nullptr;
 static struct UncoreConfig *uncorRxSccl = nullptr;
 static struct UncoreConfig *uncoreRxOpsNum = nullptr;
+static struct UncoreConfig *uncoreL3cHit = nullptr;
 
 int GetUncoreHhaNum()
 {
     return hhaNum;
+}
+
+int GetUncoreL3cNum()
+{
+    return l3cNum;
 }
 
 struct UncoreConfig *GetRxOuter()
@@ -39,6 +46,11 @@ struct UncoreConfig *GetRxSccl()
 struct UncoreConfig *GetRxOpsNum()
 {
     return uncoreRxOpsNum;
+}
+
+struct UncoreConfig *GetL3cHit()
+{
+    return uncoreL3cHit;
 }
 
 static int ReadSingleUncoreEvent(const char *hhaName, struct UncoreConfig *uncoreEvent, const char *eventName)
@@ -125,6 +137,54 @@ int HhaUncoreConfigInit(void)
     return ret;
 }
 
+static int L3cReadUncoreConfig(int n, struct dirent **namelist)
+{
+    int index = 0;
+
+    while (index < n) {
+        if (ReadSingleUncoreEvent(namelist[index]->d_name, &uncoreL3cHit[index], "l3c_hit") != 0) {
+            return -1;
+        }
+
+        index++;
+    }
+
+    return 0;
+}
+
+static int L3cScandirSelect(const struct dirent *ptr)
+{
+    int ret = 0;
+    if (strstr(ptr->d_name, "l3c") != nullptr) {
+        ret = 1;
+    }
+
+    return ret;
+}
+
+int L3cUncoreConfigInit(void)
+{
+    int ret;
+    struct dirent **namelist;
+
+    l3cNum = scandir(DEVICE_PATH.data(), &namelist, L3cScandirSelect, alphasort);
+    if (l3cNum <= 0) {
+        printf("scandir failed\n");
+        return -1;
+    }
+
+    uncoreL3cHit = new UncoreConfig[l3cNum];
+    if (uncoreL3cHit == nullptr) {
+        FreeNamelist(l3cNum, namelist);
+        return -1;
+    }
+
+    ret = L3cReadUncoreConfig(l3cNum, namelist);
+    FreeNamelist(l3cNum, namelist);
+
+    return ret;
+}
+
 static void UncoreConfigFree(UncoreConfig *config)
 {
     if (config != nullptr) {
@@ -138,5 +198,6 @@ void UncoreConfigFini(void)
     UncoreConfigFree(uncoreRxOuter);
     UncoreConfigFree(uncorRxSccl);
     UncoreConfigFree(uncoreRxOpsNum);
+    UncoreConfigFree(uncoreL3cHit);
     hhaNum = 0;
 }

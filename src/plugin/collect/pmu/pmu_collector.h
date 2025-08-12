@@ -17,6 +17,7 @@
 #include "pmu_sampling_collector.h"
 #include "pmu_spe_collector.h"
 #include "pmu_uncore_collector.h"
+#include "pmu_l3c_collector.h"
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface);
 

@@ -9,6 +9,7 @@ set(pmu_src
     pmu_sampling_collector.cpp
     pmu_spe_collector.cpp
     pmu_uncore_collector.cpp
+    pmu_l3c_collector.cpp
     pmu_uncore.cpp
     pmu_collector.cpp
     pmu_common.cpp

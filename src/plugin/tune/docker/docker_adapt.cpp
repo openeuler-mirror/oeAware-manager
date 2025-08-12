@@ -12,6 +12,7 @@
 #include "cpu_burst/cpu_burst_adapt.h"
 #include "coordination_burst/coordination_burst_adapt.h"
 #include "load_based_scheduling/load_based_scheduling.h"
+#include "cluster_affinity/cluster_affinity_adapt.h"
 using namespace oeaware;
 
 extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interface)
@@ -19,4 +20,5 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<CpuBurstAdapt>());
     interface.emplace_back(std::make_shared<CoordinationBurstAdapt>());
     interface.emplace_back(std::make_shared<LoadBasedScheduling>());
+    interface.emplace_back(std::make_shared<ClusterAffinityAdapt>());
 }

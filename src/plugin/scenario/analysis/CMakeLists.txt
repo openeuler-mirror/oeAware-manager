@@ -17,6 +17,10 @@ set(analysis_src
     common/analysis_utils.cpp
 )
 
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "riscv64")
+    list(APPEND analysis_src hwprobe/hwprobe_analysis.cpp)
+endif()
+
 set(oeaware_src analysis_oeaware.cpp)
 
 add_library(analysis_lib OBJECT ${analysis_src})

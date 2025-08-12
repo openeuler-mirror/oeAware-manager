@@ -22,6 +22,9 @@
 #define OE_COMMAND_COLLECTOR         "command_collector"
 #define OE_ANALYSIS_AWARE            "analysis_aware"
 #define OE_HUGEPAGE_ANALYSIS         "hugepage_analysis"
+#ifdef __riscv
+#define OE_HWPROBE_ANALYSIS          "hwprobe_analysis"
+#endif
 #define OE_DYNAMIC_SMT_ANALYSIS      "dynamic_smt_analysis"
 #define OE_SMCD_ANALYSIS             "smc_d_analysis"
 #define OE_XCALL_ANALYSIS            "xcall_analysis"

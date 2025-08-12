@@ -31,6 +31,9 @@ typedef enum {
 	DATA_TYPE_MEMORY,
 	DATA_TYPE_IO,
 	DATA_TYPE_NETWORK
+#ifdef __riscv
+	, DATA_TYPE_HWPROBE
+#endif
 } DataType;
 
 typedef struct {

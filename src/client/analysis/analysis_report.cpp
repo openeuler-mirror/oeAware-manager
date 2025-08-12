@@ -43,7 +43,13 @@ void AnalysisReport::AddAnalysisReportItem(AnalysisResultItem *analysisResultIte
             analysisTemplate.datas["IO"].AddRow({metric, value, extra});
         } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_NETWORK) {
             analysisTemplate.datas["Network"].AddRow({metric, value, extra});
+#ifdef __riscv
+        } else if (analysisResultItem->dataItem[i].type == DATA_TYPE_HWPROBE) {
+            analysisTemplate.datas["Hwprobe"].AddRow({metric, value, extra});
         }
+#else
+        }
+#endif
     }
     Table conclusion(1, "conclusion");
     conclusion.SetBorder(false);
@@ -97,6 +103,8 @@ void AnalysisReport::Init(Config &config)
     AddAnalysisTopic("numa_analysis", "numa_analysis", {timeParam, threadThreshold});
 
     AddAnalysisTopic(OE_NET_HIRQ_ANALYSIS, OE_NET_HIRQ_ANALYSIS, {timeParam});
+
+    AddAnalysisTopic(OE_HWPROBE_ANALYSIS, OE_HWPROBE_ANALYSIS, {timeParam});
 #else
     std::string timeParam = "t:" + std::to_string(config.GetAnalysisTimeMs());
     std::string threshold1 = "threshold1:" + std::to_string(config.GetL1MissThreshold());
@@ -180,6 +188,13 @@ void AnalysisReport::Init(Config &config)
     networkTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
     networkTable.AddRow({"metric", "value", "note"});
     analysisTemplate.datas["Network"] = networkTable;
+
+#ifdef __riscv
+    oeaware::Table hwprobeTable(DEFAULT_ROW, "Hwprobe");
+    hwprobeTable.SetColumnWidth(DEFAULT_SUGGESTION_WIDTH);
+    hwprobeTable.AddRow({"metric", "value", "note"});
+    analysisTemplate.datas["Hwprobe"] = hwprobeTable;
+#endif
 }
 
 void AnalysisReport::SetAnalysisTemplate(const AnalysisTemplate &data)

@@ -55,6 +55,10 @@ private:
     std::vector<DynamicKey> ParseHwprobeKeys();
     bool ProbeHwInfo(std::vector<DynamicKey>& keys, std::vector<riscv_hwprobe>& pairs);
     std::string ParseHwprobeNote(int64_t key, uint64_t value);
+
+	struct {
+		bool zbb = false;
+	} ExtSupport;
 };
 }
 #endif

@@ -84,6 +84,9 @@ std::string HwprobeAnalysis::ParseHwprobeNote(int64_t key, uint64_t value) {
             std::string desc = "IMA extensions: ";
             for (const auto& [mask, name] : extension_map) {
                 if (value & mask) {
+                    if(mask == RISCV_HWPROBE_EXT_ZBB) {
+                        ExtSupport.zbb = true; // Set zbb support flag
+                    }
                     desc += name + " ";
                 }
             }
@@ -223,6 +226,12 @@ void HwprobeAnalysis::Analysis(const std::string &topicType)
     }
     std::string conclusion = "RISC-V hwprobe analysis finished.";
     std::vector<std::string> suggestionItem;
+    if(ExtSupport.zbb) {
+        conclusion += " Hardware supports Zbb extension. Enabling hwprobe_ext_zbb_tune is recommended.";
+        suggestionItem.emplace_back("Zbb extension detected, enable tuning for better performance");
+        suggestionItem.emplace_back("oeawarectl -e hwprobe_ext_zbb_tune");
+        suggestionItem.emplace_back("This enables optimized utilization of Zbb bit-manipulation instructions.");
+    }
     CreateAnalysisResultItem(metrics, conclusion, suggestionItem, type, &analysisResultItem);
 }
 

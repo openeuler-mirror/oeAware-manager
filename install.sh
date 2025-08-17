@@ -24,3 +24,8 @@ chmod 400 build/output/plugin/ko/*.ko
 mkdir -p /usr/lib/smc/
 cp build/output/plugin/ko/smc_acc.ko /usr/lib/smc/
 chcon -t modules_object_t /usr/lib/smc/smc_acc.ko >/dev/null 2>&1
+
+# install hwprobe_tune
+mkdir -p /etc/oeAware/hwprobe_tune/src
+mkdir -p /etc/oeAware/hwprobe_tune/lib
+cp src/plugin/tune/hwprobe/ext/hwprobe_ext_zbb_tune/src/zbb_tune.c /etc/oeAware/hwprobe_tune/src

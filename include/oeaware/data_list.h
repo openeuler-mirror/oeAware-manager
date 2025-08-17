@@ -24,6 +24,7 @@
 #define OE_HUGEPAGE_ANALYSIS         "hugepage_analysis"
 #ifdef __riscv
 #define OE_HWPROBE_ANALYSIS          "hwprobe_analysis"
+#define OE_HWPROBE_EXT_ZBB_TUNE      "hwprobe_ext_zbb_tune"
 #endif
 #define OE_DYNAMIC_SMT_ANALYSIS      "dynamic_smt_analysis"
 #define OE_SMCD_ANALYSIS             "smc_d_analysis"

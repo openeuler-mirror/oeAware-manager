@@ -2,6 +2,7 @@ set(test_sdk_src
     test_env_info.cpp
     test_net_intf.cpp
     test_net_hirq.cpp
+    test_pmu.cpp
     main.cpp
 )
 

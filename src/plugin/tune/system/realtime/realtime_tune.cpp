@@ -76,7 +76,7 @@ void RealTimeTune::Disable()
         setDefaultSchedRuntime = SetValue(schedRuntimePath, defaultSchedRuntime);
 	    if (setDefaultTimerMigration && setDefaultSchedRuntime) {
 		    stateRestored = true;
-		    INFO(logger, "[Realtime]Set default sucessfully.");
+		    INFO(logger, "[Realtime]Set default successfully.");
 	    } else {
 		    ERROR(logger, "[Realtime]Failed to restore.");
 	    }

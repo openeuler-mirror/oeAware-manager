@@ -57,7 +57,7 @@ void TransparentHugepageTune::Disable()
 	if (!thpStateRestored) {
 		if (SetThpMode(initialThpMode) == 0) {
 			thpStateRestored = true;
-			INFO(logger, "[THP]Mode set sucessfully.");
+			INFO(logger, "[THP]Mode set successfully.");
 		} else {
 			ERROR(logger, "[THP]Failed to restore THP mode.");
 		}

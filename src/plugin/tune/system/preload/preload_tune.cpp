@@ -183,6 +183,12 @@ bool PreloadTune::CheckExistingSo(const ConfigNode& configNode)
 oeaware::Result PreloadTune::Enable(const std::string &param)
 {
     (void)param;
+    
+    // Check if patchelf command exists
+    if (system("which patchelf >/dev/null 2>&1") != 0) {
+        return oeaware::Result(FAILED, "patchelf command not found, please install patchelf first");
+    }
+    
     if (!oeaware::FileExist(configPath)) {
         return oeaware::Result(FAILED, "preload config file does not exist");
     }

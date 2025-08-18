@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
         std::string(OE_TOPIC_NET_HIRQ_TUNE_DEBUG_INFO), TestHirqTuneDebug, "show net hirq tune debug info");
     manager.RegisterCallback(std::string(OE_NET_INTF_INFO) + std::string("::") +
         std::string(OE_PARA_THREAD_RECV_QUE_CNT), TestNetThrQueInfo, "show net threads queue and debug info");
+    manager.RegisterCallback(std::string(OE_PMU_UNCORE_COLLECTOR) + std::string("::uncore"),
+        TestPmuUncoreInfo, "show pmu uncore info");
     if (argc >= 2) {
         options = std::string(argv[1]);
         if (!manager.IsValidOption(options)) {

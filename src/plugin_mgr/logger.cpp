@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <bpf/libbpf.h>
 #include <bpf/libbpf_common.h>
+#include <sys/syscall.h>
 
 namespace oeaware {
 log4cplus::SharedAppenderPtr Logger::GenerateAppender(log4cplus::Appender *appender)
@@ -84,7 +85,7 @@ static int LibbpfPrintFn(enum libbpf_print_level level, const char *format, va_l
     }
 
     std::string timeBuf = GetTimeString();
-    pid_t tid = gettid();
+    pid_t tid = syscall(SYS_gettid);
     // log level
     std::string levelStr = "";
     switch (level) {

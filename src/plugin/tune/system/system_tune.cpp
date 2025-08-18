@@ -13,7 +13,9 @@
 #include "oeaware/interface.h"
 #include "cpu/stealtask_tune/stealtask_tune.h"
 #include "cpu/dynamic_smt_tune/dynamic_smt_tune.h"
+#ifdef BUILD_SMC_TUNE
 #include "network/smc_tune/smc_tune.h"
+#endif
 #include "xcall/xcall_tune.h"
 #include "power/seep_tune/seep_tune.h"
 #include "transparent_hugepage_tune/transparent_hugepage_tune.h"
@@ -35,7 +37,9 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
 {
     interface.emplace_back(std::make_shared<StealTask>());
     interface.emplace_back(std::make_shared<DynamicSmtTune>());
+#ifdef BUILD_SMC_TUNE
     interface.emplace_back(std::make_shared<SmcTune>());
+#endif
     interface.emplace_back(std::make_shared<XcallTune>());
     interface.emplace_back(std::make_shared<TransparentHugepageTune>());
     interface.emplace_back(std::make_shared<Seep>());

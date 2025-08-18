@@ -39,6 +39,7 @@
 #define OE_STEALTASK_TUNE            "stealtask_tune"
 #define OE_DYNAMICSMT_TUNE           "dynamic_smt_tune"
 #define OE_SMC_TUNE                  "smc_tune"
+#define OE_CLUSTER_TUNE              "cluster_cpu_tune"
 #define OE_SEEP_TUNE                 "seep_tune"
 #define OE_XCALL_TUNE                "xcall_tune"
 #define OE_NETHARDIRQ_TUNE           "net_hard_irq_tune"

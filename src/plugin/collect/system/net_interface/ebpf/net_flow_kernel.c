@@ -16,6 +16,10 @@
 #include <bpf/bpf_endian.h>
 #include "net_flow_comm.h"
 
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+
 #define ETH_P_IP   0x0800  // IPv4以太网协议类型
 #define TC_ACT_OK  0       // TC放行动作
 

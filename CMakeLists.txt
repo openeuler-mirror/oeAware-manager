@@ -7,6 +7,28 @@ set(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -
 set(SDK_OUTPUT_LIBRARY_DIRECTORY ${CMAKE_BINARY_DIR}/output/sdk)
 set(SDK_INC_PATH ${CMAKE_CURRENT_LIST_DIR}/src/sdk)
 
+execute_process(
+    COMMAND sh -c "rpm -q kernel-devel | awk -F'kernel-devel-' '{print $2}' | sort -V | tail -n 1"
+    OUTPUT_VARIABLE KERNEL_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+# 注意，路径末尾需要加/
+set(OEAWARE_LIBBPFTOOL_PATH "$ENV{OEAWARE_LIBBPFTOOL_PATH}")
+if(NOT OEAWARE_LIBBPFTOOL_PATH)
+    message(STATUS "OEAWARE_LIBBPFTOOL_PATH is not set, use default path")
+endif()
+
+set(OEAWARE_VMLINUX_INC "$ENV{OEAWARE_VMLINUX_INC}")
+if(NOT OEAWARE_VMLINUX_INC)
+    message(STATUS "OEAWARE_VMLINUX_INC is not set, use default path")
+    set(OEAWARE_VMLINUX_INC ${CMAKE_CURRENT_LIST_DIR}/src/3rd/vmlinux)
+endif()
+
+message(STATUS "OEAWARE_LIBBPFTOOL_PATH: ${OEAWARE_LIBBPFTOOL_PATH}")
+message(STATUS "OEAWARE_VMLINUX_INC: ${OEAWARE_VMLINUX_INC}")
+
+message(STATUS "KERNEL_VERSION: ${KERNEL_VERSION}")
+
 if (WITH_ASAN)
     message(STATUS "enable asan")
     function(enable_asan target)

@@ -1,13 +1,6 @@
 # set module name
 project(smc_acc)
 
-execute_process(
-    COMMAND sh -c "rpm -q kernel-devel | awk -F'kernel-devel-' '{print $2}' | sort -V | tail -n 1"
-    OUTPUT_VARIABLE KERNEL_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-
 # set kernerl dir
 set(KDIR /lib/modules/${KERNEL_VERSION}/build)
 

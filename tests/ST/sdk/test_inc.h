@@ -13,4 +13,7 @@ bool TestNetThrQueInfo(int time);
 
 // net hirq tune
 bool TestHirqTuneDebug(int time);
+
+// pmu uncore test
+bool TestPmuUncoreInfo(int time);
 #endif

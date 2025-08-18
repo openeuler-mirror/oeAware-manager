@@ -369,9 +369,11 @@ bool NetInterface::AttachTcProgram(struct net_flow_kernel *obj, std::string name
         .ifindex = ifindex,
         .attach_point = BPF_TC_INGRESS);
 
-    DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts,
-        .handle = 1,
-        .priority = 1);
+    struct bpf_tc_opts tc_opts;
+    memset(&tc_opts, 0, sizeof(struct bpf_tc_opts));
+    tc_opts.handle = 1;
+    tc_opts.priority = 1;
+    tc_opts.sz = sizeof(struct bpf_tc_opts);
 
     int err = bpf_tc_hook_create(&tc_hook);
     if (err && err != -EEXIST) {
@@ -547,9 +549,11 @@ void NetInterface::CloseNetFlow(const std::string &topicName)
 
     for (auto &it : netFlowCtl.netDevHooks) {
         auto &hook = it.second;
-        DECLARE_LIBBPF_OPTS(bpf_tc_opts, opts,
-            .handle = hook.tcOpts.handle,
-            .priority = hook.tcOpts.priority);
+        struct bpf_tc_opts opts;
+        memset(&opts, 0, sizeof(struct bpf_tc_opts));
+        opts.handle = hook.tcOpts.handle;
+        opts.priority = hook.tcOpts.priority;
+        opts.sz = sizeof(struct bpf_tc_opts);
         opts.flags = opts.prog_fd = opts.prog_id = 0;
         int ret = bpf_tc_detach(&hook.tcHook, &opts);
         if (ret) {

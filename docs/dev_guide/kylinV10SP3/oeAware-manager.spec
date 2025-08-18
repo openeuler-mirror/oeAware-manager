@@ -1,24 +1,29 @@
-%global debug_package %{nil}
 Name:       oeAware-manager
-Version:    %{commit_id}
+Version:    v2.1.0
 Release:    1
-Summary:    OeAware server and client 
+Summary:    OeAware is a framework for implementing low-load collection, sensing, and tuning on openEuler.
 License:    MulanPSL2
 URL:        https://gitee.com/openeuler/%{name}
 Source0:    %{name}-%{version}.tar.gz
 Prefix:     %{_prefix}
 BuildRequires: cmake make gcc-c++
-BuildRequires: curl-devel yaml-cpp-devel log4cplus-devel gtest-devel gmock-devel
+BuildRequires: curl-devel yaml-cpp-devel log4cplus-devel
 BuildRequires: libboundscheck numactl-devel git libnl3 libnl3-devel kernel-devel
-BuildRequires: libbpf-devel clang bpftool
+BuildRequires: libbpf-devel clang
 
 Requires: yaml-cpp curl log4cplus systemd libboundscheck acl libnl3 sysstat
+
+%ifarch aarch64
+BuildRequires: libkperf libkperf-devel
+Requires: libkperf
+%endif
+
 Obsoletes:  oeAware-collector < v2.0.0
 Obsoletes:  oeAware-scenario < v2.0.0
 Obsoletes:  oeAware-tune < v2.0.0
 
 %description
-%{name} provides server and client to manager plugins.
+%{name} provides server and client components to manage plugins, which include collectors, scenarios, and tunes.
 
 %package devel
 Summary: Development files for plugin of oeaware
@@ -31,7 +36,7 @@ Development files for plugin of oeaware
 %autosetup -n %{name}-%{version} -p1
 
 %build
-bash build.sh
+sh build.sh -k --release
 
 %install
 #install server
@@ -45,7 +50,6 @@ install -D -m 0640 etc/plugin/*.yaml                              %{buildroot}%{
 install -D -m 0640 etc/plugin/*.conf                              %{buildroot}%{_sysconfdir}/oeAware/plugin/
 install -D -m 0640 etc/*.yaml                                     %{buildroot}%{_sysconfdir}/oeAware/
 mkdir -p %{buildroot}%{_includedir}/oeaware/data
-install -dm 0755 %{buildroot}%{_prefix}/lib/smc
 
 #install header
 install -b -m740 ./build/output/include/oeaware/*.h               %{buildroot}%{_includedir}/oeaware
@@ -53,14 +57,8 @@ install -b -m740 ./build/output/include/oeaware/data/*.h          %{buildroot}%{
 
 #install plugin so
 mkdir -p %{buildroot}%{_libdir}/oeAware-plugin/
-%ifarch aarch64
-install -b -m740  ./build/libkperf/output/lib/*.so                %{buildroot}%{_libdir}
-%endif
 install -b -m740 ./build/output/plugin/lib/*.so                   %{buildroot}%{_libdir}/oeAware-plugin/
-if [ -f ./build/output/plugin/ko/smc_acc.ko ]; then
-install -D -m 0400 ./build/output/plugin/ko/smc_acc.ko            %{buildroot}%{_prefix}/lib/smc
-%define have_smc_acc_ko 1
-fi
+
 
 #install sdk
 install -b -m740 ./build/output/sdk/liboeaware-sdk.so             %{buildroot}%{_libdir}
@@ -73,7 +71,6 @@ if ! grep -q "oeaware:" /etc/group; then
         groupadd oeaware
 fi
 systemctl start oeaware.service
-chcon -t modules_object_t %{_prefix}/lib/smc/smc_acc.ko >/dev/null 2>&1
 exit 0
 
 %posttrans
@@ -89,16 +86,6 @@ fi
 %attr(0644, root, root) %{_unitdir}/oeaware.service
 %attr(0640, root, root) %{_sysconfdir}/oeAware/plugin/*.yaml
 %attr(0640, root, root) %{_sysconfdir}/oeAware/plugin/*.conf
-
-%if !0%{?have_smc_acc_ko}
-%attr(0400, root, root) %{_prefix}/lib/smc/smc_acc.ko
-%endif
-
-%ifarch aarch64
-%attr(0755, root, root) %{_libdir}/libkperf.so
-%attr(0755, root, root) %{_libdir}/libsym.so
-%endif
-
 %attr(0440, root, root) %{_libdir}/oeAware-plugin/*.so
 %attr(0444, root, root) %{_libdir}/liboeaware-sdk.so
 

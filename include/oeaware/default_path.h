@@ -22,6 +22,8 @@ const std::string DEFAULT_SDK_CONN_PATH = "/var/run/oeAware/oeAware-sdk";
 const std::string DEFAULT_PRELOAD_PATH = "/etc/oeAware/preload.yaml";
 const std::string DEFAULT_ANALYSYS_PATH = "/etc/oeAware/analysis_config.yaml";
 const std::string DEFAULT_PLUGIN_CONFIG_PATH = "/etc/oeAware/plugin";
+const std::string DEFAULT_CONFIG_PATH = "/etc/oeAware/config.yaml";
+const std::string DEFAULT_REALTIMETUNE_CONFIG_PATH = "/etc/oeAware/plugin/realtime_tune.yaml";
 }
 
 #endif

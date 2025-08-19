@@ -1,0 +1,31 @@
+# CPU 隔离配置，需要重启生效
+cpu_isolation:
+  # 指定的隔离 CPU 核心范围
+  # 支持格式：单个核（如 "5"），连续范围（如 "1-4"），混合格式（如 "1-2,5,7"）
+  # 注意：0 表示不启用隔离，因为主控 CPU（master CPU）不能被隔离
+  range: "3-4"  # 示例：隔离 CPU 核心 3 和 4
+
+  # 各项 CPU 隔离相关功能的开关（on/off）
+  features:
+    isolcpus: on        # 启用 isolcpus（将指定 CPU 从调度器中移除）
+    nohz_full: on       # 启用无滴答模式（减少时钟中断，降低延迟）
+    rcu_nocbs: on       # 启用 RCU nocb 模式（将 RCU 处理从隔离 CPU 移除）
+    irqaffinity: on     # 启用 IRQ 亲和性设置（避免中断打到隔离 CPU）
+
+# CPU 频率配置：设置为 performance 模式，即始终以最高频率运行
+cpufreq_performance: on
+
+# 内存相关配置
+memory:
+  transparent_hugepage: off    # 关闭透明大页（避免延迟抖动）
+  numa_balancing: off          # 关闭 NUMA 平衡（避免进程在 NUMA 节点间迁移）
+  ksm: off                     # 关闭内核同页合并（KSM，避免内存压缩带来的延迟）
+  swap: off                    # 关闭交换分区（避免内存换出影响性能）
+
+# 定时器配置
+timer:
+  migration: off               # 关闭定时器迁移（减少定时器在 CPU 之间的迁移）
+
+# 调度器配置
+sched:
+  rt_runtime_us: off            # 实时任务运行时间限制，为 off，表示不限制

@@ -153,7 +153,7 @@ int SmcOperator::RunSmcAcc()
         goto out;
     }
     if (Exec("lsmod | grep -w smc_acc")) {
-        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + args.str();
+        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + " " + args.str();
         rc = Exec(cmd);
     }
 
@@ -279,7 +279,7 @@ int SmcOperator::ReRunSmcAcc()
         goto out;
     }
     if (Exec("lsmod | grep -w smc_acc")) {
-        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + args.str();
+        std::string cmd = std::string("insmod ") + SMC_ACC_KO_PATH + " " + args.str();
         rc = Exec(cmd);
     }
 

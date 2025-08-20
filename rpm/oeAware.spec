@@ -57,10 +57,8 @@ mkdir -p %{buildroot}%{_libdir}/oeAware-plugin/
 install -b -m740  ./build/libkperf/output/lib/*.so                %{buildroot}%{_libdir}
 %endif
 install -b -m740 ./build/output/plugin/lib/*.so                   %{buildroot}%{_libdir}/oeAware-plugin/
-if [ -f ./build/output/plugin/ko/smc_acc.ko ]; then
 install -D -m 0400 ./build/output/plugin/ko/smc_acc.ko            %{buildroot}%{_prefix}/lib/smc
-%define have_smc_acc_ko 1
-fi
+
 
 #install sdk
 install -b -m740 ./build/output/sdk/liboeaware-sdk.so             %{buildroot}%{_libdir}
@@ -89,10 +87,7 @@ fi
 %attr(0644, root, root) %{_unitdir}/oeaware.service
 %attr(0640, root, root) %{_sysconfdir}/oeAware/plugin/*.yaml
 %attr(0640, root, root) %{_sysconfdir}/oeAware/plugin/*.conf
-
-%if !0%{?have_smc_acc_ko}
 %attr(0400, root, root) %{_prefix}/lib/smc/smc_acc.ko
-%endif
 
 %ifarch aarch64
 %attr(0755, root, root) %{_libdir}/libkperf.so

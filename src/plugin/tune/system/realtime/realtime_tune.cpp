@@ -83,7 +83,14 @@ void RealTimeTune::Disable()
         isRebooting = false;
     } else {
         // 重启后，cmdline已生效，可以正常移除
-        if (!switchConfig.cpuIsolationRange.empty() && switchConfig.cpuIsolationRange != "0") {
+        bool needRemove = false;
+        for (const auto& kv : switchConfig.featureSwitches) {
+            if (kv.second == true) {
+                needRemove = true;
+                break;
+            }
+        }
+        if (!switchConfig.cpuIsolationRange.empty() && switchConfig.cpuIsolationRange != "0" && needRemove) {
             DisableKernelParams();
             int ret = system("grub2-mkconfig -o /boot/grub2/grub.cfg");
             if (ret != 0) {
@@ -639,7 +646,7 @@ bool RealTimeTune::ParseCpuIsolationFeatures(const YAML::Node& cpuIso)
     }
     
     auto features = cpuIso["features"];
-    for (const std::string key : {"isolcpus", "nohz_full", "rcu_nocbs", "irqaffinity"}) {
+    for (const auto& key : KERNEL_PARAM_KEYS) {
         if (!features[key] || !features[key].IsScalar()) {
             ERROR(logger, "cpu_isolation.features." + key + " missing or not scalar");
             return false;

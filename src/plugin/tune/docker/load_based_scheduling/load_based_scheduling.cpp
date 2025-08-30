@@ -167,6 +167,9 @@ Result LoadBasedScheduling::ReadConfig(const std::string &path)
             double highLoad = node["high_load"].as<double>();
             highLoadThreshold = highLoad;
         }
+        if (highLoadThreshold < 0 || highLoadThreshold > 1) {
+            return Result(FAILED, "config error, high_load must be in [0,1].");
+        }
     } catch (const YAML::Exception &e) {
         return Result(FAILED, e.what());
     }

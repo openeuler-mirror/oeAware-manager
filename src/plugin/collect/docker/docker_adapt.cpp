@@ -62,6 +62,28 @@ static bool GetContainersCpusetInfo(std::string &val, const std::string &contain
     return true;
 }
 
+static bool GetSystemCpuStatInfo(uint64_t &totalCpuStat)
+{
+    std::ifstream statFile("/proc/stat");
+    if (!statFile.is_open()) {
+        return false;
+    }
+    std::string skip;
+    uint64_t user;
+    uint64_t nice;
+    uint64_t system;
+    uint64_t idle;
+    uint64_t iowait;
+    uint64_t irq;
+    uint64_t softirq;
+    uint64_t steal;
+    uint64_t guest;
+    uint64_t guestNice;
+    statFile >> skip >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestNice;
+    totalCpuStat = user + nice + system + idle + iowait + irq + softirq + steal;
+    return true;
+}
+
 DockerAdapt::DockerAdapt()
 {
     name = OE_DOCKER_COLLECTOR;
@@ -137,6 +159,7 @@ void DockerAdapt::GetSamplingTimestamp(Container &container)
 
 void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directories)
 {
+    uint64_t usage;
     // delete non-existent container
     for (auto it = containers.begin(); it != containers.end();) {
         if (directories.find(it->first) == directories.end()) {
@@ -146,6 +169,7 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
         }
     }
     // update/add container
+    GetSystemCpuStatInfo(usage);
     for (const auto &dir : directories) {
         Container container;
         container.id = dir;
@@ -154,8 +178,10 @@ void DockerAdapt::DockerUpdate(const std::unordered_set<std::string> &directorie
         ret &= GetContainersCpuInfo(container.cfs_quota_us, dir, "cpu.cfs_quota_us");
         ret &= GetContainersCpuInfo(container.cfs_burst_us, dir, "cpu.cfs_burst_us");
         ret &= GetContainersCpusetInfo(container.cpus, dir, "cpuset.cpus");
+        ret &= GetContainersCpusetInfo(container.mems, dir, "cpuset.mems");
         ret &= GetContainerTasks(dir, container.tasks);
         ret &= GetContainersCpuInfo(container.cpu_usage, dir, "cpuacct.usage");
+        container.system_cpu_usage = usage;
         GetSamplingTimestamp(container);
         container.soft_quota = -1;
         GetContainersCpuInfo(container.soft_quota, dir, "cpu.soft_quota");

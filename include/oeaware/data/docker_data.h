@@ -16,6 +16,8 @@ struct Container {
     int64_t sampling_timestamp;
     int64_t soft_quota;
     std::string cpus; // change to char* if need to serialization
+    std::string mems;
+    uint64_t system_cpu_usage;
     std::vector<int32_t> tasks; // change to int32_t* if need to serialization
 };
 

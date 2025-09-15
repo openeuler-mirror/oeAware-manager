@@ -27,10 +27,13 @@ const int RX_OPS_NUM = 2;
 const int UNCORE_MAX = 3;
 
 int GetUncoreHhaNum(void);
+int GetUncoreL3cNum(void);
 UncoreConfig *GetRxOuter(void);
 UncoreConfig *GetRxSccl(void);
 UncoreConfig *GetRxOpsNum(void);
+UncoreConfig *GetL3cHit(void);
 int HhaUncoreConfigInit(void);
+int L3cUncoreConfigInit(void);
 void UncoreConfigFini(void);
 
 #endif

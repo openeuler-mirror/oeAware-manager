@@ -58,14 +58,14 @@ systemctl stop oeaware
 
 ```
 ## 调优测试
-启动 oeaware 的 smc_tune 调优插件进行numa调优
+启动 oeaware 的 smc_tune 调优插件进行numa调优。
 
 ```shell
 [root@master ~]# systemctl start oeaware
 [root@master ~]# oeawarectl -e smc_tune
 Instance enabled successfully.
 ```
-启动性能测试，注意需要重启redis服务端
+启动redis服务端和客户端，进行性能测试，注意需要重启redis服务端。
 ```shell
 [root@master redis-6.2.7]# numactl -N 0 ./src/redis-server ./redis.conf
 ...
@@ -79,4 +79,4 @@ Instance enabled successfully.
 "GET","181818.19","0.163","0.024","0.159","0.247","0.319","0.543"
 "SET","166611.14","0.172","0.016","0.167","0.263","0.327","1.911"
 ```
-总结：redis 本地测试，启动oeaware的smc_tune进行本地网络调优后，get 性能提升（120069.1733->181796.1567,	33.95%）, set 性能提升 (117619.38	171676.6333->31.48%)
+总结：redis 本地测试，启动oeaware的smc_tune进行本地网络调优后，get 性能提升（120069.1733->181796.1567,	33.95%）, set 性能提升 (117619.38->171676.6333，31.48%)

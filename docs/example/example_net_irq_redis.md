@@ -75,14 +75,14 @@ systemctl stop oeaware
 
 ```
 ## 调优测试
-启动 oeaware 的 net_hard_irq_tune 调优插件进行中断调优
+启动 oeaware 的 net_hard_irq_tune 调优插件进行中断调优。
 
 ```shell
 [root@master ~]# systemctl start oeaware
 [root@master ~]# oeawarectl -e net_hard_irq_tune
 Instance enabled successfully.
 ```
-启动性能测试:
+启动redis服务端和客户端,进行性能测试。
 ```shell
 [root@master redis-6.2.7]# numactl -N 0 ./src/redis-server ./redis.conf
 ...
@@ -101,6 +101,6 @@ Instance enabled successfully.
 "GET","249875.08","0.112","0.040","0.111","0.143","0.151","0.431"
 "SET","250000.00","0.117","0.040","0.119","0.151","0.159","0.823"
 ```
-总结：redis 本地测试，启动oeaware的smc_tune进行本地网络调优后，get 性能提升（105335.672->245249.82，57%）, set 性能提升 (103906.868->249895.9,58%)
+总结：redis 本地测试，启动oeaware的net_hard_irq_tune进行本地网络调优后，get 性能提升（105335.672->245249.82，57%）, set 性能提升 (103906.868->249895.9,58%)
 
 注意：性能提升和业务的初始状态有有关，例如如果业务初始状态下和网卡中断以及网卡在相同的NUMA，那么性能提升的空间就没有多少。

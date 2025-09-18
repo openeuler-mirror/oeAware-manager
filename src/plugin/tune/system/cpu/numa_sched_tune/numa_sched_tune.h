@@ -36,7 +36,6 @@ public:
 
 private:
     // Constants
-    const std::string schedFeaturesPath = "/sys/kernel/debug/sched_features";
     const std::string enableFeature = "PARAL";
     const std::string disableFeature = "NO_PARAL";
     const std::string schedUtilLowPctPath = "/proc/sys/kernel/sched_util_low_pct";

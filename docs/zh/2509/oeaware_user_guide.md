@@ -509,6 +509,69 @@ fsdisk
 | seep_tune | aarch64 | 使能智能功耗模式，降低系统能耗 | 无 |
 | transparent_hugepage_tune | aarch64/x86 | 开启透明大页，降低tlbmiss | 无 |
 | preload_tune | aarch64 | 无感加载动态库 | 无 |
+| realtime_tune | aarch64/x86 | 实时性调优，通过调整内核参数和系统配置提升系统实时性能 | 无 |
+
+#### 配置文件
+
+**realtime_tune.yaml**
+
+路径：`/etc/oeAware/plugin/realtime_tune.yaml`
+
+```yaml
+cpu_isolation:
+  range: "1-3"  # CPU隔离范围，0或者空表示不隔离，因为cpu0无法隔离
+  features:
+    isolcpus: "on"      # 启用CPU隔离
+    nohz_full: "on"     # 启用无滴答模式
+    rcu_nocbs: "on"     # 禁用RCU回调
+    irqaffinity: "on"   # 设置中断亲和性
+
+cpufreq_performance: "on"  # 启用CPU频率性能模式
+
+memory:
+  transparent_hugepage: "off"  # 禁用透明大页
+  numa_balancing: "off"        # 禁用NUMA平衡
+  ksm: "off"                   # 禁用内核同页合并
+  swap: "off"                  # 禁用交换
+
+timer:
+  migration: "off"             # 禁用定时器迁移
+
+sched:
+  rt_runtime_us: "off"         # 禁用实时调度器运行时限制
+
+提示：
+- /proc/sys 相关报错为兼容性提示：由于不同内核版本或编译配置差异（Kconfig/编译开关），部分 /proc/sys 或 /sys 配置项可能不存在。系统检测到此类情况时会记录提醒并自动跳过，不影响实例的启用与运行。
+- 在 2509 RT 内核中，numa_balancing 与 transparent_hugepage 不受支持（配置项缺失或不可配置），属于上述兼容性范围。
+- cpu_isolation 建议成组启停：建议将 isolcpus、nohz_full、rcu_nocbs、irqaffinity 同时开启或同时关闭，避免部分开启造成行为不一致或观测复杂。
+```
+
+**使用方法：**
+
+**使用前准备：**
+
+1. 安装 kernel-rt：`yum install kernel-rt`
+2. 安装 oeAware：`yum install oeAware-manager`
+
+**启动 realtime 功能：**
+
+1. 配置 realtime.yaml，指定需要隔离的核，选择需要开启的选项
+2. 命令行输入 `oeawarectl -e realtime_tune` 启动 realtime 功能
+3. 等待提示 `Instance enable successfully` 后重启系统
+4. 重启完成后，查看 oeAware 是否正常启动：`oeawarectl -q`
+
+**关闭 realtime 功能：**
+
+1. 命令行输入 `oeawarectl -d realtime_tune` 关闭 realtime 功能
+2. 等待提示 `Instance disable successfully` 后重启系统
+3. 重启后查看 realtime 是否正常关闭：`oeawarectl -q`
+
+**注意事项：**
+
+- 需要 PREEMPT_RT 内核支持
+- 部分配置需要重启系统生效
+- CPU隔离会减少可用CPU核心数
+- 建议在测试环境中先验证配置
 
 #### 配置文件
 

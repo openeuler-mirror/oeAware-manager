@@ -159,9 +159,9 @@ void NumaSchedTune::Run()
 
 bool NumaSchedTune::WriteFeature(const std::string &feature)
 {
-    std::ofstream file(schedFeaturesPath);
+    std::ofstream file(schedFeaturePath);
     if (!file.is_open()) {
-        ERROR(logger, "[NUMA_SCHED] Failed to open sched_features file: " + std::string(schedFeaturesPath));
+        ERROR(logger, "[NUMA_SCHED] Failed to open sched_features file: " + schedFeaturePath);
         return false;
     }
 

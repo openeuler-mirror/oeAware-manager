@@ -106,33 +106,55 @@ oeawarectl --query <插件名> #查询指定插件
 示例：
 
 ```shell
-[root@localhost ~]# oeawarectl -q
 Show plugins and instances status.
 ------------------------------------------------------------
-libsystem_tune.so
-        stealtask_tune(available, close, count: 0)
-        smc_tune(available, close, count: 0)
-        xcall_tune(available, close, count: 0)
-        seep_tune(available, close, count: 0)
-libpmu.so
-        pmu_counting_collector(available, close, count: 0)
-        pmu_sampling_collector(available, close, count: 0)
-        pmu_spe_collector(available, close, count: 0)
-        pmu_uncore_collector(available, close, count: 0)
-libdocker_tune.so
-        docker_cpu_burst(available, close, count: 0)
 libthread_scenario.so
         thread_scenario(available, close, count: 0)
+libanalysis_oeaware.so
+        hugepage_analysis(available, close, count: 0)
+        dynamic_smt_analysis(available, close, count: 0)
+        smc_d_analysis(available, close, count: 0)
+        xcall_analysis(available, close, count: 0)
+        net_hirq_analysis(available, close, count: 0)
+        numa_analysis(available, close, count: 0)
+        docker_coordination_burst_analysis(available, close, count: 0)
+        microarch_tidnocmp_analysis(available, close, count: 0)
+libscenario_numa.so
+        scenario_numa(available, close, count: 12)
+libsystem_tune.so
+        stealtask_tune(available, close, count: 0)
+        dynamic_smt_tune(available, close, count: 0)
+        smc_tune(available, close, count: 0)
+        xcall_tune(available, close, count: 0)
+        transparent_hugepage_tune(available, close, count: 0)
+        seep_tune(available, close, count: 0)
+        preload_tune(available, close, count: 0)
+        binary_tune(available, close, count: 0)
+        numa_sched_tune(available, close, count: 0)
+        realtime_tune(available, close, count: 0)
+        net_hard_irq_tune(available, close, count: 0)
+        multi_net_path_tune(available, close, count: 0)
+libdocker_tune.so
+        docker_cpu_burst(available, close, count: 0)
+        docker_burst(available, close, count: 0)
+        load_based_scheduling_tune(available, close, count: 0)
+libpmu.so
+        pmu_counting_collector(available, close, count: 0)
+        pmu_sampling_collector(available, close, count: 12)
+        pmu_spe_collector(available, close, count: 12)
+        pmu_uncore_collector(available, close, count: 12)
+libdocker_collector.so
+        docker_collector(available, close, count: 0)
+libtune_numa.so
+        tune_numa_mem_access(available, close, count: 12)
+libub_tune.so
+        unixbench_tune(available, close, count: 0)
 libsystem_collector.so
         thread_collector(available, close, count: 0)
         kernel_config(available, close, count: 0)
         command_collector(available, close, count: 0)
-libdocker_collector.so
-        docker_collector(available, close, count: 0)
-libub_tune.so
-        unixbench_tune(available, close, count: 0)
-libanalysis_oeaware.so
-        analysis_aware(available, close, count: 0)
+        env_info_collector(available, close, count: 0)
+        net_interface_info(available, close, count: 0)
 ------------------------------------------------------------
 format:
 [plugin]
@@ -237,12 +259,20 @@ oeawarectl -i | --install <rpm包名> #指定--list下查询得到的包名称�
 oeawarectl analysis -h
 usage: oeawarectl analysis [options]...
   options
-   -t|--time <s>              set analysis duration in seconds(default 30s), range from 1 to 100.
-   -r|--realtime              show real time report.
-   -v|--verbose               show verbose information.
-   -h|--help                  show this help message.
-   --l1-miss-threshold        set l1 tlbmiss threshold.
-   --l2-miss-threshold        set l2 tlbmiss threshold.
+   -t|--time <s>                    set analysis duration in seconds(default 30s), range from 1 to 100.
+   -r|--realtime                    show real time report.
+   -v|--verbose                     show verbose information.
+   -h|--help                        show this help message.
+   --l1-miss-threshold              set l1 tlbmiss threshold.
+   --l2-miss-threshold              set l2 tlbmiss threshold.
+   --out-path                       set the path of the analysis report.
+   --dynamic-smt-threshold          set dynamic smt cpu threshold.
+   --pid                            set the pid to be analyzed.
+   --numa-thread-threshold          set numa sched thread creation threshold.
+   --smc-change-rate                set smc connections change rate threshold.
+   --smc-localnet-flow              set smc local net flow threshold.
+   --host-cpu-usage-threshold       set host cpu usage threshold.
+   --docker-cpu-usage-threshold     set docker cpu usage threshold.
 ```
 
 --l1-miss-threshold用于设置l1-tlb—miss阈值，超过这个阈值miss率为high。
@@ -282,6 +312,7 @@ usage: oeawarectl [options]...
     --list                  the list of supported plugins.
     --info                  the list of InfoCmd plugins.
     -i|--install [plugin]   install plugin from the list.
+    --reload-conf           reload config file(now only support log level).
     --help                  show this help message.
 ```
 
@@ -425,9 +456,9 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
 
 ### libpmu.so
 
-| 实例名称 | 架构 | 说明 | topic | 
+| 实例名称 | 架构 | 说明 | topic |
 | --- | --- | --- | --- |
-| pmu_counting_collector | aarch64 | 采集count相关事件 |cycles，net:netif_rx，L1-dcache-load-misses，L1-dcache-loads，L1-icache-load-misses，L1-icache-loads，branch-load-misses，branch-loads，dTLB-load-misses，dTLB-loads，iTLB-load-misses，iTLB-loads，cache-references，cache-misses，l2d_tlb_refill，l2d_cache_refill，l1d_tlb_refill，l1d_cache_refill，inst_retired，instructions | 
+| pmu_counting_collector | aarch64 | 采集count相关事件 |cycles，net:netif_rx，L1-dcache-load-misses，L1-dcache-loads，L1-icache-load-misses，L1-icache-loads，branch-load-misses，branch-loads，dTLB-load-misses，dTLB-loads，iTLB-load-misses，iTLB-loads，cache-references，cache-misses，l2d_tlb_refill，l2d_cache_refill，l1d_tlb_refill，l1d_cache_refill，l1d_tlb，l1i_tlb，l1i_tlb_refill，l2d_tlb，l2i_tlb，l2i_tlb_refill，inst_retired，instructions，sched:sched_process_fork，sched:sched_process_exit |
 | pmu_sampling_collector | aarch64 | 采集sample相关事件 | cycles，skb:skb_copy_datagram_iovec，net:napi_gro_receive_entry |
 | pmu_spe_collector | aarch64 | 采集spe事件 | spe |
 | pmu_uncore_collector | aarch64 | 采集uncore事件 | uncore |
@@ -509,10 +540,17 @@ fsdisk
 | seep_tune | aarch64 | 使能智能功耗模式，降低系统能耗 | 无 |
 | transparent_hugepage_tune | aarch64/x86 | 开启透明大页，降低tlbmiss | 无 |
 | preload_tune | aarch64 | 无感加载动态库 | 无 |
+| binary_tune | aarch64 | 将容器中运行的特殊二进制文件绑定到物理核心，通过解析ELF文件中的特殊段识别需要调优的程序，并根据配置进行CPU亲和性绑定，提升程序性能 | env_info::static, env_info::realtime, thread_collector::thread_collector, docker_collector::docker_collector |
+| cluster_tune | aarch64 | 启用CPU cluster调度来优化性能 | 无 |
+| dynamic_smt_tune | aarch64 | 低负载场景优先分配物理核，减少超线程的核间干扰 | 无 |
+| numa_sched_tune | aarch64 | 针对有numa瓶颈的场景，让线程在整个生命周期尽可能在同numa内调度 | 无 |
+| hardirq_tune | aarch64 | 将网卡队列对应的中断尽量和使用该中断的业务绑定在相同numa上，减少跨numa访问 | 无 |
+| multi_net_path | aarch64 | 网卡多路径调优，每个中断只处理所在numa上的业务 | 无 |
+| realtime_tune | aarch64/x86 | 实时性调优，通过调整内核参数和系统配置提升系统实时性能 | 无 |
 
 #### 配置文件
 
-xcall.yaml
+##### xcall.yaml
 
 ``` yaml
 redis: # 线程名称
@@ -523,7 +561,9 @@ node:
     - xcall_1: 1
 ```
 
-preload.yaml
+**限制说明**：xcall_tune依赖内核特性，需要开启FAST_SYSCALL编译内核，并且在cmdline里增加xcall字段。
+
+##### preload.yaml
 
 路径：`/etc/oeAware/preload.yaml`
 
@@ -534,9 +574,66 @@ preload.yaml
 
 通过执行`oeawarectl -e preload_tune`命令，根据配置文件给对应进程加载so。
 
-#### 限制条件
+##### realtime_tune.yaml
 
-xcall_tune依赖内核特性，需要开启FAST_SYSCALL编译内核，并且在cmdline里增加xcall字段。
+路径：`/etc/oeAware/plugin/realtime_tune.yaml`
+
+```yaml
+cpu_isolation:
+  range: "1-3"  # CPU隔离范围，0或者空表示不隔离，因为cpu0无法隔离
+  features:
+    isolcpus: "on"      # 启用CPU隔离
+    nohz_full: "on"     # 启用无滴答模式
+    rcu_nocbs: "on"     # 禁用RCU回调
+    irqaffinity: "on"   # 设置中断亲和性
+
+cpufreq_performance: "on"  # 启用CPU频率性能模式
+
+memory:
+  transparent_hugepage: "off"  # 禁用透明大页
+  numa_balancing: "off"        # 禁用NUMA平衡
+  ksm: "off"                   # 禁用内核同页合并
+  swap: "off"                  # 禁用交换
+
+timer:
+  migration: "off"             # 禁用定时器迁移
+
+sched:
+  rt_runtime_us: "off"         # 禁用实时调度器运行时限制
+```
+
+提示：
+
+- /proc/sys 相关报错为兼容性提示：由于不同内核版本或编译配置差异（Kconfig/编译开关），部分 /proc/sys 或 /sys 配置项可能不存在。系统检测到此类情况时会记录提醒并自动跳过，不影响实例的启用与运行。
+- 在 2509 RT 内核中，numa_balancing 与 transparent_hugepage 不受支持（配置项缺失或不可配置），属于上述兼容性范围。
+- cpu_isolation 建议成组启停：建议将 isolcpus、nohz_full、rcu_nocbs、irqaffinity 同时开启或同时关闭，避免部分开启造成行为不一致或观测复杂。
+
+**使用方法：**
+
+**使用前准备：**
+
+1. 安装 kernel-rt：`yum install kernel-rt`
+2. 安装 oeAware：`yum install oeAware-manager`
+
+**启动 realtime 功能：**
+
+1. 配置 realtime.yaml，指定需要隔离的核，选择需要开启的选项
+2. 命令行输入 `oeawarectl -e realtime_tune` 启动 realtime 功能
+3. 等待提示 `Instance enable successfully`后重启系统
+4. 重启完成后，查看 oeAware 是否正常启动：`oeawarectl -q`
+
+**关闭 realtime 功能：**
+
+1. 命令行输入 `oeawarectl -d realtime_tune` 关闭 realtime 功能
+2. 等待提示 `Instance disable successfully`后重启系统
+3. 重启后查看 realtime 是否正常关闭：`oeawarectl -q`
+
+**注意事项：**
+
+- 需要 PREEMPT_RT 内核支持
+- 部分配置需要重启系统生效
+- CPU隔离会减少可用CPU核心数
+- 建议在测试环境中先验证配置
 
 ### libub_tune.so
 
@@ -551,6 +648,9 @@ unixbench调优插件。
 | 实例名称 | 架构 | 说明 | 订阅 |
 | --- | --- | --- | --- |
 | docker_cpu_burst | aarch64 | 在出现突发负载时，CPUBurst可以为容器临时提供额外的CPU资源，缓解CPU限制带来的性能瓶颈 | pmu_counting_collector::cycles，docker_collector::docker_collector |
+| docker_coordination_burst_tune | aarch64 | 感知多容器的CPU配额，划分空闲CPU算力给算力不足的容器  | 无 |
+| load_based_scheduling_tune | aarch64 | 针对超过负载超过阈值的容器，自动使能潮汐调度，使资源在容器间更均匀 | docker_collector::docker_collector, env_info_collector::static, pmu_sampling_collector::cycles |
+| docker_cluster_affinity | aarch64 | 在系统存在cluster架构是，容器感知cluster架构进行调度，并感知多容器间CPU负载，在容器与容器之间进行调整quota资源（针对多容器资源负载不均衡场景） | l3c_hit, docker_collector::docker_collector |
 
 ## 外部插件
 
@@ -571,6 +671,76 @@ oeawarectl -i numafast
 | 实例名称 | 架构 | 说明 | 订阅 |
 | --- | --- | --- | --- |
 | tune_numa_mem_access | aarch64 | 周期性迁移线程和内存，减少跨NUMA内存访问 | scenario_numa::system_score, pmu_spe_collector::spe, pmu_counting_collector::cycles |
+
+#### tune_numa_mem_access使用说明
+
+tune_numa_mem_access可以通过 `--help`命令查看所有的参数及其作用
+
+```shell
+[root@localhost ~]# oeawarectl -e tune_numa_mem_access -cmd "--help cmd"
+Instance enabled failed, because show help message:
+Usage: oeaware -e tune_numa_mem_access -cmd "[options][<param>]"
+   or vim /etc/numafast.yaml and set options
+ attr:c => support conf by cmdline, y => support conf by yaml, r => support reload yaml online
+Options:
+    -i, --sampling-interval <n>    attr:cy, every sampling interval n msec, range is [100, 100000], default is 100
+    -t, --sampling-times <n>       attr:cy, every optimizing have n times sampling, range is [1, 1000] default is 10
+    -m, --tune-mode <mode>         attr:cy, tune mode, mode can be [b, t, p], default is b
+                                              b: migrate page and thread
+                                              t: migrate thread only
+                                              p: migrate page only
+    -w, --load-way <alg>           attr:cy, load way, can be [b, c], default is b
+                                              b: balance the load of threads on all numa nodes
+                                              c: centralize processes to fewer numas based on load
+        --smt <alg>                attr:cy, smt mode, can be [off, phy-first], default is phy-first
+                                              off: disable smt
+                                              phy-first: migrate threads to physical cores first, may limit load
+    -h, --help <type>              attr:c, show help info, type can be [cmd, yaml], default is cmd
+    -v, --version                  attr:c, show version info
+    -W, --whitelist <process name list>
+                                   attr:cy, only migrate process in the list, regexp list split by comma, if not set, migrate all process.
+    -b, --blacklist <process name list>
+                                   attr:cy, do not migrate process in the list, regexp list split by comma, priority higher than whitelist.
+        --precise-load             attr:cy, load control precisely
+        --mem-numa-aggregation     attr:cy, process memory aggregate by numa
+        --mem-balance              attr:cy, process memory average by numa
+ other options refer to /etc/numafast.yaml
+
+[root@localhost format]# oeawarectl -e tune_numa_mem_access -cmd "--help yaml"
+Instance enabled failed, because show help message:
+Usage: vim /etc/numafast.yaml and set options
+sampling-interval: <n> # every sampling interval n msec, range is [100, 100000], default is 100
+sampling-times: <n> # every optimizing have n times sampling, range is [1, 1000] default is 10
+tune-mode: <mode> # tune mode, mode can be [b, t, p], default is b
+    # b: migrate page and thread
+    # t: migrate thread only
+    # p: migrate page only
+load-way: <alg> # load way, can be [b, c], default is b
+    # b: balance the load of threads on all numa nodes
+    # c: centralize processes to fewer numas based on load
+smt: <alg> # smt mode, can be [off, phy-first, load-first], default is phy-first
+    # off: disable smt
+    # phy-first: migrate threads to physical cores first, may limit load
+    # load-first: migrate threads to physical cores based on load, limit load
+whitelist: [] # only migrate process in the list, regexp list split by comma, if not set, migrate all process.
+group: # process affinity group
+    # - [process1, process2, ...]
+min-numa-score: <n> # min numa score, range is [0 ,1000], default is 955
+max-numa-score: <n> # max numa score, range is [0, 1000], default is 975
+min-rx-ops-per-ms: <n> # min rx ops per ms, default is 10000
+numa-ratio: [] # process initial load distribution for each node
+page-reserve: <n> # page reserve, range is [0, 4294967295], default is 100000
+precise-load: <true|false> # load control precisely
+mem-numa-aggregation: <true|false> # process memory aggregate by numa
+process: # process config
+    # - name: process1 # process name, /proc/pid/comm
+    #   params-regex: "" # process params regex, /proc/pid/cmdline
+    #   algorithm: "" # process algorithm, support [MigrateThreadsToOneNode, BalanceProcNum]
+    #   migrate-all-memory: "" # migrate all memory, support [true, false]
+    #   default-mig-mem-node: "" # default migrate memory node, support [0, numa_node_num - 1]
+    #   net-affinity: "" # process net affinity, set net interface name
+
+```
 
 ## SDK使用说明
 

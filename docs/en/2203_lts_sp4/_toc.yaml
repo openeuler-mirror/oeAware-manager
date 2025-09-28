@@ -1,0 +1,6 @@
+label: oeAware User Guide
+isManual: true
+description: oeAware is a framework that provides low-load collection, sensing, and tuning on openEuler
+sections:
+  - label: oeAware User Guide
+    href: ./oeaware_user_guide.md

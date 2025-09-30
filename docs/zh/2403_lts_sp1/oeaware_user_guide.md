@@ -620,8 +620,7 @@ tune_numa_mem_access可以通过 `--help`命令查看所有的参数及其作用
 
 ```shell
 [root@localhost ~]# oeawarectl -e tune_numa_mem_access -cmd "--help cmd"
-Instance enabled failed, because  Invalid parameter: --help cmd, please check.
-/etc/numafast.yaml parse success. opt not found
+Instance enabled failed, because show help message:
 Usage: oeaware -e tune_numa_mem_access --cmd "[options][<param>]"
    or vim /etc/numafast.yaml and set options
  attr:c => support conf by cmdline, y => support conf by yaml, r => support reload yaml online

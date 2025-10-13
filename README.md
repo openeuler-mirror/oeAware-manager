@@ -33,6 +33,8 @@ make
 chmod 640 config.yaml
 ./build/src/plugin_mgr/oeaware config.yaml
 ```
-#### 使用说明
+#### 文档
 
-[oeAware使用指南](docs/oeAware用户指南.md)
++ [oeAware使用指南](docs/zh/master/oeaware_user_guide.md)
++ [oeAware-设计文档](docs/design/oeaware-设计文档.md)
++ [oeAware 使用案例](docs/example/)

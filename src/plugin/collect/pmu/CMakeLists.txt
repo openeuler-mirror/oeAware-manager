@@ -1,9 +1,5 @@
 project(pmu_plugin)
 
-# libkperf
-message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")
-message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
-
 set(pmu_src
     pmu_counting_collector.cpp
     pmu_sampling_collector.cpp
@@ -16,14 +12,6 @@ set(pmu_src
 )
 
 add_library(pmu SHARED ${pmu_src})
-
-include_directories(pmu PRIVATE
-    ${LIB_KPERF_INCPATH}
-)
-
-target_link_directories(pmu PUBLIC
-    ${LIB_KPERF_LIBPATH}
-)
 
 if (WITH_ASAN)
     enable_asan(pmu)

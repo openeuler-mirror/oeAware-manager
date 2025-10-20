@@ -1,4 +1,11 @@
 #! /bin/bash
+
+set -e
+
+#remove libkperf
+rm -rf /usr/include/libkperf
+rm -rf /usr/lib64/libkperf.so*
+
 #remove header
 rm -rf /usr/include/oeaware
 #remove config

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(oeAware-manager)
 
+set(CMAKE_SKIP_RPATH TRUE)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-rdynamic -std=c++14 -g -Wl,-z,relro,-z,now -Wall -Wextra -fPIC")
 set(SDK_OUTPUT_LIBRARY_DIRECTORY ${CMAKE_BINARY_DIR}/output/sdk)

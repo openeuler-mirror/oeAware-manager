@@ -97,8 +97,10 @@ elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "ON" ]]; then
     git checkout $libkperf_version
     sh build.sh
     cd ..
-    mkdir ${script_dir}/include/oeaware/data/libkperf
-    cp ${libkperf_inc}/* ${script_dir}/include/oeaware/data/libkperf
+    echo "install libkperf to system path"
+    mkdir /usr/include/libkperf
+    cp ${libkperf_inc}/* /usr/include/libkperf
+    cp ${libkperf_lib}/* /usr/lib64/
 elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "OFF" ]]; then
     echo "[NOTE] use libkperf by rpm"
     libkperf_inc=/usr/include/libkperf
@@ -106,8 +108,7 @@ elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "OFF" ]]; then
 fi
 
 
-cmake .. -DLIB_KPERF_LIBPATH=${libkperf_lib} -DLIB_KPERF_INCPATH=${script_dir}/include/oeaware/data \
-         -DWITH_TEST=${with_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
+cmake .. -DWITH_TEST=${with_test} -DWITH_DEBUG=${with_debug} -DWITH_ASAN=${with_asan} \
          -DWITH_OPTIMIZATION=${with_optimization} -DENABLE_EBPF=${enable_ebpf} \
          -DWITH_REALTIME=${with_realtime}
 make -j$(nproc)

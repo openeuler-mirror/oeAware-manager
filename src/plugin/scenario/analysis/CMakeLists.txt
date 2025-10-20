@@ -1,6 +1,4 @@
 project(analysis)
-message("-- libkperf library path: ${LIB_KPERF_LIBPATH}")
-message("-- libkperf include path: ${LIB_KPERF_INCPATH}")
 
 set(analysis_src
     analysis/analysis.cpp
@@ -26,9 +24,9 @@ set(oeaware_src analysis_oeaware.cpp)
 add_library(analysis_lib OBJECT ${analysis_src})
 
 target_include_directories(analysis_lib PUBLIC
+    ${CMAKE_SOURCE_DIR}/include/oeaware/data
     ${CMAKE_CURRENT_SOURCE_DIR}/analysis
     ${CMAKE_CURRENT_SOURCE_DIR}/common
-    ${LIB_KPERF_INCPATH}
     ../../../common
     /usr/include/libnl3
 )

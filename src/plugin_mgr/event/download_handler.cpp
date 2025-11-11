@@ -10,15 +10,26 @@
  * See the Mulan PSL v2 for more details.
  ******************************************************************************/
 #include "download_handler.h"
-
+#include <sys/utsname.h>
+#include <regex>
 namespace oeaware {
-ErrorCode DownloadHandler::Download(const std::string &name, std::string &res)
+// Get kernel major.minor version, e.g., 5.10
+std::string GetKernelMajorMinor()
 {
-    if (!config->IsPluginInfoExist(name)) {
-        return ErrorCode::DOWNLOAD_NOT_FOUND;
+    struct utsname buffer;
+    if (uname(&buffer) != 0) {
+        return "";
     }
-    res += config->GetPluginInfo(name).GetUrl();
-    return ErrorCode::OK;
+    std::string version = buffer.release;
+    size_t firstDot = version.find('.');
+    if (firstDot == std::string::npos) {
+        return "";
+    }
+    size_t secondDot = version.find('.', firstDot + 1);
+    if (secondDot == std::string::npos) {
+        return "";
+    }
+    return version.substr(0, secondDot);
 }
 
 EventResult DownloadHandler::Handle(const Event &event)
@@ -27,19 +38,22 @@ EventResult DownloadHandler::Handle(const Event &event)
         WARN(logger, "download event error.");
         return EventResult(Opt::RESPONSE_ERROR, {"download event error"});
     }
-    std::string resText;
     std::string name = event.payload[0];
-    auto retCode = Download(name, resText);
-    EventResult eventResult;
-    if (retCode == ErrorCode::OK) {
-        INFO(logger, "download " << name << " from " << resText << ".");
-        eventResult.opt = Opt::RESPONSE_OK;
-        eventResult.payload.emplace_back(resText);
-    } else {
-        WARN(logger, "download " << name << " failed, because " << ErrorText::GetErrorText(retCode) + ".");
-        eventResult.opt = Opt::RESPONSE_ERROR;
-        eventResult.payload.emplace_back(ErrorText::GetErrorText(retCode));
+    if (!config->GetPluginList().count(name)) {
+        WARN(logger, name << " download not found.");
+        return EventResult(Opt::RESPONSE_ERROR, {"download not found"});
     }
+    auto kernelMajorMinor = GetKernelMajorMinor();
+    auto url = config->GetPluginInfo(name).GetUrl();
+    if (url.empty() && supportPackageUrl.count(name) &&
+        supportPackageUrl[name].count(kernelMajorMinor)) {
+        url = supportPackageUrl[name][kernelMajorMinor];
+    }
+    EventResult eventResult;
+    INFO(logger, "download " << name << " from " << url << ".");
+    eventResult.opt = Opt::RESPONSE_OK;
+    eventResult.payload.emplace_back(url);
+   
     return eventResult;
 }
 }

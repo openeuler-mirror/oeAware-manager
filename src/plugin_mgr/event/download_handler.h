@@ -20,8 +20,17 @@ public:
     explicit DownloadHandler(std::shared_ptr<Config> config) : config(config) { }
     EventResult Handle(const Event &event) override;
 private:
-    ErrorCode Download(const std::string &name, std::string &res);
     std::shared_ptr<Config> config;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> supportPackageUrl {
+        {
+            "numafast",
+            {
+                {"4.19", "https://repo.oepkgs.net/openEuler/rpm/openEuler-20.03-LTS-SP1/extras/aarch64/Packages/n/numafast-v2.4.1-2.aarch64.rpm"},
+                {"5.10", "https://repo.oepkgs.net/openEuler/rpm/openEuler-22.03-LTS-SP4/extras/aarch64/Packages/n/numafast-v2.4.1-2.aarch64.rpm"},
+                {"6.6", "https://repo.oepkgs.net/openEuler/rpm/openEuler-24.03-LTS/extras/aarch64/Packages/n/numafast-v2.4.1-2.aarch64.rpm"},
+            }
+        },
+    };
 };
 }
 

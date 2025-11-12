@@ -227,7 +227,7 @@ void InstallHandler::ResHandler(Message &msg)
     std::string path = arg;
     std::string url = msg.payload[0];
     if (!Download(url, path)) {
-        std::cout << "Download failed, please check url or your network.\n";
+        std::cout << "Download " << url <<" failed, please check url or your network.\n";
         return;
     }
     std::string command = "rpm -ivh " + path;

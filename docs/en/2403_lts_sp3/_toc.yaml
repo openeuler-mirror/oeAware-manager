@@ -1,0 +1,6 @@
+label: oeAware User Guide
+isManual: true
+description: Intelligent activation of system tuning features based on dynamic sensing of system behavior
+sections:
+  - label: oeAware User Guide
+    href: ./oeaware_user_guide.md

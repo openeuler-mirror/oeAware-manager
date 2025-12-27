@@ -23,17 +23,13 @@ yum-builddep oeAware.spec
 ```
 Compile
 ```sh
-mkdir build
-cd build
-cmake ...
-make 
+bash build.sh
 ```
 Run
 ```sh
-chmod 640 config.yaml
-. /build/src/plugin_mgr/oeaware config.yaml
+./build/output/bin/oeaware etc/config.yaml
 ```
 #### Usage Notes
 
-[oeAware User's Guide](docs/oeAware用户指南.md)
+[oeAware User's Guide](docs/en/master/oeaware_user_guide.md)
 

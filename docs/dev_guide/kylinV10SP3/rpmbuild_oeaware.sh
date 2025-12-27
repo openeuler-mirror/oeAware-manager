@@ -15,7 +15,7 @@ rpmdev-setuptree
 # 安装libkperf
 cd $script_dir/
 rm -rf libkperf
-git clone https://gitee.com/src-openeuler/libkperf.git
+git clone https://atomgit.com/src-openeuler/libkperf.git
 cd libkperf/
 git reset --hard 75a943cc939971fedc9576f35d81c845213ab483
 cp *.patch /root/rpmbuild/SOURCES/

@@ -11,15 +11,40 @@
  ******************************************************************************/
 #include <csignal>
 #include <sys/resource.h>
+#include <sys/file.h>
 #include "plugin_manager.h"
 #include "message_manager.h"
 #include "oeaware/utils.h"
+
+static log4cplus::Logger logger;
+bool IsSingle()
+{
+    std::string path = "/var/run/oeAware/oeaware.pid";
+    int fd = open(path.c_str(), O_CREAT | O_RDWR, 0644);
+    if (fd < 0) {
+        ERROR(logger, "Failed to open " << path << ": " << strerror(errno));
+        return false;
+    }
+    if (!flock(fd, LOCK_EX | LOCK_NB)) {
+        std::ofstream lockFile(path, std::ios::trunc);
+        lockFile << getpid();
+        lockFile.close();
+        INFO(logger, "oeaware start with pid " << getpid());
+        return true;
+    }
+    close(fd);
+    ERROR(logger, "oeaware is already running!");
+    return false;
+}
 
 int main(int argc, char **argv)
 {
     oeaware::CreateDir(oeaware::DEFAULT_LOG_PATH);
     oeaware::Logger::GetInstance().Register("Main");
-    auto logger = oeaware::Logger::GetInstance().Get("Main");
+    logger = oeaware::Logger::GetInstance().Get("Main");
+    if (!IsSingle()) {
+        exit(EXIT_FAILURE);
+    }
     long nrOpen = 0;
     if (oeaware::GetSysFsNrOpen(nrOpen)) {
         if (oeaware::SetFileDescriptorLimit(nrOpen)) {

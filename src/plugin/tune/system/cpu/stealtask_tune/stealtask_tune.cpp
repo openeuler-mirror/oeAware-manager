@@ -51,7 +51,7 @@ oeaware::Result StealTask::Enable(const std::string &param)
 
     // some kernels enable stealtask doesn't need configuring cmdline, example openEuler 5.10 kernel update
     // other kernels may need configuring cmdline, example openEuler 6.6 kernel
-    // ref : https://gitee.com/openeuler/kernel/issues/IAQWPQ
+    // ref : https://atomgit.com/openeuler/kernel/issues/IAQWPQ
     ReadConfig();
     std::string::size_type pos = cmdline.find("sched_steal_node_limit");
     if (pos == std::string::npos) {

@@ -84,7 +84,7 @@ void Analysis::InstanceInit(std::unordered_map<InstanceName, Instance> &tuneInst
     tuneInstances[STEALTASK_TUNE].solution \
         = "       enable instance: `oeawarectl -e stealtask_tune`\n";
     tuneInstances[GAZELLE_TUNE].solution \
-        = "       reference: https://gitee.com/openeuler/gazelle \n";
+        = "       reference: https://atomgit.com/openeuler/gazelle \n";
 }
 
 void Analysis::UpdateSpe(int dataLen, const PmuData *data)

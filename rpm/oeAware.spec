@@ -4,7 +4,7 @@ Version:    %{commit_id}
 Release:    1
 Summary:    OeAware server and client 
 License:    MulanPSL2
-URL:        https://gitee.com/openeuler/%{name}
+URL:        https://atomgit.com/openeuler/%{name}
 Source0:    %{name}-%{version}.tar.gz
 Prefix:     %{_prefix}
 BuildRequires: cmake make gcc-c++

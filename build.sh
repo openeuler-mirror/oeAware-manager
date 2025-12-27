@@ -92,7 +92,7 @@ if [[ "$os_arch" == "x86_64" ]]; then
 elif [ -f $(pwd)/libkperf/output/lib/libkperf.so ]; then
     echo "[NOTE] libkperf already exists, so skip build libkperf!!!"
 elif [[ "$os_arch" == "aarch64" && "$build_kperf_by_src" == "ON" ]]; then
-    git clone --recurse-submodules https://gitee.com/openeuler/libkperf.git
+    git clone --recurse-submodules https://atomgit.com/openeuler/libkperf.git
     cd libkperf
     git checkout $libkperf_version
     sh build.sh

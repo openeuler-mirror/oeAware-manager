@@ -23,15 +23,11 @@ yum-builddep oeAware.spec
 ```
 编译
 ```sh
-mkdir build
-cd build
-cmake ..
-make 
+bash build.sh
 ```
 运行
 ```sh
-chmod 640 config.yaml
-./build/src/plugin_mgr/oeaware config.yaml
+./build/output/bin/oeaware etc/config.yaml
 ```
 #### 文档
 

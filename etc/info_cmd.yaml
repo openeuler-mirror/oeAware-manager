@@ -58,3 +58,15 @@ InfoCmd:
   - instance: docker_burst
     description: "Dynamically reallocate idle CPU resources from underutilized containers or host to heavily loaded ones to improve overall performance."
     effect: "Improves resource utilization and application performance by balancing CPU load across containers and the host."
+
+  - instance: load_based_scheduling_tune
+    description: "This instance supports dynamic CPU affinity by assigning preferred CPUs to tasks."
+    effect: "Improves locality and reduces interference under low load; allows bursting to other allowed CPUs under high load."
+
+  - instance: docker_cluster_affinity
+    description: "This instance prioritizes container scheduling in a Docker cluster based on the cluster (or node group) dimension, preferentially placing containers belonging to the same task group or service within the same physical or logical cluster."
+    effect: "Improves resource locality and utilization, reduces cross-node overhead." 
+
+  - instance: cluster_cpu_tune
+    description: "A cluster-aware CPU scheduling tuner designed for the Kunpeng platform architecture."
+    effect: "Improves cache locality and reduces cross-cluster interference by optimizing task placement within CPU clusters, enhancing performance and energy efficiency."

@@ -40,6 +40,7 @@ bool IsSingle()
 int main(int argc, char **argv)
 {
     oeaware::CreateDir(oeaware::DEFAULT_LOG_PATH);
+    oeaware::CreateDir(oeaware::DEFAULT_RUN_PATH);
     oeaware::Logger::GetInstance().Register("Main");
     logger = oeaware::Logger::GetInstance().Get("Main");
     if (!IsSingle()) {

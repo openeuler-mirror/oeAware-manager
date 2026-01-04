@@ -128,7 +128,6 @@ bool TcpSocket::Init(EventQueue newRecvMessage, EventResultQueue newSendMessage,
     InitGroups();
     logger = Logger::GetInstance().Get("MessageManager");
     tcpMessageHandler.Init(newRecvMessage, newSendMessage, newRecvData);
-    CreateDir(DEFAULT_RUN_PATH);
     std::string path = DEFAULT_SERVER_LISTEN_PATH;
     domainSocket = std::make_unique<DomainSocket>(path);
     if (!StartListen()) {

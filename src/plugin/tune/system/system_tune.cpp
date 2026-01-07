@@ -23,6 +23,7 @@
 #include "cpu/numa_sched_tune/numa_sched_tune.h"
 #include "preload/preload_tune.h"
 #include "binary/binary_tune.h"
+#include "soft_domain/soft_domain_tune.h"
 #ifdef BUILD_REALTIME
 #include "realtime/realtime_tune.h"
 #endif
@@ -48,6 +49,7 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<PreloadTune>());
     interface.emplace_back(std::make_shared<BinaryTune>());
     interface.emplace_back(std::make_shared<NumaSchedTune>());
+    interface.emplace_back(std::make_shared<SoftDomainTune>());
 #ifdef BUILD_REALTIME
     interface.emplace_back(std::make_shared<RealTimeTune>());
 #endif

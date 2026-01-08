@@ -18,3 +18,10 @@
 提示词：
 soft_domain_tune 插件依赖 系统docker 信息，该信息需要 docker_collect 插件获取，请订阅该采集项, 并将获取到的docker 信息存到soft_domain_tune 插件结构体，注意每个周期都要更新插件
 ```
+
+3、订阅线程信息数据(by AI)
+
+```
+提示词：
+soft_domain_tune 插件依赖 系统线程信息，该信息需要 thread_collect 插件获取，请订阅该采集项, 并将获取到的线程信息存到soft_domain_tune 插件结构体，注意每个周期都要更新插件
+```

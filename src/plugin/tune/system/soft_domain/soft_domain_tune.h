@@ -14,6 +14,7 @@
 
 #include "oeaware/interface.h"
 #include "oeaware/data/docker_data.h"
+#include "oeaware/data/thread_info.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -39,6 +40,8 @@ public:
 private:
     // 更新docker数据
     void UpdateDockerData(const DataList &dataList);
+    // 更新线程数据
+    void UpdateThreadData(const DataList &dataList);
     
     const int defaultPeriod = 1000;
     const int defaultPriority = 2;
@@ -48,6 +51,9 @@ private:
     
     // 存储docker信息，key为docker id，value为Container信息
     std::unordered_map<std::string, Container> dockerContainers;
+    
+    // 存储线程信息，key为tid，value为线程名称
+    std::unordered_map<int, std::string> threadInfos;
 };
 
 } // namespace oeaware

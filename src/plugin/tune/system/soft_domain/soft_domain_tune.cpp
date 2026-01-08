@@ -23,10 +23,16 @@ SoftDomainTune::SoftDomainTune()
     type = TUNE;
     
     // 订阅docker采集数据
-    Topic topic;
-    topic.instanceName = OE_DOCKER_COLLECTOR;
-    topic.topicName = OE_DOCKER_COLLECTOR;
-    subscribeTopics.push_back(topic);
+    Topic dockerTopic;
+    dockerTopic.instanceName = OE_DOCKER_COLLECTOR;
+    dockerTopic.topicName = OE_DOCKER_COLLECTOR;
+    subscribeTopics.push_back(dockerTopic);
+    
+    // 订阅线程采集数据
+    Topic threadTopic;
+    threadTopic.instanceName = OE_THREAD_COLLECTOR;
+    threadTopic.topicName = OE_THREAD_COLLECTOR;
+    subscribeTopics.push_back(threadTopic);
 }
 
 oeaware::Result SoftDomainTune::OpenTopic(const Topic &topic)
@@ -45,6 +51,8 @@ void SoftDomainTune::UpdateData(const DataList &dataList)
     Topic topic{dataList.topic.instanceName, dataList.topic.topicName, dataList.topic.params};
     if (topic.instanceName == OE_DOCKER_COLLECTOR && topic.topicName == OE_DOCKER_COLLECTOR) {
         UpdateDockerData(dataList);
+    } else if (topic.instanceName == OE_THREAD_COLLECTOR && topic.topicName == OE_THREAD_COLLECTOR) {
+        UpdateThreadData(dataList);
     } else {
         WARN(logger, "Unknown topic, {instanceName:" + topic.instanceName + ", topicName:" + topic.topicName + "}.");
     }
@@ -77,13 +85,16 @@ void SoftDomainTune::Disable()
     // 清空docker信息
     dockerContainers.clear();
     
+    // 清空线程信息
+    threadInfos.clear();
+    
     // TODO: 实现具体功能
 }
 
 void SoftDomainTune::Run()
 {
-    // 每个周期都会调用Run()，此时dockerContainers已经通过UpdateData更新
-    // TODO: 实现具体功能，可以使用dockerContainers中的数据
+    // 每个周期都会调用Run()，此时dockerContainers和threadInfos已经通过UpdateData更新
+    // TODO: 实现具体功能，可以使用dockerContainers和threadInfos中的数据
 }
 
 void SoftDomainTune::UpdateDockerData(const DataList &dataList)
@@ -114,5 +125,39 @@ void SoftDomainTune::UpdateDockerData(const DataList &dataList)
     }
     
     DEBUG(logger, "Updated docker data, current docker count: " << dockerContainers.size());
+}
+
+void SoftDomainTune::UpdateThreadData(const DataList &dataList)
+{
+    // 使用unordered_set记录当前周期收到的线程ID
+    std::unordered_set<int> currentThreadIds;
+    
+    // 更新线程信息
+    for (uint64_t i = 0; i < dataList.len; i++) {
+        auto *thread = static_cast<ThreadInfo*>(dataList.data[i]);
+        if (thread == nullptr) {
+            continue;
+        }
+        
+        // 存储或更新线程信息（tid -> name）
+        if (thread->name != nullptr) {
+            threadInfos[thread->tid] = std::string(thread->name);
+        } else {
+            threadInfos[thread->tid] = "";
+        }
+        currentThreadIds.insert(thread->tid);
+    }
+    
+    // 移除已经不存在的线程（如果某个线程在当前数据中不存在，说明它已经被删除）
+    for (auto it = threadInfos.begin(); it != threadInfos.end();) {
+        if (currentThreadIds.find(it->first) == currentThreadIds.end()) {
+            // 线程已不存在，从map中移除
+            it = threadInfos.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    DEBUG(logger, "Updated thread data, current thread count: " << threadInfos.size());
 }
 

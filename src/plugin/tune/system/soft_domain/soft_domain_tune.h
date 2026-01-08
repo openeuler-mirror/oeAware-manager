@@ -13,6 +13,10 @@
 #define SOFT_DOMAIN_TUNE_H
 
 #include "oeaware/interface.h"
+#include "oeaware/data/docker_data.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace oeaware {
 
@@ -33,8 +37,17 @@ public:
     void Run() override;
 
 private:
+    // 更新docker数据
+    void UpdateDockerData(const DataList &dataList);
+    
     const int defaultPeriod = 1000;
     const int defaultPriority = 2;
+    
+    // 订阅的topic列表
+    std::vector<Topic> subscribeTopics;
+    
+    // 存储docker信息，key为docker id，value为Container信息
+    std::unordered_map<std::string, Container> dockerContainers;
 };
 
 } // namespace oeaware

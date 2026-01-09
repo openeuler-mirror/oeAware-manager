@@ -1,0 +1,29 @@
+# Soft Domain 调优配置文件
+# 配置文件路径: /etc/oeAware/plugin/soft_domain.yaml
+# 
+# 配置说明：
+# - type: 配置类型，支持 "docker" 或 "process"
+#   * docker: 对Docker容器进行分域调度
+#   * process: 对进程进行分域调度（默认不生效，仅对配置的进程进行分域调度）     
+# - whitelist: 白名单列表，支持通配符匹配（如 "mysql*"）
+# - cpu_num: CPU配额，字符串格式，不能超过单个NUMA节点的CPU数量
+#
+# 注意：
+# 1. cpu_num 不能超过单个NUMA节点的CPU数量，否则配置校验会失败
+# 2. 如果配置文件不存在或为空，则默认什么也不配置
+# 3. 容器一旦绑定NUMA后，就不会再修改
+#
+# 使用说明：
+# 取消下面的注释并修改配置项即可启用相应的分域调度功能
+# 如果不需要任何配置，可以保留为空或删除所有配置项
+
+# Docker容器分域配置示例（取消注释以启用）
+# - type: "docker"
+#   whitelist: ["mysql*", "redis*"]
+#   cpu_num: "16"
+
+# 进程分域配置示例（取消注释以启用）
+# - type: "process"
+#   whitelist: ["mysqld", "redis-server"]
+#   cpu_num: "8"
+

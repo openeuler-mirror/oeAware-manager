@@ -12,6 +12,7 @@ set(analysis_src
     numa_analysis/numa_analysis.cpp
     docker_coordination_burst/docker_coordination_burst_analysis.cpp
     microarch_tidnocmp/microarch_tidnocmp_analysis.cpp
+    soft_domain/soft_domain_analysis.cpp
     common/analysis_utils.cpp
 )
 

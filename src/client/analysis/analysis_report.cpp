@@ -139,6 +139,7 @@ void AnalysisReport::Init(Config &config)
     AddAnalysisTopic("microarch_tidnocmp_analysis", "microarch_tidnocmp",
                      {timeParam, microarchTidNoCmpConfigStream});
 #endif
+    AddAnalysisTopic(OE_SOFT_DOMAIN_ANALYSIS, OE_SOFT_DOMAIN_ANALYSIS, {timeParam});
     const int INS_NAME_INDEX = 0;
     const int TOPIC_NAME_INDEX = 1;
     const int PARAM_INDEX = 2;

@@ -1251,6 +1251,8 @@ void Register::InitRegisterData()
         AnalysisResultItemDeserialize, AnalysisResultItemFree));
     RegisterData("docker_coordination_burst_analysis", RegisterEntry(AnalysisResultItemSerialize,
         AnalysisResultItemDeserialize, AnalysisResultItemFree));
+    RegisterData(OE_SOFT_DOMAIN_ANALYSIS, RegisterEntry(AnalysisResultItemSerialize,
+        AnalysisResultItemDeserialize, AnalysisResultItemFree));
 #endif
     RegisterData("thread_collector", RegisterEntry(ThreadInfoSerialize, ThreadInfoDeserialize, ThreadInfoFree));
     RegisterData("kernel_config", RegisterEntry(KernelDataSerialize, KernelDataDeserialize, KernelDataFree));

@@ -516,6 +516,27 @@ bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &feature
     return true;
 }
 
+bool WriteValueToFile(const std::string &filePath, const std::string &value)
+{
+    std::ofstream file(filePath);
+    if (!file.is_open()) {
+        return false;
+    }
+    file << value;
+    // 检查写入操作是否成功（包括只读文件等写入失败的情况）
+    if (file.fail() || file.bad()) {
+        return false;
+    }
+    if (!file.flush()) {
+        return false;
+    }
+    // 再次检查flush后的状态
+    if (file.fail() || file.bad()) {
+        return false;
+    }
+    return true;
+}
+
 bool IsSmtEnable()
 {
     std::string content;

@@ -55,6 +55,7 @@ bool SetFileDescriptorLimit(long limit);
 bool SetMemLockRlimt(rlim_t limit);
 std::string ReplaceString(const std::string &input, const std::string &target, const std::string &replacement);
 bool ReadSchedFeatures(std::string &schedPath, std::vector<std::string> &features);
+bool WriteValueToFile(const std::string &filePath, const std::string &value);
 bool IsSmtEnable();
 void AnalysisResultItemFree(AnalysisResultItem *analysisResultItem);
 

@@ -49,7 +49,6 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
     interface.emplace_back(std::make_shared<PreloadTune>());
     interface.emplace_back(std::make_shared<BinaryTune>());
     interface.emplace_back(std::make_shared<NumaSchedTune>());
-    interface.emplace_back(std::make_shared<SoftDomainTune>());
 #ifdef BUILD_REALTIME
     interface.emplace_back(std::make_shared<RealTimeTune>());
 #endif
@@ -58,5 +57,8 @@ extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &in
 #endif
 #ifdef BUILD_MULTI_NET_PATH_TUNE
     interface.emplace_back(std::make_shared<MultiNetPath>());
+#endif
+#ifdef BUILD_SOFT_DOMAIN_TUNE
+    interface.emplace_back(std::make_shared<SoftDomainTune>());
 #endif
 }

@@ -550,6 +550,7 @@ fsdisk
 | numa_sched_tune | aarch64 | 针对有numa瓶颈的场景，让线程在整个生命周期尽可能在同numa内调度 | 无 |
 | hardirq_tune | aarch64 | 将网卡队列对应的中断尽量和使用该中断的业务绑定在相同numa上，减少跨numa访问 | 无 |
 | multi_net_path | aarch64 | 网卡多路径调优，每个中断只处理所在numa上的业务 | 无 |
+| soft_domain_tune | aarch64 | 分域调度调优，多实例业务单个实例尽量在独立的调度域内调度，更加亲和 | env_info::static, thread_collector::thread_collector, docker_collector::docker_collector | 
 
 #### 配置文件
 
@@ -576,6 +577,43 @@ node:
 ```
 
 通过执行`oeawarectl -e preload_tune`命令，根据配置文件给对应进程加载so。
+
+##### soft_domain.yaml
+
+配置文件路径: /etc/oeAware/plugin/soft_domain.yaml
+
+配置说明：
+
+```yaml
+- type: 配置类型，支持 "docker" 或 "process"
+  * docker: 对Docker容器进行分域调度
+  * process: 对进程进行分域调度（默认不生效，仅对配置的进程进行分域调度）     
+- whitelist: 白名单列表，支持通配符匹配（如 "mysql*"）
+- cpu_num: CPU配额，字符串格式，不能超过单个NUMA节点的CPU数量
+```
+
+注意：
+
+1. cpu_num 不能超过单个NUMA节点的CPU数量，否则配置校验会失败
+2. 如果配置文件不存在或为空，则默认什么也不配置
+3. 容器一旦绑定NUMA后，就不会再修改
+4. 如果不需要任何配置，可以保留为空或删除所有配置项
+
+Docker容器分域配置示例
+
+```yaml
+- type: "docker"
+  whitelist: ["mysql*", "redis*"]
+  cpu_num: "16"
+```
+
+进程分域配置示例
+
+```yaml
+- type: "process"
+  whitelist: ["mysqld", "redis-server"]
+  cpu_num: "8"
+```
 
 ### libub_tune.so
 

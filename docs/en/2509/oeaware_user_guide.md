@@ -8,7 +8,6 @@ oeAware is a framework that provides low-load collection, sensing, and tuning up
 
 Configure the openEuler Yum repository and run the `yum` commands to install oeAware. oeAware is installed by default on openEuler 22.03 LTS SP4.
 
-
 ```shell
 yum install oeAware-manager
 ```

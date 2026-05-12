@@ -1,108 +1,91 @@
 # oeAware User Guide
 
-## Introduction
+## Overview
 
-oeAware is a framework for implementing low-load collection, sensing, and tuning on openEuler. It aims to intelligently enable optimization features after dynamically detecting system behaviors. Traditional optimization features run independently and are statically enabled or disabled. oeAware divides optimization into three layers: collection, sensing, and tuning. Each layer is associated through subscription and is developed as plugins.
-
-## Plugin Description
-
-**Plugin definition**: Each plugin corresponds to an .so file. Plugins are classified into collection plugins, sensing plugins, and tuning plugins.
-
-**Instance definition**: The scheduling unit in the service is instance. A plugin contains multiple instances. For example, a collection plugin includes multiple collection items, and each collection item is an instance.
-
-**Dependencies Between Instances**
-
-Before running an instance, ensure that the dependency between the instances is met.
-
-![img](./figures/dependency.png)
-
-- A collection instance does not depend on any other instance.
-
-- A sensing instance depends on a collection instance and other sensing instances.
-
-- A tuning instance depends on a collection instance, sensing instance, and other tuning instances.
+oeAware is a framework that provides low-load collection, sensing, and tuning upon detecting defined system behaviors on openEuler. The framework divides the tuning process into three layers: collection, sensing, and tuning. The three layers are developed as plugins and associated with each other through subscription, overcoming the limitations of traditional tuning features that run independently and are statically enabled or disabled.
 
 ## Installation
 
-Configure the openEuler Yum repository and run the `yum` commands to install oeAware. on openEuler 22.03 LTS SP4, oeAware has been installed by default.
+Configure the openEuler Yum repository and run the `yum` commands to install oeAware. oeAware is installed by default on openEuler 22.03 LTS SP4.
 
 ```shell
 yum install oeAware-manager
 ```
 
+## How to Use
+
+Start the oeAware service and then run the `oeawarectl` command to use it.
+
 ### Service Startup
 
-Run the `systemd` command to start the service.
+Run the `systemd` command to start the service. oeAware is started by default after the installation.
 
 ```shell
 systemctl start oeaware
 ```
 
-Skip this step
+### Configuration File
 
-Configuration file path: `/etc/oeAware/config.yaml`.
+The configuration file is stored in `/etc/oeAware/config.yaml`.
 
 ```yaml
-log_path: /var/log/oeAware # Log storage path
-log_level: 1 # Log level. 1: DUBUG; 2: INFO; 3: WARN; 4: ERROR.
-enable_list: # Plugins are enabled by default.
-  - name: libtest.so # Configure the plugin and enable all instances of the plugin.
-  - name: libtest1.so # Configure the plugin and enable the specified plugin instances.
-    instances:
-    - instance1 
-    - instance2
-    ...
-  ...
-plugin_list: # Downloaded packages are supported.
-  - name: test #The name must be unique. If the name is repeated, the first occurrence is used.
+log_path: /var/log/oeAware # Log storage path.
+log_level: 1 # Log level. 1: DEBUG; 2: INFO; 3: WARN; 4: ERROR
+enable_list: # The plugin is enabled by default.
+   - name: libtest.so # Configure the plugin and enable all instances of the plugin.
+   - name: libtest1.so # Configure plugin instances and enable these plugin instances.
+     instances:
+      - instance1 
+      - instance2
+      ...
+   ...
+plugin_list: # Plugins you can download.
+  - name: test # The name must be unique. If duplicated, the first entry is used.
     description: hello world
-    url: https://gitee.com/openeuler/oeAware-manager/raw/master/README.md #url must not be empty.
+    url: https://gitee.com/openeuler/oeAware-manager/raw/master/README.md # url cannot be empty.
   ...
 ```
 
-After modifying the configuration file, run the following commands to restart the service:
+After modifying the configuration file, run the following command to restart the service:
 
 ```shell
-systemctl daemon-reload
 systemctl restart oeaware
 ```
 
-## Usage
+### Plugin Description
 
-Start the oeaware service. Then, manage plugins and instances using the `oeawarectl` command, which supports loading, unloading, and querying plugins, along with enabling, disabling, and querying instances.
+**Plugin definition**: Each plugin corresponds to a .so file. Plugins are classified into collection plugins, sensing plugins, and tuning plugins.
+
+**Instance definition**: Instances are basic units of service scheduling. A plugin contains multiple instances. For example, a collection plugin includes multiple collection items, and each collection item is an instance.
 
 ### Plugin Loading
 
-By default, the service loads the plugins in the plugin storage paths.
+By default, the service loads the plugins from the plugin storage path.
 
-Collection plugin path: /usr/lib64/oeAware-plugin/collector
-
-Sensing plugin path: /usr/lib64/oeAware-plugin/scenario
-
-Tuning plugin path: /usr/lib64/oeAware-plugin/tune
+The plugin path is `/usr/lib64/oeAware-plugin/`.
 
 You can also manually load the plugins.
 
 ```shell
-oeawarectl -l | --load <plugin name> -t | --type <plugin type> # plugin type can be collector, scenario, or tune
+oeawarectl -l | --load <plugin name>
 ```
 
-Example
+Example:
 
 ```shell
-[root@localhost ~]# oeawarectl -l libthread_collect.so -t collector
+[root@localhost ~]# oeawarectl -l libthread_collect.so
 Plugin loaded successfully.
 ```
 
 If the operation fails, an error description is returned.
 
-### Plugin Unloading
+### Plugin Uninstallation
 
 ```shell
 oeawarectl -r <plugin name> | --remove <plugin name>
 ```
 
-Example
+Example:
 
 ```shell
 [root@localhost ~]# oeawarectl -r libthread_collect.so
@@ -113,62 +96,100 @@ If the operation fails, an error description is returned.
 
 ### Plugin Query
 
-#### Querying Plugin Status
+#### Querying the Plugin Status
 
 ```shell
 oeawarectl -q # Query all loaded plugins.
 oeawarectl --query <plugin name> # Query a specified plugin.
 ```
 
-Example
+Example:
 
 ```shell
-[root@localhost ~]# oeawarectl -q
 Show plugins and instances status.
 ------------------------------------------------------------
-libthread_collector.so
-        thread_collector(available, close) # Plugin instance and status
 libpmu.so
-        pmu_cycles_sampling(available, close)
-        pmu_cycles_counting(available, close)
-        pmu_uncore_counting(available, close)
-        pmu_spe_sampling(available, close)
-libthread_tune.so
-        thread_tune(available, close)
+    pmu_counting_collector(available, close, count: 0)
+    pmu_sampling_collector(available, close, count: 0)
+    pmu_spe_collector(available, close, count: 0)
+    pmu_uncore_collector(available, close, count: 0)
+libdocker_tune.so
+    docker_cpu_burst(available, close, count: 0)
+    docker_burst(available, close, count: 0)
+libsystem_tune.so
+    stealtask_tune(available, close, count: 0)
+    dynamic_smt_tune(available, close, count: 0)
+    smc_tune(available, close, count: 0)
+    xcall_tune(available, close, count: 0)
+    transparent_hugepage_tune(available, close, count: 0)
+    seep_tune(available, close, count: 0)
+    preload_tune(available, close, count: 0)
+    binary_tune(available, close, count: 0)
+    numa_sched_tune(available, close, count: 0)
+    realtime_tune(available, close, count: 0)
+    net_hard_irq_tune(available, close, count: 0)
+    multi_net_path_tune(available, close, count: 0)
+libdocker_collector.so
+    docker_collector(available, close, count: 0)
+libsystem_collector.so
+    thread_collector(available, close, count: 0)
+    kernel_config(available, close, count: 0)
+    command_collector(available, close, count: 0)
+    env_info_collector(available, close, count: 0)
+    net_interface_info(available, close, count: 0)
+libub_tune.so
+    unixbench_tune(available, close, count: 0)
 libthread_scenario.so
-        thread_scenario(available, close)
+    thread_scenario(available, close, count: 0)
+libanalysis_oeaware.so
+    hugepage_analysis(available, close, count: 0)
+    dynamic_smt_analysis(available, close, count: 0)
+    smc_d_analysis(available, close, count: 0)
+    xcall_analysis(available, close, count: 0)
+    net_hirq_analysis(available, close, count: 0)
+    numa_analysis(available, close, count: 0)
+    docker_coordination_burst_analysis(available, close, count: 0)
+    microarch_tidnocmp_analysis(available, close, count: 0)
 ------------------------------------------------------------
 format:
 [plugin]
-        [instance]([dependency status], [running status])
+    [instance]([dependency status], [running status], [enable cnt])
 dependency status: available means satisfying dependency, otherwise unavailable.
 running status: running means that instance is running, otherwise close.
+enable cnt: number of instances enabled.
 ```
 
 If the operation fails, an error description is returned.
 
-#### Querying Plugin Dependencies
+#### Querying Tuning Instance Information
 
 ```shell
-oeawarectl -Q # Query the dependency graph of loaded instances.
-oeawarectl --query-dep= <plugin instance> # Query the dependency graph of a specified instance.
+oeawarectl --info
 ```
 
-A **dep.png** file will be generated in the current directory to display the dependencies.
+Displays the description information and running status of the tunning instance.
 
-Example
+#### Querying the Subscription Relationship of Running Instances
 
-Relationship diagram when dependencies are met
+```shell
+oeawarectl -Q # Query the subscription relationship diagram of all running instances.
+oeawarectl --query-dep= <plugin instance> # Query the subscription relationship diagram of the running instances.
+```
+
+The `dep.png` file is generated in the current directory, showing the subscription relationship.
+
+The subscription relationship is displayed only when the instances are running.
+
+Example:
+
+```sh
+oeawarectl -e thread_scenario
+oeawarectl -Q
+```
 
 ![img](./figures/dep.png)
 
-Relationship diagram when dependencies are not met
-
-![img](./figures/dep-failed.png)
-
-If the operation fails, an error description is returned.
-
-### Enabling Plugins
+### Plugin Instance Enablement
 
 #### Enabling a Plugin Instance
 
@@ -176,7 +197,17 @@ If the operation fails, an error description is returned.
 oeawarectl -e | --enable <plugin instance>
 ```
 
+If a plugin instance is enabled, the topic instance subscribed by the plugin instance is also enabled.
+
 If the operation fails, an error description is returned.
+
+You are advised to enable the following plugins:
+
+- libsystem_tune.so: stealtask_tune, smc_tune, xcall_tune, seep_tune
+- libub_tune.so: unixbench_tune
+- libtune_numa.so: tune_numa_mem_access
+
+Other plugins are mainly used to provide data. You can obtain plugin data through the SDK.
 
 #### Disabling a Plugin Instance
 
@@ -184,11 +215,13 @@ If the operation fails, an error description is returned.
 oeawarectl -d | --disable <plugin instance>
 ```
 
+If a plugin instance is disabled, the topic instance subscribed by the plugin instance is also disabled.
+
 If the operation fails, an error description is returned.
 
-### Downloading and Installing Plugins
+### Plugin Download and Installation
 
-Use the `--list` command to query the RPM packages that can be downloaded and installed plugins.
+Run the `--list` command to query the installed plugins and the RPM packages that can be downloaded.
 
 ```shell
 oeawarectl --list
@@ -197,8 +230,8 @@ oeawarectl --list
 The query result is as follows:
 
 ```shell
-Supported Packages: # Downloadable packages
-[name1] # plugin_list configured in config
+Supported Packages: # Packages that can be downloaded
+[name1] # A plugin listed in the plugin_list in config
 [name2]
 ...
 Installed Plugins: # Installed plugins
@@ -207,26 +240,63 @@ Installed Plugins: # Installed plugins
 ...
 ```
 
-Use the `--install` command to download and install the RPM package.
+Run the `--install` command to download and install the RPM package.
 
 ```shell
-oeawarectl -i | --install <RPM package name > # Name of a package queried using --list (package in Supported Packages)
+oeawarectl -i | --install <RPM package name> # Specify a package name that can be queried using --list (that is, a package listed under Supported Packages).
 ```
 
 If the operation fails, an error description is returned.
 
+### Analysis Mode
+
+```sh
+oeawarectl analysis -h
+usage: oeawarectl analysis [options]...
+  options
+   -t|--time <s>                    set analysis duration in seconds(default 30s), range from 1 to 100.
+   -r|--realtime                    show real time report.
+   -v|--verbose                     show verbose information.
+   -h|--help                        show this help message.
+   --l1-miss-threshold              set l1 tlbmiss threshold.
+   --l2-miss-threshold              set l2 tlbmiss threshold.
+   --out-path                       set the path of the analysis report.
+   --dynamic-smt-threshold          set dynamic smt cpu threshold.
+   --pid                            set the pid to be analyzed.
+   --numa-thread-threshold          set numa sched thread creation threshold.
+   --smc-change-rate                set smc connections change rate threshold.
+   --smc-localnet-flow              set smc local net flow threshold.
+   --host-cpu-usage-threshold       set host cpu usage threshold.
+   --docker-cpu-usage-threshold     set docker cpu usage threshold.
+```
+
+--`l1-miss-threshold` is used to set the threshold for L1 TLB miss. If the miss rate exceeds this threshold, it is considered high.
+
+--`l2-miss-threshold` is used to set the threshold for L2 TLB miss. If the miss rate exceeds this threshold, it is considered high.
+
+Example:
+
+Run the following command to generate the system analysis report:
+
+```sh
+oeawarectl analysis -t 10
+```
+
+The report consists of three parts:
+
+- Data Analysis: analyzes the system performance data based on the system running status.
+- Analysis Conclusion: provides the system analysis conclusion.
+- Analysis Suggestion: provides the tuning suggestions.
+
 ### Help
 
-Use the `--help` command for help information.
+Run the `--help` command for help information.
 
 ```shell
 usage: oeawarectl [options]...
   options
-    -l|--load [plugin]      load plugin and need plugin type.
-    -t|--type [plugin_type] assign plugin type. there are three types:
-                            collector: collection plugin.
-                            scenario: awareness plugin.
-                            tune: tune plugin.
+    analysis                run analysis mode.
+    -l|--load [plugin]      load plugin.
     -r|--remove [plugin]    remove plugin from system.
     -e|--enable [instance]  enable the plugin instance.
     -d|--disable [instance] disable the plugin instance.
@@ -235,284 +305,493 @@ usage: oeawarectl [options]...
     -Q                      query all instances dependencies.
     --query-dep [instance]  query the instance dependency.
     --list                  the list of supported plugins.
+    --info                  the list of InfoCmd plugins.
     -i|--install [plugin]   install plugin from the list.
     --help                  show this help message.
 ```
 
-## Plugin Development
+## Plugin Development Description
 
-### Common Data Structures of Plugins
+### Basic Data Structure
 
-```c
-struct DataBuf {
-    int len;
-    void *data;
-};
+```c++
+typedef struct {
+    char *instanceName; // Instance name
+    char *topicName; // Topic name
+    char *params; // Parameters
+} CTopic;
+
+typedef struct {
+    CTopic topic;
+    unsigned long long len; // Length of the data array
+    void **data; // Stored data
+} DataList;
+
+const int OK = 0;
+const int FAILED = -1;
+
+typedef struct {
+    int code; // If the operation is successful, OK is returned. If the operation fails, FAILED is returned.
+    char *payload; // Additional information
+} Result;
+
 ```
 
-**struct DataBuf** is the data buffer.
+### Instance Base Class
 
-- **data**: specific data. **data** is an array. The data type can be defined as required.
-- len: size of **data**.
-
-```c
-struct DataRingBuf {
-    const char *instance_name;
-    int index;
-    uint64_t count;
-    struct DataBuf *buf;
-    int buf_len;
-};
+```c++
+namespace oeaware {
+// Instance type.
+const int TUNE = 0b10000;
+const int SCENARIO = 0b01000;
+const int RUN_ONCE = 0b00010;
+class Interface {
+public:
+    virtual Result OpenTopic(const Topic &topic) = 0;
+    virtual void CloseTopic(const Topic &topic) = 0;
+    virtual void UpdateData(const DataList &dataList) = 0;
+    virtual Result Enable(const std::string &param = "") = 0;
+    virtual void Disable() = 0;
+    virtual void Run() = 0;
+protected:
+    std::string name;
+    std::string version;
+    std::string description;
+    std::vector<Topic> supportTopics;
+    int priority;
+    int type;
+    int period;
+}
+}
 ```
 
-**struct DataRingBuf** facilitates data transfer between plugins, primarily utilizing a circular buffer.
+Each instance is developed by inheriting from the instance base class, implementing six virtual functions, and assigning values to seven class attributes.
 
-- **instance_name**: instance of the incoming data. For instance, when data reaches a perception plugin, it distinguishes which collection item belongs to which collection plugin.
+The instance uses a Publish-Subscribe pattern, obtaining data through a Subscribe API and publishing data through a Publish API.
 
-- **index**: current data write position. For example, after each data collection, the index increments.
+### Attribute Description
 
-- **count**: execution count of the instance, continuously accumulating.
+| Attribute| Type| Description|
+| --- | --- | --- |
+| name | string | Instance name.|
+| version | string | Instance version (reserved).|  
+| description | string | Instance description.|
+| supportTopics | vector\<Topic> | Supported topics.|
+| priority | int | Instance execution priority (tuning > awareness > collection).| 
+| type | int | Instance type, which is identified by bits. The second bit indicates a single execution instance, the third bit indicates a collection instance, the fourth bit indicates an awareness instance, and the fifth bit indicates a tuning instance.|
+| period | int | Instance execution period, in milliseconds. The value is a multiple of 10.| 
 
-- **buf**: data buffer. Some collection items require multiple samplings before the perception plugin processes them, so the buf array stores these samples.
+### API Description
 
-- **buf_len**: size of the data buffer. Once the buffer is initialized, **buf_len** remains constant.
+| Function Name| Parameter| Return Value| Description|
+| --- | --- | --- | --- | 
+|Result OpenTopic(const Topic &topic) | topic: topic to be opened| | Open the specified topic.|
+| void CloseTopic(const Topic &topic) | topic: topic to be closed| |Close the specified topic.|
+| void UpdateData(const DataList &dataList) | dataList: subscribed data| | When a topic is subscribed to, this topic updates data through UpdateData every period.|
+| Result Enable(const std::string &param = "") | param: reserved for future use| | Enable this instance.|
+| void Disable() | | | Disable the instance.|
+| void Run() | | | Execute the run function in every period.|
+
+### Instance Example
+
+```C++
+#include <oeaware/interface.h>
+#include <oeaware/data/thread_info.h>
+
+class Test : public oeaware::Interface {
+public:
+    Test() {
+        name = "TestA";
+        version = "1.0";
+        description = "this is a test plugin";
+        supportTopics;
+        priority = 0;
+        type = 0;
+        period = 20;
+    }
+    oeaware::Result OpenTopic(const oeaware::Topic &topic) override {
+        return oeaware::Result(OK);
+    }
+    void CloseTopic(const oeaware::Topic &topic) override {
+
+    }
+    void UpdateData(const DataList &dataList) override {
+        for (int i = 0; i < dataList.len; ++i) {
+            ThreadInfo *info = static_cast<ThreadInfo*>(dataList.data[i]);
+            INFO(logger, "pid: " << info->pid << ", name: " << info->name);
+        }
+    }
+    oeaware::Result Enable(const std::string &param = "") override {
+        Subscribe(oeaware::Topic{"thread_collector", "thread_collector", ""});
+        return oeaware::Result(OK);
+    }
+    void Disable() override {
+        
+    }
+    void Run() override {
+        DataList dataList;
+        oeaware::SetDataListTopic(&dataList, "test", "test", "");
+        dataList.len = 1;
+        dataList.data = new void* [1];
+        dataList.data[0] = &pubData; 
+        Publish(dataList);
+    }
+private:
+    int pubData = 1;
+};
+
+extern "C" void GetInstance(std::vector<std::shared_ptr<oeaware::Interface>> &interfaces)
+{
+    interfaces.emplace_back(std::make_shared<Test>());
+}
+```
+
+## Internal Plugins
+
+### libpmu.so
+
+| Instance Name| Architecture| Description| Topic| 
+| --- | --- | --- | --- |
+| pmu_counting_collector | AArch64| Collect count events.|cycles, net:netif_rx, L1-dcache-load-misses, L1-dcache-loads, L1-icache-load-misses, L1-icache-loads, branch-load-misses, branch-loads, dTLB-load-misses, dTLB-loads, iTLB-load-misses, iTLB-loads, cache-references, cache-misses, l2d_tlb_refill, l2d_cache_refill, l1d_tlb_refill, l1d_cache_refill, inst_retired, instructions| 
+| pmu_sampling_collector | AArch64| Collect sample events.| cycles, skb:skb_copy_datagram_iovec, net:napi_gro_receive_entry|
+| pmu_spe_collector | AArch64| Collect SPE events.| spe |
+| pmu_uncore_collector | AArch64| Collect uncore events.| uncore |
+
+#### Restrictions
+
+The collection of SPE events depends on the hardware capability. This plugin relies on the BIOS SPE feature. Before running the plugin, you need to enable the SPE.
+
+Run `perf list | grep arm_spe` to check whether the SPE is enabled. If it is enabled, the following information is displayed:
+
+```sh
+arm_spe_0//                                      [Kernel PMU event]
+```
+
+If not, perform the following steps to enable it:
+
+Go to MISC Config --> SPE in the BIOS. If the SPE is set to `Disable`, switch it to `Enable`. If you cannot find this option, the BIOS version may be outdated.
+
+Access `vim /boot/efi/EFI/openEuler/grub.cfg` of the system, locate the startup item corresponding to the kernel version, and add `kpti=off` to the end of the startup item. Example:
+
+```sh
+linux   /vmlinuz-4.19.90-2003.4.0.0036.oe1.aarch64 root=/dev/mapper/openeuler-root ro rd.lvm.lv=openeuler/root rd.lvm.lv=openeuler/swap video=VGA-1:640x480-32@60me rhgb quiet  smmu.bypassdev=0x1000:0x17 smmu.bypassdev=0x1000:0x15 crashkernel=1024M,high video=efifb:off video=VGA-1:640x480-32@60me kpti=off
+```
+
+Press **Esc**, enter `:wq`, and press **Enter** to save the change and exit. Run the `reboot` command to restart the server.
+
+### libsystem_collector.so
+
+System information collection plugin
+
+| Instance Name| Architecture| Description| Topic|
+| --- | --- | --- | --- |
+| thread_collector | AArch64/x86| Collect system thread information.| thread_collector |
+| kernel_config | AArch64/x86| Collect kernel parameters, including all sysctl parameters, lscpu, and meminfo.| get_kernel_config, get_cmd, set_kernel_config|
+| command_collector | AArch64/x86| Collect sysstat data.| mpstat, iostat, vmstat, sar, pidstat|
+
+### libdocker_collector.so
+
+Docker information collection plugin
+
+| Instance Name| Architecture| Description| Topic|
+| --- | --- | --- | --- |
+| docker_collector | AArch64/x86| Collect Docker information.| docker_collector |
+
+### libthread_scenario.so
+
+Thread sensing plugin
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| thread_scenario | AArch64/x86| Obtain the thread information from the configuration file.| thread_collector::thread_collector |
+
+#### Configuration File
+
+thread_scenario.conf
+
+```sh
+redis
+fstime
+fsbuffer
+fsdisk
+```
+
+### libanalysis_oeaware.so
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| analysis_aware | AArch64| Analyze service characteristics in the current environment and provide tuning suggestions.| pmu_spe_collector::spe, pmu_counting_collector::net:netif_rx, pmu_sampling_collector::cycles, pmu_sampling_collector::skb:skb_copy_datagram_iovec, pmu_sampling_collector::net:napi_gro_receive_entry |
+
+### libsystem_tune.so
+
+System tuning plugin
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| stealtask_tune | AArch64| In high-load scenarios, the lightweight search algorithm quickly balances loads across multiple cores, optimizing CPU efficiency.| None|
+| smc_tune | AArch64| Enable SMC acceleration to provide transparent acceleration for TCP connections.| None|
+| xcall_tune | AArch64| Reduce system call noise to improve system performance.| thread_collector::thread_collector |
+| seep_tune | AArch64| Enable the intelligent power mode to reduce system power consumption.| None|
+| transparent_hugepage_tune | AArch64/x86| Enable transparent huge pages to reduce the tlb-miss rate.| None|
+| preload_tune | AArch64| Load dynamic libraries seamlessly.| None|
+| realtime_tune | AArch64/x86| Enable real-time tuning by adjusting kernel parameters and system configurations to improve real-time system performance.| None|
+
+#### Configuration File
+
+**realtime_tune.yaml**
+
+Path: `/etc/oeAware/plugin/realtime_tune.yaml`
+
+```yaml
+cpu_isolation:
+  range: "1-3"  # CPU isolation range. Setting it to 0 or leaving it empty disables isolation. CPU 0 cannot be isolated.
+  features:
+    isolcpus: "on"      # Enable CPU isolation.
+    nohz_full: "on"     # Enable full tickless mode.
+    rcu_nocbs: "on"     # Offload RCU callbacks.
+    irqaffinity: "on"   # Set interrupt affinity.
+
+cpufreq_performance: "on"  # Enable CPU frequency performance mode.
+
+memory:
+  transparent_hugepage: "off"  # Disable transparent huge pages.
+  numa_balancing: "off"        # Disable NUMA balancing.
+  ksm: "off"                   # Disable Kernel Same-page Merging (KSM).
+  swap: "off"                  # Disable swap.
+
+timer:
+  migration: "off"             # Disable timer migration.
+
+sched:
+  rt_runtime_us: "off"         # Disable real-time scheduler runtime limit.
+
+Note:
+- Errors related to `/proc/sys` are compatibility messages. Due to differences in kernel versions or compilation configurations (Kconfig/compilation options), some `/proc/sys` or `/sys` configuration items may not exist. When the system detects such cases, it logs a message and automatically skips them, without affecting instance startup and running.
+- In the 25.09 RT kernel, `numa_balancing` and `transparent_hugepage` are not supported (the configuration items are missing or cannot be set) and fall within the aforementioned compatibility scope.
+- It is recommended that `cpu_isolation` parameters be enabled or disabled as a group. Specifically, enable or disable `isolcpus`, `nohz_full`, `rcu_nocbs`, and `irqaffinity` together to avoid inconsistent behavior or complex observation.
+```
+
+**How to use:**
+
+**Preparations:**
+
+1. Install kernel-rt using `yum install kernel-rt`.
+2. Install oeAware using `yum install oeAware-manager`.
+
+**Enable the realtime function:**
+
+1. Configure `realtime.yaml`, specifying the cores to isolate and selecting the options to enable.
+2. Run the `oeawarectl -e realtime_tune` command to enable the realtime function.
+3. Wait until `Instance enable successfully` is displayed and restart the system.
+4. After restart, run the `oeawarectl -q` command to check whether oeAware is started properly.
+
+**Disable the realtime function:**
+
+1. Run the `oeawarectl -d realtime_tune` command to disable the realtime function.
+2. Wait until `Instance disable successfully` is displayed and restart the system.
+3. After restart, run the `oeawarectl -q` command to check whether the realtime function is disabled.
+
+**Precautions:**
+
+- The PREEMPT_RT kernel is required.
+- Some configurations take effect only after the system is restarted.
+- CPU isolation reduces the number of available CPU cores.
+- You are advised to verify the configuration in the testing environment first.
+
+#### Configuration File
+
+xcall.yaml
+
+``` yaml
+redis: # Thread name
+    - xcall_1: 1 # xcall_1 indicates the xcall tunning method. Currently, only xcall_1 is supported, where 1 indicates the system call to be optimized.
+mysql:
+    - xcall_1: 1
+node:
+    - xcall_1: 1
+```
+
+preload.yaml
+
+Path: `/etc/oeAware/preload.yaml`
+
+```yaml
+- appname: ""
+  so: ""
+```
+
+Run the `oeawarectl -e preload_tune` command to load the .so file to the corresponding process based on the configuration file.
+
+#### Restrictions
+
+`xcall_tune` depends on kernel features. You need to enable `FAST_SYSCALL` to compile the kernel and add the `xcall` field to the command line.
+
+### libub_tune.so
+
+UnixBench tuning plugin
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| unixbench_tune | AArch64/x86| Reduce remote memory access to optimize the UnifiedBus performance.| thread_collector::thread_collector |
+
+### libdocker_tune.so
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| docker_cpu_burst | AArch64| CPUBurst can temporarily provide additional CPU resources for containers to alleviate performance bottlenecks caused by CPU limits when burst loads occur.| pmu_counting_collector::cycles, docker_collector::docker_collector|
+
+## External Plugins
+
+You can use the following command to install an external plugin, for example, the numafast plugin.
+
+```sh
+oeawarectl -i numafast
+```
+
+### libscenario_numa.so
+
+| Instance Name| Architecture| Description| Subscription| Topic|
+| --- | --- | --- | --- | --- | 
+| scenario_numa | AArch64| Obtain the cross-NUMA memory access ratio in the current environment. It is used by instances or SDKs through subscription (and cannot be enabled independently).| pmu_uncore_collector::uncore | system_score |
+
+### libtune_numa.so
+
+| Instance Name| Architecture| Description| Subscription|
+| --- | --- | --- | --- |
+| tune_numa_mem_access | AArch64| Periodically migrate threads and memory to reduce cross-NUMA memory access.| scenario_numa::system_score, pmu_spe_collector::spe, pmu_counting_collector::cycles |
+
+#### tune_numa_mem_access Usage
+
+You can run the `--help` command to view all parameters and their functions of tune_numa_mem_access.
+
+```shell
+[root@localhost ~]# oeawarectl -e tune_numa_mem_access -cmd "--help cmd"
+Instance enabled failed, because show help message:
+Usage: oeaware -e tune_numa_mem_access -cmd "[options][<param>]"
+   or vim /etc/numafast.yaml and set options
+ attr:c => support conf by cmdline, y => support conf by yaml, r => support reload yaml online
+Options:
+    -i, --sampling-interval <n>    attr:cy, every sampling interval n msec, range is [100, 100000], default is 100
+    -t, --sampling-times <n>       attr:cy, every optimizing have n times sampling, range is [1, 1000] default is 10
+    -m, --tune-mode <mode>         attr:cy, tune mode, mode can be [b, t, p], default is b
+                                              b: migrate page and thread
+                                              t: migrate thread only
+                                              p: migrate page only
+    -w, --load-way <alg>           attr:cy, load way, can be [b, c], default is b
+                                              b: balance the load of threads on all numa nodes
+                                              c: centralize processes to fewer numas based on load
+        --smt <alg>                attr:cy, smt mode, can be [off, phy-first], default is phy-first
+                                              off: disable smt
+                                              phy-first: migrate threads to physical cores first, may limit load
+    -h, --help <type>              attr:c, show help info, type can be [cmd, yaml], default is cmd
+    -v, --version                  attr:c, show version info
+    -W, --whitelist <process name list>
+                                   attr:cy, only migrate process in the list, regexp list split by comma, if not set, migrate all process.
+    -b, --blacklist <process name list>
+                                   attr:cy, do not migrate process in the list, regexp list split by comma, priority higher than whitelist.
+        --precise-load             attr:cy, load control precisely
+        --mem-numa-aggregation     attr:cy, process memory aggregate by numa
+        --mem-balance              attr:cy, process memory average by numa
+ other options refer to /etc/numafast.yaml
+
+[root@localhost format]# oeawarectl -e tune_numa_mem_access -cmd "--help yaml"
+Instance enabled failed, because show help message:
+Usage: vim /etc/numafast.yaml and set options
+sampling-interval: <n> # every sampling interval n msec, range is [100, 100000], default is 100
+sampling-times: <n> # every optimizing have n times sampling, range is [1, 1000] default is 10
+tune-mode: <mode> # tune mode, mode can be [b, t, p], default is b
+    # b: migrate page and thread
+    # t: migrate thread only
+    # p: migrate page only
+load-way: <alg> # load way, can be [b, c], default is b
+    # b: balance the load of threads on all numa nodes
+    # c: centralize processes to fewer numas based on load
+smt: <alg> # smt mode, can be [off, phy-first, load-first], default is phy-first
+    # off: disable smt
+    # phy-first: migrate threads to physical cores first, may limit load
+    # load-first: migrate threads to physical cores based on load, limit load
+whitelist: [] # only migrate process in the list, regexp list split by comma, if not set, migrate all process.
+group: # process affinity group
+    # - [process1, process2, ...]
+min-numa-score: <n> # min numa score, range is [0 ,1000], default is 955
+max-numa-score: <n> # max numa score, range is [0, 1000], default is 975
+min-rx-ops-per-ms: <n> # min rx ops per ms, default is 10000
+numa-ratio: [] # process initial load distribution for each node
+page-reserve: <n> # page reserve, range is [0, 4294967295], default is 100000
+precise-load: <true|false> # load control precisely
+mem-numa-aggregation: <true|false> # process memory aggregate by numa
+process: # process config
+    # - name: process1 # process name, /proc/pid/comm
+    #   params-regex: "" # process params regex, /proc/pid/cmdline
+    #   algorithm: "" # process algorithm, support [MigrateThreadsToOneNode, BalanceProcNum]
+    #   migrate-all-memory: "" # migrate all memory, support [true, false]
+    #   default-mig-mem-node: "" # default migrate memory node, support [0, numa_node_num - 1]
+    #   net-affinity: "" # process net affinity, set net interface name
+
+```
+
+## SDK Instructions
 
 ```C
-struct Param {
-   const struct DataRingBuf **ring_bufs;
-   int len;
-};
+typedef int(*Callback)(const DataList *);
+int OeInit(); // Initialize resources and establish a connection with the server.
+int OeSubscribe(const CTopic *topic, Callback callback); // Subscribe to a topic and execute the callback asynchronously.
+int OeUnsubscribe(const CTopic *topic); // Unsubscribe from a topic.
+int OePublish(const DataList *dataList); // Publish data to the server.
+void OeClose(); // Release resources.
 ```
 
-- **ring_bufs**: data required by the instance, sourced from other instances.
-- **len**: length of the **ring_bufs** array.
-
-### Instance Interfaces
+**Example**
 
 ```C
-struct Interface {
-    const char* (*get_version)();
-    /* The instance name is a unique identifier in the system. */
-    const char* (*get_name)();
-    const char* (*get_description)();
-    /* Specifies the instance dependencies, which is used as the input information
-     * for instance execution.
-     */
-    const char* (*get_dep)();
-    /* Instance scheduling priority. In a uniform time period, a instance with a 
-     * lower priority is scheduled first.
-     */
-    int (*get_priority)();
-    int (*get_type)();
-    /* Instance execution period. */
-    int (*get_period)();
-    bool (*enable)();
-    void (*disable)();
-    const struct DataRingBuf* (*get_ring_buf)();
-    void (*run)(const struct Param*);
-};
+#include "oe_client.h"
+#include "command_data.h"
+int f(const DataList *dataList)
+{
+    int i = 0;
+    for (; i < dataList->len; i++) {
+        CommandData *data = (CommandData*)dataList->data[i];
+        for (int j = 0; j < data->attrLen; ++j) {
+            printf("%s ", data->itemAttr[j]);
+        }
+        printf("\n");
+    }
+    return 0;
+}
+int main() {
+    OeInit();
+    CTopic topic = {
+        "command_collector",
+        "sar",
+        "-q 1",
+    };
+    if (OeSubscribe(&topic, f) < 0) {
+        printf("failed\n");
+    } else {
+        printf("success\n");
+    }
+    sleep(10);
+    OeClose();
+}
 ```
-
-```c
-int get_instance(Interface **interface);
-```
-
-Every plugin includes a **get_instance** function to provide instances to the framework.
-
-Obtaining the version number
-
-1. Interface definition
-
-    ```c
-    char* (*get_version)();
-    ```
-
-2. Interface description
-
-3. Parameter description
-
-4. Return value description
-
-    The specific version number is returned. This interface is reserved.
-
-Obtaining the instance name
-
-1. Interface definition
-
-    ```c
-    char* (*get_name)();
-    ```
-
-2. Interface description
-
-   Obtains the name of an instance. When you run the `-q` command on the client, the instance name is displayed. In addition, you can run the `--enable` command to enable the instance.
-
-3. Parameter description
-
-4. Return value description
-
-   The name of the instance is returned. Ensure that the instance name is unique.
-
-Obtaining description information
-
-1. Interface definition
-
-   ```c
-   char* (*get_description)();
-   ```
-
-2. Interface description
-
-3. Parameter description
-
-4. Return value description
-
-   The detailed description is returned. This interface is reserved.
-
-Obtaining the type
-
-1. Interface definition
-
-   ```c
-   char* (*get_type)();
-   ```
-
-2. Interface description
-
-3. Parameter description
-
-4. Return value description
-
-   The specific type information is returned. This interface is reserved.
-
-Obtaining the sampling period
-
-1. Interface definition
-
-   ```c
-   int (*get_cycle)();
-   ```
-
-2. Interface description
-
-   Obtains the sampling period. Different collection items can use different collection periods.
-
-3. Parameter description
-
-4. Return value description
-
-   The specific sampling period is returned. The unit is ms.
-
-Obtaining dependencies
-
-1. Interface definition
-
-   ```c
-   char* (*get_dep)();
-   ```
-
-2. Interface description
-
-3. Parameter description
-
-4. Return value description
-
-   Information about the dependent instances is returned. This interface is reserved.
-
-Enabling an instance
-
-1. Interface definition
-
-   ```c
-   void (*enable)();
-   ```
-
-2. Interface description
-
-   Enables an instance.
-
-3. Parameter description
-
-4. Return value description
-
-Disabling an instance
-
-1. Interface definition
-
-   ```c
-   void (*disable)();
-   ```
-
-2. Interface description
-
-   Disables an instance.
-
-3. Parameter description
-
-4. Return value description
-
-Obtaining the data buffer
-
-1. Interface definition
-
-   ```c
-   const DataRingBuf* (*get_ring_buf)();
-   ```
-
-2. Interface description
-
-   Obtains the buffer management pointer of the collection data (the memory is applied for by the plugin). The pointer is used by sensing plugins.
-
-3. Parameter description
-
-4. Return value description
-
-   The **struct DataRingBuf** management pointer is returned.
-
-Executing an instance
-
-1. Interface definition
-
-   ```c
-   void (*run)(const Param*);
-   ```
-
-2. Interface description
-
-   Runs at regular intervals according to the execution cycle.
-
-3. Parameter description
-
-   Contains the data necessary for the instance to execute.
-
-4. Return value description
-
-## Supported Plugins
-
-- **libpmu.so**: collects PMU-related data.
-- **libthread_collector.so**: gathers thread information within the system.
-- **libthread_scenario.so**: monitors details of a specific thread.
-- **libthread_tune.so**: enhances UnixBench performance.
-- **libsmc_tune.so**: enables SMC acceleration for seamless TCP protocol performance improvements.
-- **libtune_numa.so**: optimizes cross-NUMA node memory access to boost system performance.
 
 ## Constraints
 
 ### Function Constraints
 
-By default, oeAware integrates the libkperf module for collecting Arm microarchitecture information. This module can be called by only one process at a time. If this module is called by other processes or the perf command is used, conflicts may occur.
+By default, oeAware integrates the Arm microarchitecture profiling module libkperf. This module can only be accessed by one process at a time. If other processes or tools (such as perf) attempt to use it simultaneously, conflicts may occur.
 
 ### Operation Constraints
 
-Currently, only the **root** user can operate oeAware.
+oeAware only allows operations by users in the root group, while the SDK allows operations by users in both the root and oeaware groups.
 
-## Notes
+## Precautions
 
-The user group and permission of the oeAware configuration file and plugins are strictly verified. Do not modify the permissions and user group of oeAware-related files.
+oeAware performs strict validation on the configuration files, plugin user groups, and permissions. Do not modify the permissions or user group settings of any oeAware-related file.
 
-Permissions:
+Permission description:
 
-- Plugin files: 440
+- Plugin file: 440
 
 - Client executable file: 750
 

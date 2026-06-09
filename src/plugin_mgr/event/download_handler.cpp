@@ -49,6 +49,10 @@ EventResult DownloadHandler::Handle(const Event &event)
         supportPackageUrl[name].count(kernelMajorMinor)) {
         url = supportPackageUrl[name][kernelMajorMinor];
     }
+    if (url.empty()) {
+        WARN(logger, name << " url is empty.");
+        return EventResult(Opt::RESPONSE_ERROR, {"url is empty"});
+    }
     EventResult eventResult;
     INFO(logger, "download " << name << " from " << url << ".");
     eventResult.opt = Opt::RESPONSE_OK;

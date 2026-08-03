@@ -1,0 +1,19 @@
+# 磁盘自适应中断聚合插件配置文件
+# 该插件根据磁盘IOPS负载动态调整中断聚合设置，优化磁盘性能，仅支持NVMe磁盘
+# 插件名称
+plugin_name: disk_adapt_ic
+
+# IOPS 阈值，超过此值时考虑启用中断聚合
+iops_threshold: 1000000
+
+# 4k块占比阈值，使用平均块大小近似等效
+# 计算方法：平均块大小阈值 = 4k / 4k块占比阈值
+# 平均块大小超过阈值时，认为磁盘主要读写4k块
+iops_4k_ratio_threshold: 0.5
+
+# 中断聚合下发参数
+# 当磁盘IOPS超过阈值时，设置的中断聚合值
+interrupt_coalescing_value: 0x102
+
+# 采样周期（毫秒），控制统计频率
+sample_period_ms: 100

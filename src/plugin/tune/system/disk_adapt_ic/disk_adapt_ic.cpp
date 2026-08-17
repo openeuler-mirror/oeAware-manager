@@ -75,6 +75,32 @@ bool DiskAdaptIC::LoadConfig()
             INFO(logger, "Loaded sample_period_ms: " << sample_period_ms_);
         }
         
+        if (node["interrupt_coalescing_value"]) {
+            std::string ival_str = node["interrupt_coalescing_value"].as<std::string>();
+            try {
+                std::size_t pos;
+                int ival = std::stoi(ival_str, &pos, 0);  // 0 表示自动检测进制（0x开头为十六进制）
+                if (pos == ival_str.size()) {
+                    aggregation_enable_value_ = ival;
+                    INFO(logger, "Loaded interrupt_coalescing_value: 0x" << std::hex << aggregation_enable_value_);
+                } else {
+                    WARN(logger, "Invalid interrupt_coalescing_value format, using default: 0x" << std::hex << AGGREGATION_ENABLE);
+                }
+            } catch (const std::exception &e) {
+                WARN(logger, "Failed to parse interrupt_coalescing_value: " << e.what() << ", using default: 0x" << std::hex << AGGREGATION_ENABLE);
+            }
+        }
+        
+        if (node["iops_4k_ratio_threshold"]) {
+            double ratio = node["iops_4k_ratio_threshold"].as<double>();
+            if (ratio > 0 && ratio <= 1.0) {
+                iops_4k_ratio_threshold_ = ratio;
+                INFO(logger, "Loaded iops_4k_ratio_threshold: " << iops_4k_ratio_threshold_);
+            } else {
+                WARN(logger, "Invalid iops_4k_ratio_threshold (must be in (0, 1.0]), using default: " << DEFAULT_4K_RATIO_THRESHOLD);
+            }
+        }
+        
         config_loaded_ = true;
         return true;
     } catch (const YAML::Exception &e) {
@@ -277,7 +303,11 @@ bool DiskAdaptIC::Check4KBlockRatio(double avg_block_size_bytes)
     if (avg_block_size_bytes == 0) {
         return false;
     }
-    return avg_block_size_bytes <= 4096 * 2;
+    // 根据4K块占比阈值计算平均块大小阈值：平均块大小 = 4K / 4K块占比
+    int block_size_threshold = static_cast<int>(4096.0 / iops_4k_ratio_threshold_);
+    DEBUG(logger, " Check4KBlockRatio - avg_block_size: " << avg_block_size_bytes 
+         << ", threshold: " << block_size_threshold << ", ratio: " << iops_4k_ratio_threshold_);
+    return avg_block_size_bytes <= block_size_threshold;
 }
 
 /**
@@ -436,23 +466,6 @@ void DiskAdaptIC::RemoveDiskFromMonitor(const std::string &disk_name)
 }
 
 /**
- * @brief 处理Polling模式切换
- * 
- * 当磁盘切换到Polling模式时，自动关闭中断聚合。
- * 
- * @param disk 磁盘信息结构
- */
-void DiskAdaptIC::HandlePollingModeSwitch(DiskInfo &disk)
-{
-    if (disk.in_polling_mode && disk.ic_enabled) {
-        INFO(logger, "Disk " << disk.name << " is in polling mode, disabling IC.");
-        if (SetInterruptCoalescing(disk.dev_path, AGGREGATION_DISABLE)) {
-            disk.ic_enabled = false;
-        }
-    }
-}
-
-/**
  * @brief 处理设备错误
  * 
  * 当设备发生错误时，增加错误计数并在达到阈值时触发熔断。
@@ -506,20 +519,6 @@ void DiskAdaptIC::UpdateDiskStatus(DiskInfo &disk)
         return;
     }
     
-    bool prev_polling = disk.in_polling_mode;
-    disk.in_polling_mode = ReadIoPollMode(disk.sysfs_path);
-    
-    if (prev_polling != disk.in_polling_mode) {
-        INFO(logger, "Disk " << disk.name << " polling mode changed to: " << disk.in_polling_mode);
-    }
-    
-    HandlePollingModeSwitch(disk);
-    
-    if (disk.in_polling_mode) {
-        INFO(logger, "Disk " << disk.name << " is in polling mode, skip IC.");
-        return;
-    }
-    
     HandleDeviceRecovery(disk);
     
     if (disk.is_fused) {
@@ -556,8 +555,8 @@ void DiskAdaptIC::UpdateDiskStatus(DiskInfo &disk)
         }
         disk.consecutive_low_load = 0;
         
-        if (disk.consecutive_high_load >= 1) {
-            if (SetInterruptCoalescing(disk.dev_path, AGGREGATION_ENABLE)) {
+        if (disk.consecutive_high_load >= 1 && !disk.ic_enabled) {
+            if (SetInterruptCoalescing(disk.dev_path, aggregation_enable_value_)) {  // 使用配置值
                 disk.ic_enabled = true;
                 disk.error_count = 0;
             } else {
@@ -571,7 +570,7 @@ void DiskAdaptIC::UpdateDiskStatus(DiskInfo &disk)
         }
         disk.consecutive_high_load = 0;
         
-        if (disk.consecutive_low_load >= 1) {
+        if (disk.consecutive_low_load >= 1 && disk.ic_enabled) {
             if (SetInterruptCoalescing(disk.dev_path, AGGREGATION_DISABLE)) {
                 disk.ic_enabled = false;
                 disk.error_count = 0;
@@ -615,9 +614,65 @@ void DiskAdaptIC::UpdateData(const DataList &dataList)
 }
 
 /**
+ * @brief 检查polling模式是否启用
+ * 
+ * 检查所有监控磁盘的polling模式，如果任一磁盘启用了polling则返回true。
+ * 同时更新每个磁盘的in_polling_mode状态。
+ * 
+ * @return 任一磁盘启用了polling模式返回true，否则返回false
+ */
+bool DiskAdaptIC::CheckPollingMode()
+{
+    bool polling_enabled = false;
+    
+    for (auto &entry : monitored_disks_) {
+        DiskInfo &disk = entry.second;
+        std::string polling_path = disk.sysfs_path + "/queue/io_poll";
+        std::ifstream file(polling_path);
+        
+        if (file.good()) {
+            int value = 0;
+            file >> value;
+            disk.in_polling_mode = (value == 1);
+            
+            if (disk.in_polling_mode) {
+                polling_enabled = true;
+                WARN(logger, "Disk " << disk.name << " has IO polling mode enabled, interrupt coalescing may have limited effect.");
+            } else {
+                DEBUG(logger, "Disk " << disk.name << " is in interrupt mode.");
+            }
+        } else {
+            // 文件不存在可能是磁盘类型不支持此功能，不视为错误
+            DEBUG(logger, "Cannot read polling mode for disk " << disk.name << ", file not found.");
+            disk.in_polling_mode = false;
+        }
+    }
+    
+    return polling_enabled;
+}
+
+/**
+ * @brief 检查nvme命令包是否安装
+ * 
+ * 通过执行nvme命令检查是否安装了nvme-cli工具。
+ * 
+ * @return 安装了返回true，否则返回false
+ */
+bool DiskAdaptIC::CheckNvmeCliInstalled()
+{
+    int ret = system("which nvme > /dev/null 2>&1");
+    if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0) {
+        return true;
+    }
+    return false;
+}
+
+
+
+/**
  * @brief 使能插件
  * 
- * 加载配置，发现NVMe磁盘，启动监控线程。
+ * 加载配置，检查环境，发现NVMe磁盘，启动监控线程。
  * 
  * @param param 参数（未使用）
  * @return 操作结果
@@ -626,20 +681,44 @@ oeaware::Result DiskAdaptIC::Enable(const std::string &param)
 {
     (void)param;
     
-    // 加载配置
+    // 恢复所有配置参数为默认值
+    iops_threshold_ = DEFAULT_IOPS_THRESHOLD;
+    sample_period_ms_ = DEFAULT_SAMPLE_PERIOD_MS;
+    iops_4k_ratio_threshold_ = DEFAULT_4K_RATIO_THRESHOLD;
+    aggregation_enable_value_ = AGGREGATION_ENABLE;
+    config_loaded_ = false;
+    
+    // 检查nvme-cli是否安装（必须先检查，因为后续操作需要）
+    if (!CheckNvmeCliInstalled()) {
+        return oeaware::Result(FAILED, "nvme-cli is not installed, please install it first.");
+    }
+    INFO(logger, "nvme-cli is installed");
+    
+    // 读取配置文件
     if (!LoadConfig()) {
         WARN(logger, "Failed to load config, using defaults.");
     }
     
-    // 发现并添加监控磁盘
+    // 发现并添加监控磁盘（必须在检查polling模式之前完成）
     std::vector<std::string> nvme_disks = DiscoverNvmeDisks();
     if (nvme_disks.empty()) {
-        INFO(logger, "No NVMe disks found.");
+        return oeaware::Result(FAILED, "No NVMe disks found.");
     }
     
-    // 对所有发现的 NVMe 磁盘添加监控
     for (const auto &disk_name : nvme_disks) {
         AddDiskToMonitor(disk_name);
+    }
+    
+    // 对每个磁盘检查polling模式（需要先有磁盘列表）
+    // 如果有任一磁盘启用了polling模式，则不启用插件
+    if (CheckPollingMode()) {
+        monitored_disks_.clear();  // 清理已添加的磁盘
+        return oeaware::Result(FAILED, "Cannot enable plugin because some disks are in IO polling mode.");
+    }
+    
+    // 先关闭所有磁盘的中断聚合，初始状态从干净状态开始
+    for (auto &entry : monitored_disks_) {
+            SetInterruptCoalescing(entry.second.dev_path, AGGREGATION_DISABLE);
     }
     
     // 设置启用标志，Run() 方法会检查此标志

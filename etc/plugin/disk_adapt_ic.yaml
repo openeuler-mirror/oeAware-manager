@@ -4,11 +4,13 @@
 plugin_name: disk_adapt_ic
 
 # IOPS 阈值，超过此值时考虑启用中断聚合
+# 有效范围：[0, 10000000]
 iops_threshold: 1000000
 
 # 4k块占比阈值，使用平均块大小近似等效
-# 计算方法：平均块大小阈值 = 4k / 4k块占比阈值
-# 平均块大小超过阈值时，认为磁盘主要读写4k块
+# 计算方法：4k / 平均块大小 > 4k块占比阈值
+# 4k块占比超过阈值时，认为磁盘主要读写4k块
+# 有效范围：(0, 1.0]
 iops_4k_ratio_threshold: 0.5
 
 # 中断聚合下发参数
@@ -16,4 +18,5 @@ iops_4k_ratio_threshold: 0.5
 interrupt_coalescing_value: 0x102
 
 # 采样周期（毫秒），控制统计频率
+# 有效范围：[100, 1000]
 sample_period_ms: 100

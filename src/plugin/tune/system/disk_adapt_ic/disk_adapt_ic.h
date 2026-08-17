@@ -33,7 +33,7 @@ constexpr const char* IC_CONFIG_FILE = "disk_adapt_ic.yaml";
 
 constexpr int DEFAULT_SAMPLE_PERIOD_MS = 100;
 constexpr int DEFAULT_IOPS_THRESHOLD = 1000000;
-constexpr int DEFAULT_4K_RATIO_THRESHOLD = 50;
+constexpr double DEFAULT_4K_RATIO_THRESHOLD = 0.5;
 constexpr int AGGREGATION_ENABLE = 0x102;
 constexpr int AGGREGATION_DISABLE = 0x0;
 constexpr int MAX_RETRY_COUNT = 3;
@@ -81,6 +81,8 @@ public:
 
 private:
     bool LoadConfig();
+    bool CheckPollingMode();
+    bool CheckNvmeCliInstalled();
     std::vector<std::string> DiscoverNvmeDisks();
     bool IsNvmeDisk(const std::string &disk_name);
     bool CheckDeviceExists(const std::string &dev_path);
@@ -104,6 +106,8 @@ private:
     std::mutex config_mutex_;
     int iops_threshold_ = DEFAULT_IOPS_THRESHOLD;
     uint64_t sample_period_ms_ = DEFAULT_SAMPLE_PERIOD_MS;
+    double iops_4k_ratio_threshold_ = DEFAULT_4K_RATIO_THRESHOLD;  // 4K块占比阈值，从配置读取
+    int aggregation_enable_value_ = AGGREGATION_ENABLE;  // 中断聚合启用值，从配置读取
     uint64_t last_run_time_ms_ = 0;
     const std::string config_path_ = oeaware::DEFAULT_PLUGIN_CONFIG_PATH + "/" + IC_CONFIG_FILE;
     bool config_loaded_ = false;

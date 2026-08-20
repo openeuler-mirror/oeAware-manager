@@ -1,0 +1,51 @@
+# 修复模式：仅对暂存区文件生效；存量仓库请勿运行 pre-commit run --all-files
+minimum_pre_commit_version: "4.0"
+
+repos:
+  # ===== 通用基础 hook（所有语言） =====
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace          # 修复：移除行尾空白
+        exclude: ^(src/3rd/|pnpm-lock\.yaml|package-lock\.json|.*\.lock)$
+      - id: end-of-file-fixer            # 修复：确保文件以单个换行结尾
+        exclude: ^(src/3rd/|pnpm-lock\.yaml|package-lock\.json|.*\.lock)$
+      - id: check-yaml
+      - id: check-json
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-added-large-files      # vendored 内核头文件（src/3rd）不受大小限制
+        exclude: ^src/3rd/
+      - id: detect-private-key
+
+  # ===== 密钥检测 =====
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # ===== 拼写检查 =====
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        args: [--skip=*.lock,node_modules,.next,coverage,build,dist]
+        exclude: ^(src/3rd/|vendor/|third_party/)
+
+  # ===== C/C++：ClangFormat（修复）+ Cppcheck（检查） =====
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        description: 格式化 C/C++ 源码（修复模式，仅对暂存区文件生效）
+        entry: clang-format -i --style=file
+        language: system
+        types_or: [c, c++]
+        exclude: ^src/3rd/
+      - id: cppcheck
+        name: cppcheck
+        description: C/C++ 静态缺陷检查（只读；规则宽松起步，按存量基线逐步收紧）
+        entry: cppcheck --enable=warning,performance,portability --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem --suppress=missingInclude
+        language: system
+        files: \.(c|cc|cpp|cxx)$
+        exclude: ^src/3rd/

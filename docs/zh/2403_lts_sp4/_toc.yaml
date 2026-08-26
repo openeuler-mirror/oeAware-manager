@@ -1,0 +1,6 @@
+label: oeAware用户指南
+isManual: true
+description: 动态感知系统行为后，智能使能系统的调优特性
+sections:
+  - label: oeAware用户指南
+    href: ./oeaware_user_guide.md

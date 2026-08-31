@@ -1,0 +1,22 @@
+# 格式基准：基于 LLVM，按 oeAware 现有风格定制（函数大括号换行、4 空格缩进）
+# 收紧路径：先按存量基线校准列宽/缩进，再逐步收紧排序与风格类规则
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterStruct: false
+  AfterClass: false
+  AfterNamespace: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeElse: false
+  BeforeCatch: false
+  BeforeLambdaBody: false
+PointerAlignment: Left
+SortIncludes: false

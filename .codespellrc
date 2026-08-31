@@ -1,0 +1,3 @@
+[codespell]
+skip = .git,*.lock,node_modules,.next,coverage,build,dist,vendor,third_party,src/3rd
+# 项目术语/专有名词加入忽略列表；该值留空会导致参数错误，不填就整行删除。

@@ -6,7 +6,7 @@ oeAware是在openEuler上实现低负载采集感知调优的框架，目标是�
 
 ## 安装
 
-配置openEuler的yum源，使用yum命令安装。在openEuler-24.03-LTS-SP3版本中会默认安装。
+配置openEuler的yum源，使用yum命令安装。在openEuler-24.03-LTS-SP4版本中会默认安装。
 
 ```shell
 yum install oeAware-manager

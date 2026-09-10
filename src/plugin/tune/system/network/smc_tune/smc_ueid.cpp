@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include "smc_ueid.h"
+#include <string>
 
 static const int SMC_CMD_MAX_LEN = 128;
 const struct nla_policy smc_gen_ueid_policy[SMC_ACC_NLA_EID_TABLE_MAX + 1] = {
@@ -22,7 +23,9 @@ const std::vector<std::string> whiteList ={
     "lsmod",
     "grep",
     "rmmod",
-    "insmod"
+    "insmod",
+    "modprobe",
+    "sysctl"
 };
 
 static int HandleGenUeidReply(struct nl_msg *msg, void *arg)
@@ -72,17 +75,38 @@ static int Exec(const std::string &cmd)
         SMCLOG_ERROR("Invalid command: " << cmd);
         return -1;
     }
-    // 使用白名单检查命令是否合法，外部无法随意控制
     output = popen(cmd.c_str(), "r");
     if (output == NULL) {
         return -1;
     }
-    // Discard all output to avoid blocking pipe
     while (fgets(buffer, sizeof(buffer), output) != NULL) {
     }
 
     status = pclose(output);
     SMCLOG_INFO(" command: " << cmd << ", status:" << WEXITSTATUS(status));
+    return WEXITSTATUS(status);
+}
+
+static int ExecWithOutput(const std::string &cmd, std::string &outputStr)
+{
+    FILE *output;
+    char buffer[SMC_CMD_MAX_LEN];
+    int status;
+
+    if (!IsValidCmd(cmd)) {
+        SMCLOG_ERROR("Invalid command: " << cmd);
+        return -1;
+    }
+    output = popen(cmd.c_str(), "r");
+    if (output == NULL) {
+        return -1;
+    }
+    outputStr.clear();
+    while (fgets(buffer, sizeof(buffer), output) != NULL) {
+        outputStr += buffer;
+    }
+
+    status = pclose(output);
     return WEXITSTATUS(status);
 }
 
@@ -125,6 +149,35 @@ int SmcOperator::InvokeUeid(int act)
 void SmcOperator::SetEnable(int isEnable)
 {
     enable = isEnable;
+}
+
+bool SmcOperator::CheckUlpSupport()
+{
+    std::string output;
+    int rc;
+    bool smc_loaded_by_us = false;
+
+    if (Exec("lsmod | grep -w smc") != EXIT_SUCCESS) {
+        rc = Exec("modprobe smc");
+        if (rc != EXIT_SUCCESS) {
+            SMCLOG_WARN("modprobe smc failed, smc module may not be available");
+            return false;
+        }
+        smc_loaded_by_us = true;
+    }
+
+    rc = ExecWithOutput("sysctl -a 2>/dev/null | grep tcp_available_ulp", output);
+    if (rc != EXIT_SUCCESS || output.find("smc") == std::string::npos) {
+        SMCLOG_ERROR("SMC ULP not supported on this kernel (tcp_available_ulp does not contain smc)");
+        if (smc_loaded_by_us) {
+            Exec("rmmod smc");
+            SMCLOG_INFO("unloaded smc module");
+        }
+        return false;
+    }
+
+    SMCLOG_INFO("SMC ULP is supported, tcp_available_ulp: " << output);
+    return true;
 }
 
 int SmcOperator::RunSmcAcc()
@@ -200,6 +253,12 @@ int SmcOperator::SmcExit()
 int SmcOperator::AbleSmcAcc(int isEnable)
 {
     int rc = EXIT_FAILURE;
+
+    if (enable == SMC_ENABLE && !CheckUlpSupport()) {
+        SMCLOG_ERROR("SMC ULP not supported on this kernel, aborting smc_acc ko load");
+        return rc;
+    }
+
     if (SmcInit() == EXIT_FAILURE) {
         SMCLOG_ERROR("failed to Exec init");
         return rc;

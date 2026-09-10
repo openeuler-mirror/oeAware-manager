@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <iostream>
+#include <string>
 #include "smc_common.h"
 #include "smc_netlink.h"
 
@@ -31,6 +32,7 @@ public:
     }
     int InvokeUeid(int act);
     void SetEnable(int isEnable);
+    bool CheckUlpSupport();
     int RunSmcAcc();
     int CheckSmcKo();
     int SmcInit();

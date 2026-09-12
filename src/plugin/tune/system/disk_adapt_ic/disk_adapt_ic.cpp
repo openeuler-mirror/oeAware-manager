@@ -311,6 +311,126 @@ bool DiskAdaptIC::Check4KBlockRatio(double avg_block_size_bytes)
 }
 
 /**
+ * @brief 解析 nvme list 输出的 JSON，建立 NameSpace 到 Controller 的映射
+ * 
+ * 执行 nvme list -v -o json 获取所有 NVMe 设备信息，
+ * 解析 JSON 结构，将每个 NameSpace 映射到其对应的 Controller。
+ * 
+ * @return 解析成功返回 true
+ */
+bool DiskAdaptIC::ParseControllerMapping()
+{
+    namespace_to_controller_.clear();
+    
+    std::string cmd = "nvme list -v -o json 2>/dev/null";
+    DEBUG(logger, "ParseControllerMapping: Executing " << cmd);
+    
+    FILE *pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        ERROR(logger, "ParseControllerMapping: Failed to execute " << cmd);
+        return false;
+    }
+    
+    std::string json_output;
+    char buffer[4096];
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        json_output += buffer;
+    }
+    pclose(pipe);
+    
+    if (json_output.empty()) {
+        ERROR(logger, "ParseControllerMapping: empty output");
+        return false;
+    }
+    
+    DEBUG(logger, "ParseControllerMapping: JSON output length=" << json_output.length());
+    
+    try {
+        YAML::Node root = YAML::Load(json_output);
+        
+        if (!root["Devices"] || !root["Devices"].IsSequence()) {
+            WARN(logger, "ParseControllerMapping: no Devices array found");
+            return false;
+        }
+        
+        for (const auto &device : root["Devices"]) {
+            if (!device["Subsystems"] || !device["Subsystems"].IsSequence()) continue;
+            
+            for (const auto &subsystem : device["Subsystems"]) {
+                if (!subsystem["Controllers"] || !subsystem["Controllers"].IsSequence()) continue;
+                
+                for (const auto &controller : subsystem["Controllers"]) {
+                    if (!controller["Controller"] || !controller["Namespaces"]) continue;
+                    
+                    std::string ctrl_name = controller["Controller"].as<std::string>();
+                    DEBUG(logger, "ParseControllerMapping: Controller=" << ctrl_name);
+                    
+                    const auto &namespaces = controller["Namespaces"];
+                    if (!namespaces.IsSequence()) continue;
+                    
+                    for (const auto &ns : namespaces) {
+                        if (!ns["NameSpace"]) continue;
+                        std::string ns_name = ns["NameSpace"].as<std::string>();
+                        namespace_to_controller_[ns_name] = ctrl_name;
+                        DEBUG(logger, "ParseControllerMapping: " << ns_name << " -> " << ctrl_name);
+                    }
+                }
+            }
+        }
+        
+        DEBUG(logger, "ParseControllerMapping: parsed " << namespace_to_controller_.size() << " mappings");
+        return !namespace_to_controller_.empty();
+        
+    } catch (const std::exception &e) {
+        ERROR(logger, "ParseControllerMapping: failed to parse JSON: " << e.what());
+        return false;
+    }
+}
+
+/**
+ * @brief 从设备路径解析控制器路径
+ * 
+ * 优先使用通过 nvme list 解析得到的映射关系，
+ * 如果映射不存在，则回退到从盘名格式解析。
+ * 
+ * @param dev_path 设备路径或盘名（如 /dev/nvme0n1 或 nvme0n1）
+ * @return 控制器路径（如 /dev/nvme0）
+ */
+std::string DiskAdaptIC::GetControllerPath(const std::string &dev_path)
+{
+    std::string disk_name = dev_path;
+    
+    size_t dev_pos = dev_path.find_last_of('/');
+    if (dev_pos != std::string::npos) {
+        disk_name = dev_path.substr(dev_pos + 1);
+    }
+    
+    auto it = namespace_to_controller_.find(disk_name);
+    if (it != namespace_to_controller_.end()) {
+        std::string controller_path = "/dev/" + it->second;
+        DEBUG(logger, "GetControllerPath: " << disk_name << " -> " << controller_path << " (from mapping)");
+        return controller_path;
+    }
+    
+    DEBUG(logger, "GetControllerPath: no mapping for " << disk_name << ", fallback to parsing");
+    
+    size_t match_pos = disk_name.find("nvme");
+    if (match_pos != std::string::npos) {
+        std::string suffix = disk_name.substr(match_pos + 4);
+        size_t n_pos = suffix.find('n');
+        if (n_pos != std::string::npos) {
+            std::string ctrl_index = suffix.substr(0, n_pos);
+            std::string controller_path = "/dev/nvme" + ctrl_index;
+            DEBUG(logger, "GetControllerPath: " << disk_name << " -> " << controller_path << " (fallback)");
+            return controller_path;
+        }
+    }
+    
+    WARN(logger, "GetControllerPath: failed to parse controller for " << dev_path);
+    return "";
+}
+
+/**
  * @brief 设置中断聚合参数
  * 
  * 调用nvme-cli工具设置NVMe磁盘的中断聚合参数。
@@ -326,18 +446,17 @@ bool DiskAdaptIC::SetInterruptCoalescing(const std::string &dev_path, int value)
     if (GetInterruptCoalescing(dev_path, current_value)) {
         if (current_value == value) {
             DEBUG(logger, "SetInterruptCoalescing: Already at target value (0x" << std::hex << value << "), skipping");
-            return true;  // 已经是目标值，无需操作
+            return true;
         }
         INFO(logger, "SetInterruptCoalescing: Current (0x" << std::hex << current_value << ") -> Target (0x" << value << ")");
     } else {
         WARN(logger, "SetInterruptCoalescing: Failed to get current value, proceeding with set");
     }
     
-    // 将命名空间路径 /dev/nvme0n1 转换为控制器路径 /dev/nvme0
-    std::string ctrl_path = dev_path;
-    size_t pos = ctrl_path.rfind("n");
-    if (pos != std::string::npos && pos > 4) {  // 确保在 "nvme" 之后
-        ctrl_path = ctrl_path.substr(0, pos);
+    std::string ctrl_path = GetControllerPath(dev_path);
+    if (ctrl_path.empty()) {
+        ERROR(logger, "SetInterruptCoalescing: Failed to parse controller path from: " << dev_path);
+        return false;
     }
     
     std::string cmd = "nvme set-feature " + ctrl_path + " --feature-id=8 --value=" + std::to_string(value) + " 2>/dev/null";
@@ -371,11 +490,10 @@ bool DiskAdaptIC::SetInterruptCoalescing(const std::string &dev_path, int value)
  */
 bool DiskAdaptIC::GetInterruptCoalescing(const std::string &dev_path, int &value)
 {
-    // 将命名空间路径 /dev/nvme0n1 转换为控制器路径 /dev/nvme0
-    std::string ctrl_path = dev_path;
-    size_t pos = ctrl_path.rfind("n");
-    if (pos != std::string::npos && pos > 4) {  // 确保在 "nvme" 之后
-        ctrl_path = ctrl_path.substr(0, pos);
+    std::string ctrl_path = GetControllerPath(dev_path);
+    if (ctrl_path.empty()) {
+        ERROR(logger, "GetInterruptCoalescing: Failed to parse controller path from: " << dev_path);
+        return false;
     }
     
     // 正确提取 Current value 后面的十六进制值，而不是 feature-id
@@ -447,8 +565,21 @@ void DiskAdaptIC::AddDiskToMonitor(const std::string &disk_name)
         info.in_polling_mode = ReadIoPollMode(info.sysfs_path);
         ReadDiskStats(info.sysfs_path, info.current_stats);
         info.prev_stats = info.current_stats;
+        
+        // 重置所有状态计数
+        info.consecutive_high_load = 0;
+        info.consecutive_low_load = 0;
+        info.error_count = 0;
+        info.is_fused = false;
+        info.last_fuse_time = 0;
+        info.to_be_removed = false;
+        
+        // 初始关闭 IC，与 Enable() 保持一致
+        SetInterruptCoalescing(info.dev_path, AGGREGATION_DISABLE);
+        info.ic_enabled = false;
+        
         monitored_disks_[disk_name] = info;
-        INFO(logger, "Added disk to monitor: " << disk_name);
+        INFO(logger, "Added disk to monitor: " << disk_name << " (IC initialized to disabled)");
     }
 }
 
@@ -499,7 +630,19 @@ void DiskAdaptIC::HandleDeviceRecovery(DiskInfo &disk)
     if (disk.is_fused && (now - disk.last_fuse_time) > FUSE_DELAY_MS) {
         disk.is_fused = false;
         disk.error_count = 0;
-        INFO(logger, "Disk " << disk.name << " recovered from fuse.");
+        disk.consecutive_high_load = 0;
+        disk.consecutive_low_load = 0;
+        disk.last_fuse_time = 0;
+        disk.ic_enabled = false;
+        
+        // 重新读取初始统计
+        ReadDiskStats(disk.sysfs_path, disk.current_stats);
+        disk.prev_stats = disk.current_stats;
+        
+        // 初始关闭 IC
+        SetInterruptCoalescing(disk.dev_path, AGGREGATION_DISABLE);
+        
+        INFO(logger, "Disk " << disk.name << " recovered from fuse, all state reset.");
     }
 }
 
@@ -694,6 +837,9 @@ oeaware::Result DiskAdaptIC::Enable(const std::string &param)
     }
     INFO(logger, "nvme-cli is installed");
     
+    // 解析控制器映射关系
+    ParseControllerMapping();
+    
     // 读取配置文件
     if (!LoadConfig()) {
         WARN(logger, "Failed to load config, using defaults.");
@@ -790,8 +936,12 @@ void DiskAdaptIC::Run()
     last_run_time_ms_ = now;
     
     try {
-        // 1. 发现新磁盘
-        DEBUG(logger, " Run() - Step 1: Discovering NVMe disks");
+        // 1. 解析控制器映射关系（每次运行都解析，确保动态变化的磁盘能正确识别）
+        DEBUG(logger, " Run() - Step 1: Updating controller mappings");
+        ParseControllerMapping();
+        
+        // 2. 发现新磁盘
+        DEBUG(logger, " Run() - Step 2: Discovering NVMe disks");
         std::vector<std::string> current_disks = DiscoverNvmeDisks();
         DEBUG(logger, " Run() - Found " << current_disks.size() << " disks");
         
@@ -802,8 +952,8 @@ void DiskAdaptIC::Run()
             }
         }
         
-        // 2. 更新所有监控磁盘的状态
-        DEBUG(logger, " Run() - Step 2: Updating disk status, monitored count: " << monitored_disks_.size());
+        // 3. 更新所有监控磁盘的状态
+        DEBUG(logger, " Run() - Step 3: Updating disk status, monitored count: " << monitored_disks_.size());
         for (auto &entry : monitored_disks_) {
             if (entry.second.is_enabled) {
                 DEBUG(logger, " Run() - Updating status for: " << entry.first);
@@ -811,8 +961,8 @@ void DiskAdaptIC::Run()
             }
         }
         
-        // 3. 统一清理标记为待删除的磁盘（避免迭代器失效）
-        DEBUG(logger, " Run() - Step 3: Cleaning up removed disks");
+        // 4. 统一清理标记为待删除的磁盘（避免迭代器失效）
+        DEBUG(logger, " Run() - Step 4: Cleaning up removed disks");
         std::vector<std::string> to_remove;
         for (const auto &entry : monitored_disks_) {
             if (entry.second.to_be_removed) {

@@ -36,7 +36,7 @@ constexpr int DEFAULT_IOPS_THRESHOLD = 1000000;
 constexpr double DEFAULT_4K_RATIO_THRESHOLD = 0.5;
 constexpr int AGGREGATION_ENABLE = 0x102;
 constexpr int AGGREGATION_DISABLE = 0x0;
-constexpr int MAX_RETRY_COUNT = 3;
+constexpr int MAX_RETRY_COUNT = 1;
 constexpr int FUSE_DELAY_MS = 5000;
 
 struct DiskStats {
@@ -93,6 +93,8 @@ private:
     bool Check4KBlockRatio(double avg_block_size_bytes);
     bool SetInterruptCoalescing(const std::string &dev_path, int value);
     bool GetInterruptCoalescing(const std::string &dev_path, int &value);
+    bool ParseControllerMapping();
+    std::string GetControllerPath(const std::string &dev_path);
     void UpdateDiskStatus(DiskInfo &disk);
     void HandlePollingModeSwitch(DiskInfo &disk);
     void HandleDeviceError(DiskInfo &disk);
@@ -102,6 +104,7 @@ private:
 
 private:
     std::map<std::string, DiskInfo> monitored_disks_;
+    std::map<std::string, std::string> namespace_to_controller_;
     std::mutex disks_mutex_;
     std::mutex config_mutex_;
     int iops_threshold_ = DEFAULT_IOPS_THRESHOLD;

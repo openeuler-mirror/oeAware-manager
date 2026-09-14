@@ -546,7 +546,7 @@ fsdisk
 | hardirq_tune | aarch64 | 将网卡队列对应的中断尽量和使用该中断的业务绑定在相同numa上，减少跨numa访问 | 无 |
 | multi_net_path | aarch64 | 网卡多路径调优，每个中断只处理所在numa上的业务 | 无 |
 | soft_domain_tune | aarch64 | 分域调度调优，多实例业务单个实例尽量在独立的调度域内调度，更加亲和 | env_info::static, thread_collector::thread_collector, docker_collector::docker_collector | 
-| disk_adapt_ic | aarch64/x86 | 自适应磁盘中断聚合调优，根据磁盘负载动态调整 NVMe 中断聚合参数，平衡延迟与 CPU 开销 | 无 |
+| disk_adapt_ic | aarch64 | 自适应磁盘中断聚合调优，根据磁盘负载动态调整 NVMe 中断聚合参数，平衡延迟与 CPU 开销 | 无 |
 
 #### 配置文件
 
